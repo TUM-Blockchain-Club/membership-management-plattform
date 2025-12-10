@@ -13,6 +13,12 @@ export default function Hero() {
 
   return (
     <section className="relative w-full min-h-screen flex items-center justify-center px-6">
+      {/* Animated Grid Background */}
+      <div className="absolute inset-0 grid-background">
+        <div className="absolute inset-0 grid-pattern" />
+        <div className="absolute inset-0 grid-glow" />
+      </div>
+
       {/* Centered Card */}
       <div
         className={`relative z-10 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl p-12 sm:p-16 max-w-xl w-full text-center transition-all duration-1000 ${

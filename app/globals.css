@@ -36,6 +36,47 @@ body {
   overflow-x: hidden;
 }
 
+/* Grid Background Styles */
+.grid-background {
+  background: linear-gradient(135deg, #0D0D0D 0%, #151525 50%, #1A1440 100%);
+}
+
+.grid-pattern {
+  background-image: 
+    linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
+  animation: gridMove 20s linear infinite;
+}
+
+.grid-glow {
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(139, 92, 246, 0.08) 0%,
+    rgba(59, 130, 246, 0.05) 30%,
+    transparent 70%
+  );
+  animation: pulseGlow 8s ease-in-out infinite;
+}
+
+@keyframes gridMove {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(50px, 50px);
+  }
+}
+
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.8;
+  }
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
