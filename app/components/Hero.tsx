@@ -38,7 +38,7 @@ export default function Hero() {
         {/* Sign In Button */}
         <Link
           href="/signin"
-          className="inline-flex items-center justify-center gap-3 px-10 py-4 rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold text-lg transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-purple-500/30"
+          className="inline-flex items-center justify-center gap-3 px-10 py-4 rounded-full border border-white/30 text-white font-medium text-sm transition-all duration-300 hover:bg-white hover:text-black hover:border-white"
         >
           <span>Sign In</span>
           <svg
