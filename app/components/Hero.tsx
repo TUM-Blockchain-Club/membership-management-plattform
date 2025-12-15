@@ -13,17 +13,15 @@ export default function Hero() {
 
   return (
     <section className="relative w-full min-h-screen flex items-center justify-center px-6">
-      {/* Animated Grid Background */}
       <div className="absolute inset-0 grid-background">
         <div className="absolute inset-0 grid-pattern" />
         <div className="absolute inset-0 grid-glow" />
       </div>
 
-      {/* Centered Card */}
       <div
         className={`relative z-10 bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl p-12 sm:p-16 max-w-xl w-full text-center transition-all duration-1000 ${
           isLoaded
-            ? "opacity-100 translate-y-0"
+            ? "opacity-100 translate-y-0 animate-border-draw"
             : "opacity-0 translate-y-8"
         }`}
       >
@@ -35,7 +33,6 @@ export default function Hero() {
           Exclusive access for TUM Blockchain Club.
         </p>
 
-        {/* Sign In Button */}
         <Link
           href="/signin"
           className="inline-flex items-center justify-center gap-3 px-10 py-4 rounded-full border border-white/30 text-white font-medium text-sm transition-all duration-300 hover:bg-white hover:text-black hover:border-white"
