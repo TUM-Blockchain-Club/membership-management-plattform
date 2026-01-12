@@ -32,15 +32,9 @@ export default function SignIn() {
     setLoading(true)
     setError('')
     
-    console.log('🟢 [SignIn] Starting Google sign in')
-    console.log('🟢 [SignIn] Origin:', window.location.origin)
-    
     const { error: signInError } = await auth.signInWithGoogle()
     
-    console.log('🟢 [SignIn] Google sign in result:', signInError)
-    
     if (signInError) {
-      console.error('🔴 [SignIn] Error:', signInError)
       setError(signInError.message)
       setLoading(false)
     }

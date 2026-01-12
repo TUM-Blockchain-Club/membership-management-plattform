@@ -4,16 +4,16 @@ import type { Member } from './types/database.types'
 export const memberService = {
   getAllMembers: async () => {
     const { data, error } = await supabase
-      .from('members')
+      .from('members_main')
       .select('*')
-      .order('first_name', { ascending: true })
+      .order('Name', { ascending: true })
     
     return { data, error }
   },
 
-  getMemberById: async (id: string) => {
+  getMemberById: async (id: number) => {
     const { data, error } = await supabase
-      .from('members')
+      .from('members_main')
       .select('*')
       .eq('id', id)
       .single()
@@ -21,59 +21,50 @@ export const memberService = {
     return { data, error }
   },
 
-  getMemberByUserId: async (userId: string) => {
-    console.log('🔍 [memberService] Querying members table for user_id:', userId)
-    const query = supabase
-      .from('members')
+  getMemberByEmail: async (email: string) => {
+    const { data, error } = await supabase
+      .from('members_main')
       .select('*')
-      .eq('user_id', userId)
-      .single()
-    
-    console.log('🔍 [memberService] Query object:', query)
-    
-    const { data, error } = await query
-    
-    console.log('🔍 [memberService] Raw response data:', data)
-    console.log('🔍 [memberService] Raw response error:', error)
-    console.log('🔍 [memberService] Error details:', JSON.stringify(error, null, 2))
+      .ilike('TBC Email', email)
+      .maybeSingle()
     
     return { data, error }
   },
 
   getActiveMembers: async () => {
     const { data, error } = await supabase
-      .from('members')
+      .from('members_main')
       .select('*')
-      .eq('status', 'Active')
-      .order('first_name', { ascending: true })
+      .eq('Status', 'Active')
+      .order('Name', { ascending: true })
     
     return { data, error }
   },
 
   getMembersByDepartment: async (department: string) => {
     const { data, error } = await supabase
-      .from('members')
+      .from('members_main')
       .select('*')
-      .eq('department', department)
-      .eq('status', 'Active')
-      .order('first_name', { ascending: true })
+      .eq('Department', department)
+      .eq('Status', 'Active')
+      .order('Name', { ascending: true })
     
     return { data, error }
   },
 
   getMembersByRole: async (role: string) => {
     const { data, error } = await supabase
-      .from('members')
+      .from('members_main')
       .select('*')
-      .eq('role', role)
-      .order('first_name', { ascending: true })
+      .eq('Role', role)
+      .order('Name', { ascending: true })
     
     return { data, error }
   },
 
   createMember: async (member: Partial<Member>) => {
     const { data, error } = await supabase
-      .from('members')
+      .from('members_main')
       .insert(member)
       .select()
       .single()
@@ -81,9 +72,9 @@ export const memberService = {
     return { data, error }
   },
 
-  updateMember: async (id: string, updates: Partial<Member>) => {
+  updateMember: async (id: number, updates: Partial<Member>) => {
     const { data, error } = await supabase
-      .from('members')
+      .from('members_main')
       .update(updates)
       .eq('id', id)
       .select()
@@ -92,9 +83,9 @@ export const memberService = {
     return { data, error }
   },
 
-  deleteMember: async (id: string) => {
+  deleteMember: async (id: number) => {
     const { error } = await supabase
-      .from('members')
+      .from('members_main')
       .delete()
       .eq('id', id)
     
@@ -141,10 +132,10 @@ export const memberService = {
 
   searchMembers: async (searchTerm: string) => {
     const { data, error } = await supabase
-      .from('members')
+      .from('members_main')
       .select('*')
-      .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,tbc_email.ilike.%${searchTerm}%`)
-      .order('first_name', { ascending: true })
+      .or(`Name.ilike.%${searchTerm}%,"TBC Email".ilike.%${searchTerm}%`)
+      .order('Name', { ascending: true })
     
     return { data, error }
   },
