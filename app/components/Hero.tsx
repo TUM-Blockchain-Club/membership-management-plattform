@@ -26,7 +26,7 @@ export default function Hero() {
         }`}
       >
         <h1 className="text-4xl sm:text-5xl md:text-[3.5rem] font-bold tracking-tight leading-tight mb-4 text-white">
-          Membership Portal
+          Membership Managment Plattform
         </h1>
 
         <p className="text-base sm:text-lg text-white/60 mb-10 leading-relaxed">
