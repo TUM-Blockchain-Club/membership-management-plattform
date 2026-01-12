@@ -5,15 +5,23 @@ import { useRouter } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { memberService } from '@/lib/members'
 
+type TabType = 'profile' | 'members' | 'stats'
+
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
   const [member, setMember] = useState<any>(null)
+  const [allMembers, setAllMembers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [editedMember, setEditedMember] = useState<any>(null)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [uploadingImage, setUploadingImage] = useState(false)
+  const [activeTab, setActiveTab] = useState<TabType>('profile')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [departmentFilter, setDepartmentFilter] = useState<string>('all')
+  const [roleFilter, setRoleFilter] = useState<string>('all')
   const router = useRouter()
 
   const getPictureUrl = (picture: any) => {
@@ -68,6 +76,12 @@ export default function Dashboard() {
       }
 
       setMember(memberData)
+
+      const { data: allMembersData } = await memberService.getAllMembers()
+      if (allMembersData) {
+        setAllMembers(allMembersData)
+      }
+      
       setLoading(false)
     }
 
@@ -132,6 +146,40 @@ export default function Dashboard() {
     )
   }
 
+  const filteredMembers = allMembers.filter(m => 
+    m.Name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    m.Department?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    m.Role?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    m['TBC Email']?.toLowerCase().includes(searchQuery.toLowerCase())
+  ).filter(m => 
+    statusFilter === 'all' || m.Status === statusFilter
+  ).filter(m => 
+    departmentFilter === 'all' || m.Department === departmentFilter
+  ).filter(m => 
+    roleFilter === 'all' || m.Role === roleFilter
+  ).sort((a, b) => {
+    const roleOrder: Record<string, number> = {
+      'Board Member': 1,
+      'Core Member': 2,
+      'Ex-Core Member': 3
+    }
+    const aOrder = roleOrder[a.Role] || 99
+    const bOrder = roleOrder[b.Role] || 99
+    if (aOrder !== bOrder) return aOrder - bOrder
+    return (a.Name || '').localeCompare(b.Name || '')
+  })
+
+  const uniqueStatuses = [...new Set(allMembers.map(m => m.Status).filter(Boolean))]
+  const uniqueDepartments = [...new Set(allMembers.map(m => m.Department).filter(Boolean))]
+  const uniqueRoles = [...new Set(allMembers.map(m => m.Role).filter(Boolean))]
+
+  const stats = {
+    total: allMembers.length,
+    active: allMembers.filter(m => m.Status === 'Active').length,
+    departments: [...new Set(allMembers.map(m => m.Department).filter(Boolean))].length,
+    alumni: allMembers.filter(m => m.Status === 'Alumni').length
+  }
+
   return (
     <div className="min-h-screen bg-black">
       <div className="fixed inset-0 grid-background pointer-events-none">
@@ -140,11 +188,11 @@ export default function Dashboard() {
       </div>
 
       <div className="relative z-10">
-        <header className="border-b border-white/10 backdrop-blur-md">
+        <header className="border-b border-white/10 backdrop-blur-md sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-white">Dashboard</h1>
-              <p className="text-white/60 text-sm mt-1">Manage your profile</p>
+              <p className="text-white/60 text-sm mt-1">Welcome back, {member?.Name?.split(' ')[0]}</p>
             </div>
             <button
               onClick={handleSignOut}
@@ -153,9 +201,59 @@ export default function Dashboard() {
               Sign Out
             </button>
           </div>
+          
+          <div className="max-w-7xl mx-auto px-6 pb-4">
+            <nav className="flex gap-2">
+              <button
+                onClick={() => setActiveTab('profile')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeTab === 'profile'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                  My Profile
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('members')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeTab === 'members'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  All Members
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('stats')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeTab === 'stats'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                  Statistics
+                </div>
+              </button>
+            </nav>
+          </div>
         </header>
 
-        <main className="max-w-4xl mx-auto px-6 py-12">
+        <main className="max-w-7xl mx-auto px-6 py-12">
           {message && (
             <div className={`mb-6 p-4 rounded-lg border ${
               message.type === 'success' 
@@ -166,7 +264,9 @@ export default function Dashboard() {
             </div>
           )}
 
-          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 mb-8">
+          {activeTab === 'profile' && (
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 mb-8">
             <div className="flex items-start gap-6">
               <div className="flex-shrink-0">
                 <div className="relative group">
@@ -313,6 +413,162 @@ export default function Dashboard() {
               )}
             </div>
           </div>
+            </div>
+          )}
+
+          {activeTab === 'members' && (
+            <div>
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-2xl font-bold text-white">All Members</h2>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Search members..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10 pr-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+                    />
+                    <svg className="w-5 h-5 text-white/40 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <div className="flex items-center gap-2">
+                    <label className="text-white/60 text-sm">Status:</label>
+                    <select
+                      value={statusFilter}
+                      onChange={(e) => setStatusFilter(e.target.value)}
+                      className="px-3 py-1.5 bg-black/40 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:bg-black/50 transition-colors"
+                    >
+                      <option value="all" className="bg-gray-900 text-white">All Statuses</option>
+                      {uniqueStatuses.map(status => (
+                        <option key={status} value={status} className="bg-gray-900 text-white">{status}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <label className="text-white/60 text-sm">Department:</label>
+                    <select
+                      value={departmentFilter}
+                      onChange={(e) => setDepartmentFilter(e.target.value)}
+                      className="px-3 py-1.5 bg-black/40 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:bg-black/50 transition-colors"
+                    >
+                      <option value="all" className="bg-gray-900 text-white">All Departments</option>
+                      {uniqueDepartments.map(dept => (
+                        <option key={dept} value={dept} className="bg-gray-900 text-white">{dept}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <label className="text-white/60 text-sm">Role:</label>
+                    <select
+                      value={roleFilter}
+                      onChange={(e) => setRoleFilter(e.target.value)}
+                      className="px-3 py-1.5 bg-black/40 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:bg-black/50 transition-colors"
+                    >
+                      <option value="all" className="bg-gray-900 text-white">All Roles</option>
+                      {uniqueRoles.map(role => (
+                        <option key={role} value={role} className="bg-gray-900 text-white">{role}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {(statusFilter !== 'all' || departmentFilter !== 'all' || roleFilter !== 'all' || searchQuery) && (
+                    <button
+                      onClick={() => {
+                        setStatusFilter('all')
+                        setDepartmentFilter('all')
+                        setRoleFilter('all')
+                        setSearchQuery('')
+                      }}
+                      className="px-3 py-1.5 bg-red-500/20 border border-red-500/40 rounded-lg text-red-400 text-sm hover:bg-red-500/30 transition-colors flex items-center gap-1"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                      Clear Filters
+                    </button>
+                  )}
+                </div>
+
+                <div className="mt-4 text-white/60 text-sm">
+                  Showing {filteredMembers.length} of {allMembers.length} members
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {filteredMembers.map((m) => (
+                  <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} />
+                ))}
+              </div>
+              
+              {filteredMembers.length === 0 && (
+                <div className="text-center py-12 text-white/40">
+                  No members found matching your search.
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'stats' && (
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-6">Organization Statistics</h2>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <StatCard
+                  title="Total Members"
+                  value={stats.total}
+                  icon={
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  }
+                  color="blue"
+                />
+                <StatCard
+                  title="Active Members"
+                  value={stats.active}
+                  icon={
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  }
+                  color="green"
+                />
+                <StatCard
+                  title="Departments"
+                  value={stats.departments}
+                  icon={
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                  }
+                  color="purple"
+                />
+                <StatCard
+                  title="Alumni"
+                  value={stats.alumni}
+                  icon={
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                    </svg>
+                  }
+                  color="orange"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <DepartmentBreakdown members={allMembers} />
+                <RoleBreakdown members={allMembers} />
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </div>
@@ -551,5 +807,166 @@ function EditableProfileForm({
         </div>
       ))}
     </form>
+  )
+}
+
+function MemberCard({ member, getPictureUrl }: { member: any; getPictureUrl: (pic: any) => string | null }) {
+  const isBoardMember = member?.Role === 'Board Member'
+  const isCoreMember = member?.Role === 'Core Member'
+  
+  return (
+    <div className={`backdrop-blur-md border rounded-xl p-6 hover:border-white/30 transition-all duration-200 ${
+      isBoardMember 
+        ? 'bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-yellow-500/40 shadow-lg shadow-yellow-500/10' 
+        : isCoreMember
+        ? 'bg-gradient-to-br from-blue-500/10 to-purple-500/10 border-blue-500/30'
+        : 'bg-white/5 border-white/10'
+    }`}>
+      {isBoardMember && (
+        <div className="absolute top-2 right-2">
+          <div className="flex items-center gap-1 px-2 py-1 bg-yellow-500/20 border border-yellow-500/40 rounded-full">
+            <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <span className="text-yellow-400 text-xs font-semibold">Board</span>
+          </div>
+        </div>
+      )}
+      <div className="flex items-start gap-4">
+        <div className="flex-shrink-0">
+          {getPictureUrl(member?.Picture) ? (
+            <img 
+              src={getPictureUrl(member?.Picture) || ''}
+              alt={member?.Name}
+              className={`w-16 h-16 rounded-full object-cover border-2 ${
+                isBoardMember ? 'border-yellow-500/60' : isCoreMember ? 'border-blue-500/60' : 'border-white/20'
+              }`}
+              onError={(e) => {
+                e.currentTarget.style.display = 'none'
+                e.currentTarget.nextElementSibling?.classList.remove('hidden')
+              }}
+            />
+          ) : null}
+          <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${
+            isBoardMember ? 'from-yellow-500 to-orange-600' : isCoreMember ? 'from-blue-500 to-purple-600' : 'from-blue-500 to-purple-600'
+          } flex items-center justify-center border-2 ${
+            isBoardMember ? 'border-yellow-500/60' : isCoreMember ? 'border-blue-500/60' : 'border-white/20'
+          } ${getPictureUrl(member?.Picture) ? 'hidden' : ''}`}>
+            <span className="text-xl font-bold text-white">
+              {member?.Name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+            </span>
+          </div>
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-lg font-semibold text-white truncate">{member?.Name}</h3>
+          <p className={`text-sm truncate font-medium ${
+            isBoardMember ? 'text-yellow-400' : isCoreMember ? 'text-blue-400' : 'text-white/60'
+          }`}>{member?.Role}</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+              member?.Status === 'Active' 
+                ? 'bg-green-500/20 border border-green-500/40 text-green-400'
+                : 'bg-gray-500/20 border border-gray-500/40 text-gray-400'
+            }`}>
+              {member?.Status}
+            </span>
+            {member?.Department && (
+              <span className="inline-flex items-center px-2 py-1 bg-purple-500/20 border border-purple-500/40 rounded-full text-purple-400 text-xs font-medium truncate">
+                {member?.Department}
+              </span>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="mt-4 pt-4 border-t border-white/10">
+        <p className="text-white/40 text-xs">Email</p>
+        <p className="text-white text-sm truncate">{member?.['TBC Email']}</p>
+      </div>
+    </div>
+  )
+}
+
+function StatCard({ title, value, icon, color }: { title: string; value: number; icon: React.ReactNode; color: string }) {
+  const colorClasses = {
+    blue: 'from-blue-500/20 to-blue-600/20 border-blue-500/40 text-blue-400',
+    green: 'from-green-500/20 to-green-600/20 border-green-500/40 text-green-400',
+    purple: 'from-purple-500/20 to-purple-600/20 border-purple-500/40 text-purple-400',
+    orange: 'from-orange-500/20 to-orange-600/20 border-orange-500/40 text-orange-400'
+  }
+  
+  return (
+    <div className={`bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses]} border backdrop-blur-md rounded-xl p-6`}>
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-white/60 text-sm font-medium mb-1">{title}</p>
+          <p className="text-4xl font-bold text-white">{value}</p>
+        </div>
+        <div className="opacity-60">{icon}</div>
+      </div>
+    </div>
+  )
+}
+
+function DepartmentBreakdown({ members }: { members: any[] }) {
+  const departments = members.reduce((acc: Record<string, number>, m) => {
+    const dept = m.Department || 'Unassigned'
+    acc[dept] = (acc[dept] || 0) + 1
+    return acc
+  }, {})
+
+  const sortedDepts = Object.entries(departments).sort((a, b) => b[1] - a[1])
+
+  return (
+    <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6">
+      <h3 className="text-xl font-bold text-white mb-4">Members by Department</h3>
+      <div className="space-y-3">
+        {sortedDepts.map(([dept, count]) => (
+          <div key={dept} className="flex items-center justify-between">
+            <span className="text-white/80 text-sm">{dept}</span>
+            <div className="flex items-center gap-3">
+              <div className="w-32 bg-white/10 rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-blue-500 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${(count / members.length) * 100}%` }}
+                />
+              </div>
+              <span className="text-white font-semibold text-sm w-8 text-right">{count}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function RoleBreakdown({ members }: { members: any[] }) {
+  const roles = members.reduce((acc: Record<string, number>, m) => {
+    const role = m.Role || 'Unknown'
+    acc[role] = (acc[role] || 0) + 1
+    return acc
+  }, {})
+
+  const sortedRoles = Object.entries(roles).sort((a, b) => b[1] - a[1])
+
+  return (
+    <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6">
+      <h3 className="text-xl font-bold text-white mb-4">Members by Role</h3>
+      <div className="space-y-3">
+        {sortedRoles.map(([role, count]) => (
+          <div key={role} className="flex items-center justify-between">
+            <span className="text-white/80 text-sm">{role}</span>
+            <div className="flex items-center gap-3">
+              <div className="w-32 bg-white/10 rounded-full h-2 overflow-hidden">
+                <div 
+                  className="bg-purple-500 h-full rounded-full transition-all duration-500"
+                  style={{ width: `${(count / members.length) * 100}%` }}
+                />
+              </div>
+              <span className="text-white font-semibold text-sm w-8 text-right">{count}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   )
 }
