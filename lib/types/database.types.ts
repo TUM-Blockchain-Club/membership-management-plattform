@@ -44,10 +44,23 @@ export interface Database {
   public: {
     Tables: {
       members_main: {
-        Row: Member;
-        Insert: Omit<Member, 'id' | 'created_at'>;
-        Update: Partial<Omit<Member, 'id' | 'created_at'>>;
-      };
-    };
-  };
+        Row: Member
+        Insert: Omit<Member, 'id' | 'created_at'>
+        Update: Partial<Omit<Member, 'id' | 'created_at'>>
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
 }
