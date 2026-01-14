@@ -92,12 +92,25 @@ export const memberService = {
     return { error }
   },
 
-  uploadProfilePicture: async (userId: string, file: File) => {
+  uploadProfilePicture: async (userId: string, file: File, existingPictureUrl?: string) => {
+    let fileName: string
     const fileExt = file.name.split('.').pop()
-    const fileName = `${userId}/profile.${fileExt}`
+    
+    if (existingPictureUrl && typeof existingPictureUrl === 'string') {
+      const urlParts = existingPictureUrl.split('/')
+      const lastPart = urlParts[urlParts.length - 1].split('?')[0]
+      
+      if (lastPart && lastPart.includes('.')) {
+        fileName = lastPart
+      } else {
+        fileName = `${userId}.${fileExt}`
+      }
+    } else {
+      fileName = `${userId}.${fileExt}`
+    }
     
     const { data, error } = await supabase.storage
-      .from('mmp-member-photos')
+      .from('member-pictures')
       .upload(fileName, file, {
         cacheControl: '3600',
         upsert: true
@@ -106,25 +119,30 @@ export const memberService = {
     if (error) return { data: null, error }
     
     const { data: { publicUrl } } = supabase.storage
-      .from('mmp-member-photos')
+      .from('member-pictures')
       .getPublicUrl(fileName)
     
-    return { data: publicUrl, error: null }
+    const urlWithCacheBuster = `${publicUrl}?t=${Date.now()}`
+    
+    return { data: urlWithCacheBuster, error: null }
   },
 
   deleteProfilePicture: async (userId: string) => {
     const { data: files, error: listError } = await supabase.storage
-      .from('mmp-member-photos')
-      .list(userId)
+      .from('member-pictures')
+      .list()
     
     if (listError || !files || files.length === 0) {
       return { error: listError }
     }
     
-    const filePaths = files.map(file => `${userId}/${file.name}`)
+    const userFiles = files.filter(file => file.name.startsWith(`${userId}-`))
+    const filePaths = userFiles.map(file => file.name)
+    
+    if (filePaths.length === 0) return { error: null }
     
     const { error } = await supabase.storage
-      .from('mmp-member-photos')
+      .from('member-pictures')
       .remove(filePaths)
     
     return { error }
