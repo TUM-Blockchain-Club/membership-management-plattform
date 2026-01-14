@@ -10,7 +10,8 @@ type TabType = 'profile' | 'members' | 'stats'
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
-  const [member, setMember] = useState<any>(null)
+  const [member, setMember] = useState<any>(null) // The logged-in user's member profile
+  const [viewedMember, setViewedMember] = useState<any>(null) // The member being viewed/edited (can be self or another)
   const [allMembers, setAllMembers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
@@ -54,6 +55,25 @@ export default function Dashboard() {
     return null
   }
 
+  const canEditMember = (targetMember: any) => {
+    if (!member || !targetMember) return false
+    
+    if (member.id === targetMember.id) return true
+    
+    if (member.Role === 'Board Member' && targetMember.Department) {
+      const myDepartments = member.Department?.split(',').map((d: string) => d.trim()) || []
+      const targetDepartments = targetMember.Department.split(',').map((d: string) => d.trim())
+      
+      return myDepartments.some((myDept: string) => 
+        targetDepartments.some((targetDept: string) => 
+          myDept.toLowerCase() === targetDept.toLowerCase()
+        )
+      )
+    }
+    
+    return false
+  }
+
   useEffect(() => {
     const loadUserData = async () => {
       const { user: currentUser } = await auth.getCurrentUser()
@@ -80,6 +100,7 @@ export default function Dashboard() {
       }
 
       setMember(memberData)
+      setViewedMember(memberData) // Initially view own profile
 
       const { data: allMembersData } = await memberService.getAllMembers()
       if (allMembersData) {
@@ -165,8 +186,30 @@ export default function Dashboard() {
   }
 
   const handleEditClick = () => {
-    setEditedMember({ ...member })
+    setEditedMember({ ...viewedMember })
     setEditing(true)
+    setActiveTab('profile')
+  }
+
+  const handleEditOtherMember = (targetMember: any) => {
+    setViewedMember(targetMember)
+    setEditedMember({ ...targetMember })
+    setEditing(true)
+    setActiveTab('profile')
+    
+    setMessage({ 
+      type: 'success', 
+      text: `Editing ${targetMember.Name}'s profile` 
+    })
+    setTimeout(() => setMessage(null), 3000)
+  }
+
+  const handleBackToMyProfile = () => {
+    setViewedMember(member)
+    setEditing(false)
+    setEditedMember(null)
+    setSelectedImageFile(null)
+    setActiveTab('profile')
   }
 
   const handleCancel = () => {
@@ -192,9 +235,9 @@ export default function Dashboard() {
       
       if (selectedImageFile) {
         const { data: imageUrl, error: uploadError } = await memberService.uploadProfilePicture(
-          member.id.toString(),
+          viewedMember.id.toString(),
           selectedImageFile,
-          member.Picture
+          viewedMember.Picture
         )
         
         if (uploadError) {
@@ -212,31 +255,31 @@ export default function Dashboard() {
         updatedData.Picture = imageUrl
       }
       
-      const { data: updatedMember, error: updateError } = await memberService.updateMember(member.id, updatedData)
+      const { data: updatedMember, error: updateError } = await memberService.updateMember(viewedMember.id, updatedData)
       
       if (updateError) {
         setMessage({ type: 'error', text: `Failed to update profile: ${updateError.message}` })
         setSaving(false)
         return
       }
-
-      setMember(updatedMember)
       
-      if (selectedImageFile && updatedData.Picture) {
-        const { data: allMembersData } = await memberService.getAllMembers()
-        if (allMembersData) {
-          setAllMembers(allMembersData)
-        }
+      // Update the viewed member
+      setViewedMember(updatedMember)
+      
+      // If editing own profile, also update member state
+      if (viewedMember.id === member.id) {
+        setMember(updatedMember)
       }
       
+      // Update in allMembers array
+      setAllMembers(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m))
+      
+      setMessage({ type: 'success', text: 'Profile updated successfully!' })
       setEditing(false)
       setEditedMember(null)
       setSelectedImageFile(null)
-      setMessage({ type: 'success', text: 'Profile updated successfully!' })
       
-      setTimeout(() => {
-        setMessage(null)
-      }, 3000)
+      setTimeout(() => setMessage(null), 3000)
     } catch (error) {
       setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' })
     } finally {
@@ -319,6 +362,102 @@ export default function Dashboard() {
     exCore: allMembers.filter(m => m.Role === 'Ex-Core Member').length
   }
 
+  // Helper functions for formatting profile data
+  const formatLink = (url: string | null, platform: string) => {
+    if (!url) return <span className="text-white/40">Not provided</span>;
+    return (
+      <a
+        href={url.startsWith('http') ? url : `https://${url}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-2 group"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+        </svg>
+        <span className="group-hover:underline">{platform}</span>
+      </a>
+    );
+  };
+
+  const formatUsername = (username: string | null, platform: string) => {
+    if (!username) return <span className="text-white/40">Not provided</span>;
+    return <span className="text-white">@{username}</span>;
+  };
+
+  // Profile sections for display
+  const sections = [
+    {
+      title: 'Personal Information',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+      ),
+      fields: [
+        { label: 'Full Name', value: viewedMember?.Name },
+        { label: 'Degree', value: viewedMember?.Degree || 'Not specified' },
+        { label: 'University', value: viewedMember?.Uni || 'Not specified' }
+      ]
+    },
+    {
+      title: 'Organization',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      ),
+      fields: [
+        { label: 'Department', value: viewedMember?.Department || 'Not assigned' },
+        { label: 'Role', value: viewedMember?.Role },
+        { label: 'Status', value: viewedMember?.Status },
+        { label: 'Semester Joined', value: viewedMember?.['Semester Joined'] || 'Not specified' },
+        { label: 'Active Semesters', value: viewedMember?.['Active Semesters'] || '0' }
+      ]
+    },
+    {
+      title: 'Contact Information',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+        </svg>
+      ),
+      fields: [
+        { label: 'TBC Email', value: viewedMember?.['TBC Email'] },
+        { label: 'Private Email', value: viewedMember?.['Private Email'] || 'Not provided' },
+        { label: 'Phone', value: viewedMember?.Phone || 'Not provided' }
+      ]
+    },
+    {
+      title: 'Professional & Social',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+        </svg>
+      ),
+      fields: [
+        { label: 'LinkedIn', value: formatLink(viewedMember?.Linkedin, 'View Profile'), raw: viewedMember?.Linkedin },
+        { label: 'Telegram', value: formatUsername(viewedMember?.Telegram, 'Telegram') },
+        { label: 'Discord', value: formatUsername(viewedMember?.Discord, 'Discord') },
+        { label: 'Instagram', value: formatUsername(viewedMember?.Instagram, 'Instagram') },
+        { label: 'Twitter/X', value: formatUsername(viewedMember?.Twitter, 'Twitter/X') }
+      ]
+    },
+    {
+      title: 'Additional Details',
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      ),
+      fields: [
+        { label: 'Current Project/Task', value: viewedMember?.['Project/Task'] || 'Not assigned' },
+        { label: 'Area of Expertise', value: viewedMember?.['Area of Expertise'] || 'Not specified' },
+        { label: 'Merch Size', value: viewedMember?.['Size Merch'] || 'Not specified' }
+      ]
+    }
+  ]
+
   return (
     <div className="min-h-screen bg-black">
       <div className="fixed inset-0 grid-background pointer-events-none">
@@ -349,7 +488,12 @@ export default function Dashboard() {
           <div className="max-w-7xl mx-auto px-6 pb-4">
             <nav className="flex gap-2">
               <button
-                onClick={() => setActiveTab('profile')}
+                onClick={() => {
+                  setActiveTab('profile')
+                  setViewedMember(member)
+                  setEditing(false)
+                  setEditedMember(null)
+                }}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
                   activeTab === 'profile'
                     ? 'bg-blue-600 text-white'
@@ -412,24 +556,90 @@ export default function Dashboard() {
 
           {activeTab === 'profile' && (
             <div className="max-w-4xl mx-auto">
-              <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-8 mb-8">
-            <div className="flex items-start gap-6">
+              {/* Back to My Profile button - shown when editing another member */}
+              {viewedMember && member && viewedMember.id !== member.id && (
+                <div className="mb-4">
+                  <button
+                    onClick={handleBackToMyProfile}
+                    className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 rounded-lg text-blue-300 hover:text-blue-200 transition-all duration-200 flex items-center gap-2"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                    Back to My Profile
+                  </button>
+                </div>
+              )}
+              
+              <div className={`backdrop-blur-md border rounded-2xl p-8 mb-8 relative overflow-hidden ${
+                viewedMember?.Role === 'Board Member'
+                  ? 'bg-gradient-to-br from-yellow-500/10 via-orange-500/5 to-yellow-500/10 border-yellow-500/30'
+                  : viewedMember?.Role === 'Core Member'
+                  ? 'bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-blue-500/10 border-blue-500/30'
+                  : viewedMember?.Status === 'Honorary'
+                  ? 'bg-gradient-to-br from-amber-500/10 via-yellow-500/5 to-amber-500/10 border-amber-500/30'
+                  : viewedMember?.Status === 'Alumni'
+                  ? 'bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-emerald-500/10 border-emerald-500/30'
+                  : viewedMember?.Status === 'Advisor'
+                  ? 'bg-gradient-to-br from-indigo-500/10 via-violet-500/5 to-indigo-500/10 border-indigo-500/30'
+                  : 'bg-white/5 border-white/10'
+              }`}>
+                {/* Decorative corner accent */}
+                <div className={`absolute top-0 right-0 w-32 h-32 opacity-20 blur-3xl ${
+                  viewedMember?.Role === 'Board Member'
+                    ? 'bg-yellow-500'
+                    : viewedMember?.Role === 'Core Member'
+                    ? 'bg-blue-500'
+                    : viewedMember?.Status === 'Honorary'
+                    ? 'bg-amber-500'
+                    : viewedMember?.Status === 'Alumni'
+                    ? 'bg-emerald-500'
+                    : viewedMember?.Status === 'Advisor'
+                    ? 'bg-indigo-500'
+                    : 'bg-purple-500'
+                }`} />
+                
+            <div className="flex items-start gap-6 relative z-10">
               <div className="flex-shrink-0">
                 <div className="relative group">
-                  {getPictureUrl(editing && editedMember ? editedMember.Picture : member?.Picture) ? (
+                  {getPictureUrl(editing && editedMember ? editedMember.Picture : viewedMember?.Picture) ? (
                     <img 
-                      src={getPictureUrl(editing && editedMember ? editedMember.Picture : member?.Picture) || ''}
-                      alt={member?.Name}
-                      className="w-24 h-24 rounded-full object-cover border-2 border-white/20"
+                      src={getPictureUrl(editing && editedMember ? editedMember.Picture : viewedMember?.Picture) || ''}
+                      alt={viewedMember?.Name}
+                      className={`w-24 h-24 rounded-full object-cover border-2 ${
+                        viewedMember?.Role === 'Board Member'
+                          ? 'border-yellow-500/50'
+                          : viewedMember?.Role === 'Core Member'
+                          ? 'border-blue-500/50'
+                          : viewedMember?.Status === 'Honorary'
+                          ? 'border-amber-500/50'
+                          : viewedMember?.Status === 'Alumni'
+                          ? 'border-emerald-500/50'
+                          : viewedMember?.Status === 'Advisor'
+                          ? 'border-indigo-500/50'
+                          : 'border-white/20'
+                      }`}
                       onError={(e) => {
                         e.currentTarget.style.display = 'none'
                         e.currentTarget.nextElementSibling?.classList.remove('hidden')
                       }}
                     />
                   ) : null}
-                  <div className={`w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center border-2 border-white/20 ${getPictureUrl(editing && editedMember ? editedMember.Picture : member?.Picture) ? 'hidden' : ''}`}>
+                  <div className={`w-24 h-24 rounded-full flex items-center justify-center border-2 ${
+                    viewedMember?.Role === 'Board Member'
+                      ? 'bg-gradient-to-br from-yellow-500 to-orange-600 border-yellow-500/50'
+                      : viewedMember?.Role === 'Core Member'
+                      ? 'bg-gradient-to-br from-blue-500 to-purple-600 border-blue-500/50'
+                      : viewedMember?.Status === 'Honorary'
+                      ? 'bg-gradient-to-br from-amber-500 to-yellow-600 border-amber-500/50'
+                      : viewedMember?.Status === 'Alumni'
+                      ? 'bg-gradient-to-br from-emerald-500 to-teal-600 border-emerald-500/50'
+                      : viewedMember?.Status === 'Advisor'
+                      ? 'bg-gradient-to-br from-indigo-500 to-violet-600 border-indigo-500/50'
+                      : 'bg-gradient-to-br from-blue-500 to-purple-600 border-white/20'
+                  } ${getPictureUrl(editing && editedMember ? editedMember.Picture : viewedMember?.Picture) ? 'hidden' : ''}`}>
                     <span className="text-3xl font-bold text-white">
-                      {member?.Name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                      {viewedMember?.Name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                     </span>
                   </div>
                   
@@ -475,26 +685,59 @@ export default function Dashboard() {
               </div>
 
               <div className="flex-1">
-                <h2 className="text-2xl font-bold text-white mb-1">{member?.Name}</h2>
-                <p className="text-white/60 text-sm mb-3">{member?.['TBC Email']}</p>
+                <div className="flex items-start justify-between mb-1">
+                  <h2 className="text-2xl font-bold text-white">{viewedMember?.Name}</h2>
+                  {viewedMember?.Role === 'Board Member' && (
+                    <div className="flex items-center gap-1 px-2 py-1 bg-yellow-500/20 border border-yellow-500/40 rounded-lg">
+                      <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                      <span className="text-yellow-300 text-xs font-semibold">Board</span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-white/60 text-sm mb-3">{viewedMember?.['TBC Email']}</p>
                 
-                <div className="flex items-center gap-3">
-                  <span className="inline-flex items-center px-3 py-1 bg-blue-500/20 border border-blue-500/40 rounded-full text-blue-400 text-sm font-medium">
-                    {member?.Role}
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${
+                    viewedMember?.Role === 'Board Member'
+                      ? 'bg-yellow-500/20 border-yellow-500/40 text-yellow-300'
+                      : viewedMember?.Role === 'Core Member'
+                      ? 'bg-blue-500/20 border-blue-500/40 text-blue-300'
+                      : 'bg-purple-500/20 border-purple-500/40 text-purple-300'
+                  }`}>
+                    {viewedMember?.Role}
                   </span>
-                  <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                    member?.Status === 'Active' 
-                      ? 'bg-green-500/20 border border-green-500/40 text-green-400'
-                      : 'bg-gray-500/20 border border-gray-500/40 text-gray-400'
+                  <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${
+                    viewedMember?.Status === 'Active' 
+                      ? 'bg-green-500/20 border-green-500/40 text-green-300'
+                      : viewedMember?.Status === 'Honorary'
+                      ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                      : viewedMember?.Status === 'Alumni'
+                      ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                      : viewedMember?.Status === 'Advisor'
+                      ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
+                      : 'bg-gray-500/20 border-gray-500/40 text-gray-300'
                   }`}>
                     <span className={`w-2 h-2 rounded-full mr-2 ${
-                      member?.Status === 'Active' ? 'bg-green-400' : 'bg-gray-400'
-                    }`}></span>
-                    {member?.Status}
+                      viewedMember?.Status === 'Active' 
+                        ? 'bg-green-400 shadow-lg shadow-green-400/50'
+                        : viewedMember?.Status === 'Honorary'
+                        ? 'bg-amber-400 shadow-lg shadow-amber-400/50'
+                        : viewedMember?.Status === 'Alumni'
+                        ? 'bg-emerald-400 shadow-lg shadow-emerald-400/50'
+                        : viewedMember?.Status === 'Advisor'
+                        ? 'bg-indigo-400 shadow-lg shadow-indigo-400/50'
+                        : 'bg-gray-400'
+                    }`} />
+                    {viewedMember?.Status}
                   </span>
-                  {member?.Department && (
-                    <span className="inline-flex items-center px-3 py-1 bg-purple-500/20 border border-purple-500/40 rounded-full text-purple-400 text-sm font-medium">
-                      {member?.Department}
+                  {viewedMember?.Department && (
+                    <span className="inline-flex items-center px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white/80 text-sm font-medium">
+                      <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                      </svg>
+                      {viewedMember?.Department}
                     </span>
                   )}
                 </div>
@@ -563,9 +806,11 @@ export default function Dashboard() {
                   onSave={handleSave}
                   onCancel={handleCancel}
                   saving={saving}
+                  isBoardMember={member?.Role === 'Board Member'}
+                  isOwnProfile={viewedMember?.id === member?.id}
                 />
               ) : (
-                <ProfileDisplay member={member} />
+                <ProfileDisplay member={viewedMember} sections={sections} />
               )}
             </div>
           </div>
@@ -674,7 +919,14 @@ export default function Dashboard() {
                 <div id="board" className="mb-8 scroll-mt-32">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {boardMembers.map((m) => (
-                      <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} />
+                      <MemberCard 
+                        key={m.id} 
+                        member={m} 
+                        getPictureUrl={getPictureUrl} 
+                        canEdit={canEditMember(m)}
+                        isOwnProfile={member?.id === m.id}
+                        onEdit={() => member?.id === m.id ? handleEditClick() : handleEditOtherMember(m)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -690,7 +942,14 @@ export default function Dashboard() {
                 <div id="core" className="mb-8 scroll-mt-32">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {coreMembers.map((m) => (
-                      <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} />
+                      <MemberCard 
+                        key={m.id} 
+                        member={m} 
+                        getPictureUrl={getPictureUrl}
+                        canEdit={canEditMember(m)}
+                        isOwnProfile={member?.id === m.id}
+                        onEdit={() => member?.id === m.id ? handleEditClick() : handleEditOtherMember(m)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -714,7 +973,15 @@ export default function Dashboard() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {exCoreHonorary.map((m) => (
-                      <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} isHonorary />
+                      <MemberCard 
+                        key={m.id} 
+                        member={m} 
+                        getPictureUrl={getPictureUrl} 
+                        isHonorary
+                        canEdit={canEditMember(m)}
+                        isOwnProfile={member?.id === m.id}
+                        onEdit={() => member?.id === m.id ? handleEditClick() : handleEditOtherMember(m)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -739,7 +1006,15 @@ export default function Dashboard() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {exCoreAlumni.map((m) => (
-                      <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} isAlumni />
+                      <MemberCard 
+                        key={m.id} 
+                        member={m} 
+                        getPictureUrl={getPictureUrl} 
+                        isAlumni
+                        canEdit={canEditMember(m)}
+                        isOwnProfile={member?.id === m.id}
+                        onEdit={() => member?.id === m.id ? handleEditClick() : handleEditOtherMember(m)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -763,7 +1038,15 @@ export default function Dashboard() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {exCoreAdvisors.map((m) => (
-                      <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} isAdvisor />
+                      <MemberCard 
+                        key={m.id} 
+                        member={m} 
+                        getPictureUrl={getPictureUrl} 
+                        isAdvisor
+                        canEdit={canEditMember(m)}
+                        isOwnProfile={member?.id === m.id}
+                        onEdit={() => member?.id === m.id ? handleEditClick() : handleEditOtherMember(m)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -779,7 +1062,14 @@ export default function Dashboard() {
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {exCoreOthers.map((m) => (
-                      <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} />
+                      <MemberCard 
+                        key={m.id} 
+                        member={m} 
+                        getPictureUrl={getPictureUrl}
+                        canEdit={canEditMember(m)}
+                        isOwnProfile={member?.id === m.id}
+                        onEdit={() => member?.id === m.id ? handleEditClick() : handleEditOtherMember(m)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -793,7 +1083,14 @@ export default function Dashboard() {
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {otherMembers.map((m) => (
-                      <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} />
+                      <MemberCard 
+                        key={m.id} 
+                        member={m} 
+                        getPictureUrl={getPictureUrl}
+                        canEdit={canEditMember(m)}
+                        isOwnProfile={member?.id === m.id}
+                        onEdit={() => member?.id === m.id ? handleEditClick() : handleEditOtherMember(m)}
+                      />
                     ))}
                   </div>
                 </div>
@@ -987,7 +1284,7 @@ function SubSeparatorLine() {
   )
 }
 
-function ProfileDisplay({ member }: { member: any }) {
+function ProfileDisplay({ member, sections }: { member: any; sections: any[] }) {
   const formatLink = (url: string | null, platform: string) => {
     if (!url) return <span className="text-white/40">Not provided</span>;
     
@@ -1011,88 +1308,15 @@ function ProfileDisplay({ member }: { member: any }) {
     return <span className="text-white">@{username}</span>;
   };
 
-  const sections = [
-    {
-      title: 'Personal Information',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-        </svg>
-      ),
-      fields: [
-        { label: 'Full Name', value: member?.Name },
-        { label: 'Degree', value: member?.Degree || 'Not specified' },
-        { label: 'University', value: member?.Uni || 'Not specified' }
-      ]
-    },
-    {
-      title: 'Organization',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-        </svg>
-      ),
-      fields: [
-        { label: 'Department', value: member?.Department || 'Not assigned' },
-        { label: 'Role', value: member?.Role },
-        { label: 'Status', value: member?.Status },
-        { label: 'Semester Joined', value: member?.['Semester Joined'] || 'Not specified' },
-        { label: 'Active Semesters', value: member?.['Active Semesters'] || '0' }
-      ]
-    },
-    {
-      title: 'Contact Information',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-        </svg>
-      ),
-      fields: [
-        { label: 'TBC Email', value: member?.['TBC Email'] },
-        { label: 'Private Email', value: member?.['Private Email'] || 'Not provided' },
-        { label: 'Phone', value: member?.Phone || 'Not provided' }
-      ]
-    },
-    {
-      title: 'Professional & Social',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
-        </svg>
-      ),
-      fields: [
-        { label: 'LinkedIn', value: formatLink(member?.Linkedin, 'View Profile'), raw: member?.Linkedin },
-        { label: 'Telegram', value: formatUsername(member?.Telegram, 'Telegram') },
-        { label: 'Discord', value: formatUsername(member?.Discord, 'Discord') },
-        { label: 'Instagram', value: formatUsername(member?.Instagram, 'Instagram') },
-        { label: 'Twitter/X', value: formatUsername(member?.Twitter, 'Twitter/X') }
-      ]
-    },
-    {
-      title: 'Additional Details',
-      icon: (
-        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-        </svg>
-      ),
-      fields: [
-        { label: 'Current Project/Task', value: member?.['Project/Task'] || 'Not assigned' },
-        { label: 'Area of Expertise', value: member?.['Area of Expertise'] || 'Not specified' },
-        { label: 'Merch Size', value: member?.['Size Merch'] || 'Not specified' }
-      ]
-    }
-  ]
-
   return (
-    <div className="space-y-6">
-      {sections.map((section, idx) => (
+    <div className="space-y-6">{sections.map((section, idx) => (
         <div key={idx} className="border border-white/10 rounded-xl p-6 bg-white/[0.02]">
           <div className="flex items-center gap-2 mb-4">
             <div className="text-blue-400">{section.icon}</div>
             <h4 className="text-lg font-semibold text-white">{section.title}</h4>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {section.fields.map((field, fieldIdx) => (
+            {section.fields.map((field: any, fieldIdx: number) => (
               <div key={fieldIdx} className="space-y-1">
                 <p className="text-white/50 text-xs uppercase tracking-wider font-medium">{field.label}</p>
                 <div className="text-white text-sm">{field.value || '—'}</div>
@@ -1110,13 +1334,17 @@ function EditableProfileForm({
   onInputChange,
   onSave,
   onCancel,
-  saving
+  saving,
+  isBoardMember = false,
+  isOwnProfile = true
 }: {
   member: any
   onInputChange: (field: string, value: any) => void
   onSave: () => void
   onCancel: () => void
   saving: boolean
+  isBoardMember?: boolean
+  isOwnProfile?: boolean
 }) {
   const fieldSections = [
     {
@@ -1140,11 +1368,11 @@ function EditableProfileForm({
         </svg>
       ),
       fields: [
-        { key: 'Department', label: 'Department', type: 'text', placeholder: 'Your department' },
-        { key: 'Role', label: 'Role', type: 'text', placeholder: 'Your role' },
-        { key: 'Status', label: 'Status', type: 'text', placeholder: 'Active, Alumni, etc.' },
-        { key: 'Semester Joined', label: 'Semester Joined', type: 'text', placeholder: 'e.g., WS2024' },
-        { key: 'Active Semesters', label: 'Active Semesters', type: 'number', placeholder: '0' }
+        { key: 'Department', label: 'Department', type: 'text', placeholder: 'Your department', disabled: !isBoardMember },
+        { key: 'Role', label: 'Role', type: 'text', placeholder: 'Your role', disabled: !isBoardMember },
+        { key: 'Status', label: 'Status', type: 'text', placeholder: 'Active, Alumni, etc.', disabled: !isBoardMember },
+        { key: 'Semester Joined', label: 'Semester Joined', type: 'text', placeholder: 'e.g., WS2024', disabled: !isBoardMember },
+        { key: 'Active Semesters', label: 'Active Semesters', type: 'number', placeholder: '0', disabled: !isBoardMember }
       ]
     },
     {
@@ -1222,12 +1450,15 @@ function EditableProfileForm({
   )
 }
 
-function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni = false, isAdvisor = false }: { 
+function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni = false, isAdvisor = false, canEdit = false, isOwnProfile = false, onEdit }: { 
   member: any; 
   getPictureUrl: (pic: any) => string | null;
   isHonorary?: boolean;
   isAlumni?: boolean;
   isAdvisor?: boolean;
+  canEdit?: boolean;
+  isOwnProfile?: boolean;
+  onEdit?: () => void;
 }) {
   const isBoardMember = member?.Role === 'Board Member'
   const isCoreMember = member?.Role === 'Core Member'
@@ -1423,10 +1654,29 @@ function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni = fals
         </div>
       </div>
       <div className="mt-4 pt-4 border-t border-white/10 relative z-0">
-        <p className={`text-xs ${isHonorary || isAlumni || isAdvisor ? 'text-white/50' : 'text-white/40'}`}>Email</p>
-        <p className={`text-sm truncate ${isHonorary ? 'text-amber-100' : isAlumni ? 'text-emerald-100' : isAdvisor ? 'text-indigo-100' : 'text-white'}`}>
-          {member?.['TBC Email']}
-        </p>
+        <div className="flex items-center justify-between">
+          <div className="flex-1">
+            <p className={`text-xs ${isHonorary || isAlumni || isAdvisor ? 'text-white/50' : 'text-white/40'}`}>Email</p>
+            <p className={`text-sm truncate ${isHonorary ? 'text-amber-100' : isAlumni ? 'text-emerald-100' : isAdvisor ? 'text-indigo-100' : 'text-white'}`}>
+              {member?.['TBC Email']}
+            </p>
+          </div>
+          {canEdit && onEdit && (
+            <button
+              onClick={onEdit}
+              className={`ml-3 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1 ${
+                isOwnProfile
+                  ? 'bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 hover:text-blue-200'
+                  : 'bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 hover:text-purple-200'
+              }`}
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              {isOwnProfile ? 'My Profile' : 'Edit'}
+            </button>
+          )}
+        </div>
       </div>
     </div>
   )
