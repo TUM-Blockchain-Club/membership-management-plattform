@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { memberService } from '@/lib/members'
+import confetti from 'canvas-confetti'
 
 type TabType = 'profile' | 'members' | 'stats'
 
@@ -22,6 +23,9 @@ export default function Dashboard() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [departmentFilter, setDepartmentFilter] = useState<string>('all')
   const [roleFilter, setRoleFilter] = useState<string>('all')
+  const [clickCount, setClickCount] = useState(0)
+  const [lastClickTime, setLastClickTime] = useState(0)
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null)
   const router = useRouter()
 
   const getPictureUrl = (picture: any) => {
@@ -93,6 +97,73 @@ export default function Dashboard() {
     router.push('/signin')
   }
 
+  const triggerBlockchainEffect = () => {
+    const duration = 3000
+    const animationEnd = Date.now() + duration
+    const colors = ['#4F46E5', '#06B6D4', '#8B5CF6', '#EC4899', '#10B981']
+    
+    const frame = () => {
+      confetti({
+        particleCount: 3,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0, y: 0.6 },
+        colors: colors,
+        shapes: ['square'],
+        gravity: 0.8,
+        scalar: 0.8,
+        drift: 0.2,
+      })
+      confetti({
+        particleCount: 3,
+        angle: 120,
+        spread: 55,
+        origin: { x: 1, y: 0.6 },
+        colors: colors,
+        shapes: ['square'],
+        gravity: 0.8,
+        scalar: 0.8,
+        drift: -0.2,
+      })
+
+      if (Date.now() < animationEnd) {
+        requestAnimationFrame(frame)
+      }
+    }
+    
+    frame()
+    
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.4 },
+      colors: colors,
+      shapes: ['square', 'circle'],
+      scalar: 1.2,
+    })
+    
+    setMessage({ type: 'success', text: 'You found the TBC Easter Egg!' })
+    setTimeout(() => setMessage(null), 4000)
+  }
+
+  const handleTitleClick = () => {
+    const now = Date.now()
+    
+    if (now - lastClickTime > 2000) {
+      setClickCount(1)
+    } else {
+      const newCount = clickCount + 1
+      setClickCount(newCount)
+      
+      if (newCount === 10) {
+        triggerBlockchainEffect()
+        setClickCount(0)
+      }
+    }
+    
+    setLastClickTime(now)
+  }
+
   const handleEditClick = () => {
     setEditedMember({ ...member })
     setEditing(true)
@@ -101,6 +172,7 @@ export default function Dashboard() {
   const handleCancel = () => {
     setEditing(false)
     setEditedMember(null)
+    setSelectedImageFile(null)
   }
 
   const handleInputChange = (field: string, value: any) => {
@@ -115,7 +187,32 @@ export default function Dashboard() {
     setMessage(null)
     
     try {
-      const { data: updatedMember, error: updateError } = await memberService.updateMember(member.id, editedMember)
+      const updatedData = { ...editedMember }
+      delete updatedData.Picture
+      
+      if (selectedImageFile) {
+        const { data: imageUrl, error: uploadError } = await memberService.uploadProfilePicture(
+          member.id.toString(),
+          selectedImageFile,
+          member.Picture
+        )
+        
+        if (uploadError) {
+          setMessage({ type: 'error', text: `Failed to upload image: ${uploadError.message}` })
+          setSaving(false)
+          return
+        }
+        
+        if (!imageUrl) {
+          setMessage({ type: 'error', text: 'Upload succeeded but no URL returned' })
+          setSaving(false)
+          return
+        }
+        
+        updatedData.Picture = imageUrl
+      }
+      
+      const { data: updatedMember, error: updateError } = await memberService.updateMember(member.id, updatedData)
       
       if (updateError) {
         setMessage({ type: 'error', text: `Failed to update profile: ${updateError.message}` })
@@ -124,8 +221,17 @@ export default function Dashboard() {
       }
 
       setMember(updatedMember)
+      
+      if (selectedImageFile && updatedData.Picture) {
+        const { data: allMembersData } = await memberService.getAllMembers()
+        if (allMembersData) {
+          setAllMembers(allMembersData)
+        }
+      }
+      
       setEditing(false)
       setEditedMember(null)
+      setSelectedImageFile(null)
       setMessage({ type: 'success', text: 'Profile updated successfully!' })
       
       setTimeout(() => {
@@ -166,8 +272,30 @@ export default function Dashboard() {
     const aOrder = roleOrder[a.Role] || 99
     const bOrder = roleOrder[b.Role] || 99
     if (aOrder !== bOrder) return aOrder - bOrder
+    
+    // For Ex-Core Members, sort by status (Honorary -> Alumni -> Advisor -> Others)
+    if (a.Role === 'Ex-Core Member' && b.Role === 'Ex-Core Member') {
+      const statusOrder: Record<string, number> = {
+        'Honorary': 1,
+        'Alumni': 2,
+        'Advisor': 3,
+      }
+      const aStatusOrder = statusOrder[a.Status] || 99
+      const bStatusOrder = statusOrder[b.Status] || 99
+      if (aStatusOrder !== bStatusOrder) return aStatusOrder - bStatusOrder
+    }
+    
     return (a.Name || '').localeCompare(b.Name || '')
   })
+
+  // Group members by role and status for display
+  const boardMembers = filteredMembers.filter(m => m.Role === 'Board Member')
+  const coreMembers = filteredMembers.filter(m => m.Role === 'Core Member')
+  const exCoreHonorary = filteredMembers.filter(m => m.Role === 'Ex-Core Member' && m.Status === 'Honorary')
+  const exCoreAlumni = filteredMembers.filter(m => m.Role === 'Ex-Core Member' && m.Status === 'Alumni')
+  const exCoreAdvisors = filteredMembers.filter(m => m.Role === 'Ex-Core Member' && m.Status === 'Advisor')
+  const exCoreOthers = filteredMembers.filter(m => m.Role === 'Ex-Core Member' && m.Status !== 'Honorary' && m.Status !== 'Alumni' && m.Status !== 'Advisor')
+  const otherMembers = filteredMembers.filter(m => m.Role !== 'Board Member' && m.Role !== 'Core Member' && m.Role !== 'Ex-Core Member')
 
   const uniqueStatuses = [...new Set(allMembers.map(m => m.Status).filter(Boolean))]
   const uniqueDepartments = [...new Set(allMembers.map(m => m.Department).filter(Boolean))]
@@ -176,8 +304,19 @@ export default function Dashboard() {
   const stats = {
     total: allMembers.length,
     active: allMembers.filter(m => m.Status === 'Active').length,
-    departments: [...new Set(allMembers.map(m => m.Department).filter(Boolean))].length,
-    alumni: allMembers.filter(m => m.Status === 'Alumni').length
+    departments: (() => {
+      const deptSet = new Set<string>()
+      allMembers.forEach(m => {
+        if (m.Department) {
+          m.Department.split(',').forEach((d: string) => {
+            const dept = d.trim()
+            if (dept) deptSet.add(dept)
+          })
+        }
+      })
+      return deptSet.size
+    })(),
+    exCore: allMembers.filter(m => m.Role === 'Ex-Core Member').length
   }
 
   return (
@@ -191,7 +330,12 @@ export default function Dashboard() {
         <header className="border-b border-white/10 backdrop-blur-md sticky top-0 z-50">
           <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-white">Dashboard</h1>
+              <h1 
+                className="text-3xl font-bold text-white cursor-default select-none transition-transform duration-200 hover:scale-105"
+                onClick={handleTitleClick}
+              >
+                Dashboard
+              </h1>
               <p className="text-white/60 text-sm mt-1">Welcome back, {member?.Name?.split(' ')[0]}</p>
             </div>
             <button
@@ -255,12 +399,14 @@ export default function Dashboard() {
 
         <main className="max-w-7xl mx-auto px-6 py-12">
           {message && (
-            <div className={`mb-6 p-4 rounded-lg border ${
-              message.type === 'success' 
-                ? 'bg-green-500/10 border-green-500/30 text-green-400' 
-                : 'bg-red-500/10 border-red-500/30 text-red-400'
-            }`}>
-              {message.text}
+            <div className="max-w-4xl mx-auto">
+              <div className={`mb-6 p-4 rounded-2xl border ${
+                message.type === 'success' 
+                  ? 'bg-green-500/10 border-green-500/30 text-green-400' 
+                  : 'bg-red-500/10 border-red-500/30 text-red-400'
+              }`}>
+                {message.text}
+              </div>
             </div>
           )}
 
@@ -270,9 +416,9 @@ export default function Dashboard() {
             <div className="flex items-start gap-6">
               <div className="flex-shrink-0">
                 <div className="relative group">
-                  {getPictureUrl(member?.Picture) ? (
+                  {getPictureUrl(editing && editedMember ? editedMember.Picture : member?.Picture) ? (
                     <img 
-                      src={getPictureUrl(member?.Picture) || ''}
+                      src={getPictureUrl(editing && editedMember ? editedMember.Picture : member?.Picture) || ''}
                       alt={member?.Name}
                       className="w-24 h-24 rounded-full object-cover border-2 border-white/20"
                       onError={(e) => {
@@ -281,7 +427,7 @@ export default function Dashboard() {
                       }}
                     />
                   ) : null}
-                  <div className={`w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center border-2 border-white/20 ${getPictureUrl(member?.Picture) ? 'hidden' : ''}`}>
+                  <div className={`w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center border-2 border-white/20 ${getPictureUrl(editing && editedMember ? editedMember.Picture : member?.Picture) ? 'hidden' : ''}`}>
                     <span className="text-3xl font-bold text-white">
                       {member?.Name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                     </span>
@@ -289,19 +435,29 @@ export default function Dashboard() {
                   
                   {editing && (
                     <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
-                      <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
+                      {uploadingImage ? (
+                        <svg className="animate-spin h-8 w-8 text-white" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                      )}
                       <input
                         type="file"
                         accept="image/*"
                         className="hidden"
-                        onChange={async (e) => {
+                        disabled={uploadingImage}
+                        onChange={(e) => {
                           const file = e.target.files?.[0]
                           if (!file) return
                           
                           setUploadingImage(true)
+                          setSelectedImageFile(file)
+                          
                           const reader = new FileReader()
                           reader.onloadend = () => {
                             setEditedMember((prev: any) => ({
@@ -417,7 +573,19 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'members' && (
-            <div>
+            <div className="relative">
+              {/* Floating Quick Navigation */}
+              <QuickNavigation 
+                sections={[
+                  { id: 'board', label: 'Board', visible: boardMembers.length > 0, color: 'yellow' },
+                  { id: 'core', label: 'Core', visible: coreMembers.length > 0, color: 'blue' },
+                  { id: 'honorary', label: 'Honorary', visible: exCoreHonorary.length > 0, color: 'amber' },
+                  { id: 'alumni', label: 'Alumni', visible: exCoreAlumni.length > 0, color: 'emerald' },
+                  { id: 'advisors', label: 'Advisors', visible: exCoreAdvisors.length > 0, color: 'indigo' },
+                  { id: 'others', label: 'Others', visible: exCoreOthers.length > 0 || otherMembers.length > 0, color: 'gray' },
+                ]}
+              />
+              
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-bold text-white">All Members</h2>
@@ -496,16 +664,140 @@ export default function Dashboard() {
                   )}
                 </div>
 
-                <div className="mt-4 text-white/60 text-sm">
-                  Showing {filteredMembers.length} of {allMembers.length} members
-                </div>
+              <div className="mt-4 text-white/60 text-sm">
+                Showing {filteredMembers.length} of {allMembers.length} members
+              </div>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredMembers.map((m) => (
-                  <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} />
-                ))}
-              </div>
+              {/* Board Members */}
+              {boardMembers.length > 0 && (
+                <div id="board" className="mb-8 scroll-mt-32">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {boardMembers.map((m) => (
+                      <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Separator between Board and Core Members */}
+              {boardMembers.length > 0 && coreMembers.length > 0 && (
+                <SeparatorLine title="Core Members" gradient color="blue" />
+              )}
+
+              {/* Core Members */}
+              {coreMembers.length > 0 && (
+                <div id="core" className="mb-8 scroll-mt-32">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {coreMembers.map((m) => (
+                      <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Separator between Core and Ex-Core Members */}
+              {(boardMembers.length > 0 || coreMembers.length > 0) && (exCoreHonorary.length > 0 || exCoreAlumni.length > 0 || exCoreAdvisors.length > 0 || exCoreOthers.length > 0) && (
+                <SeparatorLine title="Ex-Core Members" gradient color="purple" />
+              )}
+
+              {/* Ex-Core Honorary Members */}
+              {exCoreHonorary.length > 0 && (
+                <div id="honorary" className="mb-8 scroll-mt-32">
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/40 rounded-lg">
+                      <svg className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                      </svg>
+                      <span className="text-amber-300 font-semibold">Honorary Members</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {exCoreHonorary.map((m) => (
+                      <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} isHonorary />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Separator between Honorary and Alumni */}
+              {exCoreHonorary.length > 0 && exCoreAlumni.length > 0 && (
+                <SubSeparatorLine />
+              )}
+
+              {/* Ex-Core Alumni Members */}
+              {exCoreAlumni.length > 0 && (
+                <div id="alumni" className="mb-8 scroll-mt-32">
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 rounded-lg">
+                      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                      </svg>
+                      <span className="text-emerald-300 font-semibold">Alumni</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {exCoreAlumni.map((m) => (
+                      <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} isAlumni />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Separator between Alumni and Advisors */}
+              {exCoreAlumni.length > 0 && exCoreAdvisors.length > 0 && (
+                <SubSeparatorLine />
+              )}
+
+              {/* Ex-Core Advisor Members */}
+              {exCoreAdvisors.length > 0 && (
+                <div id="advisors" className="mb-8 scroll-mt-32">
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500/20 to-violet-500/20 border border-indigo-500/40 rounded-lg">
+                      <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                      </svg>
+                      <span className="text-indigo-300 font-semibold">Advisors</span>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {exCoreAdvisors.map((m) => (
+                      <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} isAdvisor />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Other Ex-Core Members */}
+              {exCoreOthers.length > 0 && (
+                <div id="others" className="mb-8 scroll-mt-32">
+                  {(exCoreHonorary.length > 0 || exCoreAlumni.length > 0 || exCoreAdvisors.length > 0) && (
+                    <div className="mb-6 flex items-center gap-3">
+                      <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                    </div>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {exCoreOthers.map((m) => (
+                      <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Other Members (if any) */}
+              {otherMembers.length > 0 && (
+                <div className="mb-8">
+                  {filteredMembers.length > otherMembers.length && (
+                    <SeparatorLine title="Other Members" />
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {otherMembers.map((m) => (
+                      <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} />
+                    ))}
+                  </div>
+                </div>
+              )}
               
               {filteredMembers.length === 0 && (
                 <div className="text-center py-12 text-white/40">
@@ -551,12 +843,11 @@ export default function Dashboard() {
                   color="purple"
                 />
                 <StatCard
-                  title="Alumni"
-                  value={stats.alumni}
+                  title="Ex-Core Members"
+                  value={stats.exCore}
                   icon={
                     <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
                   }
                   color="orange"
@@ -564,12 +855,133 @@ export default function Dashboard() {
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <DepartmentBreakdown members={allMembers} />
-                <RoleBreakdown members={allMembers} />
+                <DepartmentBreakdown members={allMembers.filter(m => m.Status === 'Active')} />
+                <StatusBreakdown members={allMembers} />
               </div>
             </div>
           )}
         </main>
+      </div>
+    </div>
+  )
+}
+
+function SeparatorLine({ title, gradient = false, color = 'purple' }: { title?: string; gradient?: boolean; color?: 'purple' | 'cyan' | 'blue' }) {
+  const colorSchemes = {
+    purple: {
+      lineLeft: 'bg-gradient-to-r from-transparent via-purple-500/50 to-blue-500/50',
+      lineRight: 'bg-gradient-to-r from-blue-500/50 via-purple-500/50 to-transparent',
+      background: 'bg-gradient-to-r from-purple-500/10 to-blue-500/10 border-purple-500/30',
+      text: 'text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-blue-300'
+    },
+    cyan: {
+      lineLeft: 'bg-gradient-to-r from-transparent via-cyan-500/50 to-blue-500/50',
+      lineRight: 'bg-gradient-to-r from-blue-500/50 via-cyan-500/50 to-transparent',
+      background: 'bg-gradient-to-r from-cyan-500/10 to-blue-500/10 border-cyan-500/30',
+      text: 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 to-blue-300'
+    },
+    blue: {
+      lineLeft: 'bg-gradient-to-r from-transparent via-blue-500/50 to-purple-500/50',
+      lineRight: 'bg-gradient-to-r from-purple-500/50 via-blue-500/50 to-transparent',
+      background: 'bg-gradient-to-r from-blue-500/10 to-purple-500/10 border-blue-500/30',
+      text: 'text-transparent bg-clip-text bg-gradient-to-r from-blue-300 to-purple-300'
+    }
+  }
+  
+  const scheme = gradient ? colorSchemes[color] : null
+  
+  return (
+    <div className="mb-10 mt-12">
+      <div className="flex items-center gap-4">
+        <div className={`h-0.5 flex-1 ${gradient ? scheme!.lineLeft : 'bg-gradient-to-r from-transparent via-white/30 to-white/30'}`} />
+        {title && (
+          <div className={`px-4 py-2 rounded-lg border backdrop-blur-sm ${
+            gradient 
+              ? scheme!.background
+              : 'bg-white/5 border-white/20'
+          }`}>
+            <span className={`font-semibold ${gradient ? scheme!.text : 'text-white/80'}`}>
+              {title}
+            </span>
+          </div>
+        )}
+        <div className={`h-0.5 flex-1 ${gradient ? scheme!.lineRight : 'bg-gradient-to-r from-white/30 via-white/30 to-transparent'}`} />
+      </div>
+    </div>
+  )
+}
+
+function QuickNavigation({ sections }: { sections: Array<{ id: string; label: string; visible: boolean; color?: string }> }) {
+  const visibleSections = sections.filter(s => s.visible)
+  
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
+  if (visibleSections.length <= 1) return null
+
+  const dotColorMap: Record<string, string> = {
+    yellow: 'bg-yellow-400',
+    blue: 'bg-blue-400',
+    amber: 'bg-amber-400',
+    emerald: 'bg-emerald-400',
+    indigo: 'bg-indigo-400',
+    gray: 'bg-white/40',
+  }
+
+  return (
+    <div className="fixed left-8 top-1/2 -translate-y-1/2 z-40 hidden xl:block">
+      <div className="relative">
+        {/* Background glow effect */}
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl blur-xl" />
+        
+        <div className="relative bg-black/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl">
+          <div className="text-white/50 text-[10px] uppercase tracking-widest font-semibold mb-4 px-1">
+            Quick Nav
+          </div>
+          
+          <div className="space-y-1">
+            {visibleSections.map((section) => (
+              <button
+                key={section.id}
+                onClick={() => scrollToSection(section.id)}
+                className="group w-full px-3 py-2.5 rounded-lg text-xs font-medium text-white/70 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center gap-3"
+              >
+                <div className={`w-1.5 h-1.5 rounded-full ${dotColorMap[section.color || 'gray']} group-hover:scale-150 transition-transform duration-200`} />
+                <span className="group-hover:translate-x-0.5 transition-transform duration-200">{section.label}</span>
+              </button>
+            ))}
+          </div>
+          
+          {/* Divider */}
+          <div className="my-3 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+          
+          {/* Back to Top */}
+          <button
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="group w-full px-3 py-2.5 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-white/5 transition-all duration-200 flex items-center justify-center gap-2"
+          >
+            <svg className="w-3.5 h-3.5 group-hover:-translate-y-0.5 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+            </svg>
+            <span>Back to Top</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SubSeparatorLine() {
+  return (
+    <div className="mb-8 mt-8">
+      <div className="flex items-center gap-4">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-white/10" />
+        <div className="w-2 h-2 rounded-full bg-white/20" />
+        <div className="h-px flex-1 bg-gradient-to-r from-white/10 via-white/10 to-transparent" />
       </div>
     </div>
   )
@@ -810,20 +1222,56 @@ function EditableProfileForm({
   )
 }
 
-function MemberCard({ member, getPictureUrl }: { member: any; getPictureUrl: (pic: any) => string | null }) {
+function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni = false, isAdvisor = false }: { 
+  member: any; 
+  getPictureUrl: (pic: any) => string | null;
+  isHonorary?: boolean;
+  isAlumni?: boolean;
+  isAdvisor?: boolean;
+}) {
   const isBoardMember = member?.Role === 'Board Member'
   const isCoreMember = member?.Role === 'Core Member'
   
   return (
-    <div className={`backdrop-blur-md border rounded-xl p-6 hover:border-white/30 transition-all duration-200 ${
+    <div className={`backdrop-blur-md border rounded-xl p-6 hover:border-white/30 transition-all duration-200 relative overflow-hidden ${
       isBoardMember 
         ? 'bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-yellow-500/40 shadow-lg shadow-yellow-500/10' 
+        : isHonorary
+        ? 'bg-gradient-to-br from-amber-500/10 via-yellow-500/10 to-amber-500/10 border-amber-500/40 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30'
+        : isAlumni
+        ? 'bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border-emerald-500/40 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30'
+        : isAdvisor
+        ? 'bg-gradient-to-br from-indigo-500/10 via-violet-500/10 to-indigo-500/10 border-indigo-500/40 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30'
         : isCoreMember
         ? 'bg-gradient-to-br from-blue-500/10 to-purple-500/10 border-blue-500/30'
         : 'bg-white/5 border-white/10'
     }`}>
+      {/* Sparkle effect for honorary members */}
+      {isHonorary && (
+        <>
+          <div className="absolute top-0 right-0 w-20 h-20 bg-amber-400/10 rounded-full blur-xl" />
+          <div className="absolute bottom-0 left-0 w-16 h-16 bg-yellow-400/10 rounded-full blur-xl" />
+        </>
+      )}
+      
+      {/* Glow effect for alumni */}
+      {isAlumni && (
+        <>
+          <div className="absolute top-0 left-0 w-24 h-24 bg-emerald-400/10 rounded-full blur-xl" />
+          <div className="absolute bottom-0 right-0 w-20 h-20 bg-teal-400/10 rounded-full blur-xl" />
+        </>
+      )}
+      
+      {/* Glow effect for advisors */}
+      {isAdvisor && (
+        <>
+          <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-400/10 rounded-full blur-xl" />
+          <div className="absolute bottom-0 left-0 w-20 h-20 bg-violet-400/10 rounded-full blur-xl" />
+        </>
+      )}
+      
       {isBoardMember && (
-        <div className="absolute top-2 right-2">
+        <div className="absolute top-2 right-2 z-10">
           <div className="flex items-center gap-1 px-2 py-1 bg-yellow-500/20 border border-yellow-500/40 rounded-full">
             <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
@@ -832,14 +1280,58 @@ function MemberCard({ member, getPictureUrl }: { member: any; getPictureUrl: (pi
           </div>
         </div>
       )}
-      <div className="flex items-start gap-4">
+      
+      {isHonorary && (
+        <div className="absolute top-2 right-2 z-10">
+          <div className="flex items-center gap-1 px-2 py-1 bg-amber-500/30 border border-amber-400/50 rounded-full backdrop-blur-sm">
+            <svg className="w-3 h-3 text-amber-300" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+            </svg>
+            <span className="text-amber-200 text-xs font-semibold">Honorary</span>
+          </div>
+        </div>
+      )}
+      
+      {isAlumni && (
+        <div className="absolute top-2 right-2 z-10">
+          <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/30 border border-emerald-400/50 rounded-full backdrop-blur-sm">
+            <svg className="w-3 h-3 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 20 20">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+            </svg>
+            <span className="text-emerald-200 text-xs font-semibold">Alumni</span>
+          </div>
+        </div>
+      )}
+      
+      {isAdvisor && (
+        <div className="absolute top-2 right-2 z-10">
+          <div className="flex items-center gap-1 px-2 py-1 bg-indigo-500/30 border border-indigo-400/50 rounded-full backdrop-blur-sm">
+            <svg className="w-3 h-3 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 20 20">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            <span className="text-indigo-200 text-xs font-semibold">Advisor</span>
+          </div>
+        </div>
+      )}
+      
+      <div className="flex items-start gap-4 relative z-0">
         <div className="flex-shrink-0">
           {getPictureUrl(member?.Picture) ? (
             <img 
               src={getPictureUrl(member?.Picture) || ''}
               alt={member?.Name}
-              className={`w-16 h-16 rounded-full object-cover border-2 ${
-                isBoardMember ? 'border-yellow-500/60' : isCoreMember ? 'border-blue-500/60' : 'border-white/20'
+              className={`w-20 h-20 rounded-full object-cover border-2 ${
+                isBoardMember 
+                  ? 'border-yellow-500/60' 
+                  : isHonorary 
+                  ? 'border-amber-400/60 shadow-lg shadow-amber-500/30'
+                  : isAlumni
+                  ? 'border-emerald-400/60 shadow-lg shadow-emerald-500/30'
+                  : isAdvisor
+                  ? 'border-indigo-400/60 shadow-lg shadow-indigo-500/30'
+                  : isCoreMember 
+                  ? 'border-blue-500/60' 
+                  : 'border-white/20'
               }`}
               onError={(e) => {
                 e.currentTarget.style.display = 'none'
@@ -847,40 +1339,94 @@ function MemberCard({ member, getPictureUrl }: { member: any; getPictureUrl: (pi
               }}
             />
           ) : null}
-          <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${
-            isBoardMember ? 'from-yellow-500 to-orange-600' : isCoreMember ? 'from-blue-500 to-purple-600' : 'from-blue-500 to-purple-600'
+          <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${
+            isBoardMember 
+              ? 'from-yellow-500 to-orange-600' 
+              : isHonorary
+              ? 'from-amber-400 to-yellow-500'
+              : isAlumni
+              ? 'from-emerald-400 to-teal-500'
+              : isAdvisor
+              ? 'from-indigo-400 to-violet-500'
+              : isCoreMember 
+              ? 'from-blue-500 to-purple-600' 
+              : 'from-blue-500 to-purple-600'
           } flex items-center justify-center border-2 ${
-            isBoardMember ? 'border-yellow-500/60' : isCoreMember ? 'border-blue-500/60' : 'border-white/20'
+            isBoardMember 
+              ? 'border-yellow-500/60' 
+              : isHonorary
+              ? 'border-amber-400/60 shadow-lg shadow-amber-500/30'
+              : isAlumni
+              ? 'border-emerald-400/60 shadow-lg shadow-emerald-500/30'
+              : isAdvisor
+              ? 'border-indigo-400/60 shadow-lg shadow-indigo-500/30'
+              : isCoreMember 
+              ? 'border-blue-500/60' 
+              : 'border-white/20'
           } ${getPictureUrl(member?.Picture) ? 'hidden' : ''}`}>
-            <span className="text-xl font-bold text-white">
+            <span className="text-2xl font-bold text-white">
               {member?.Name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
             </span>
           </div>
         </div>
         <div className="flex-1 min-w-0">
-          <h3 className="text-lg font-semibold text-white truncate">{member?.Name}</h3>
+          <h3 className={`text-lg font-semibold truncate ${
+            isHonorary 
+              ? 'text-amber-100' 
+              : isAlumni
+              ? 'text-emerald-100'
+              : isAdvisor
+              ? 'text-indigo-100'
+              : 'text-white'
+          }`}>{member?.Name}</h3>
           <p className={`text-sm truncate font-medium ${
-            isBoardMember ? 'text-yellow-400' : isCoreMember ? 'text-blue-400' : 'text-white/60'
+            isBoardMember 
+              ? 'text-yellow-400' 
+              : isHonorary
+              ? 'text-amber-300'
+              : isAlumni
+              ? 'text-emerald-300'
+              : isAdvisor
+              ? 'text-indigo-300'
+              : isCoreMember 
+              ? 'text-blue-400' 
+              : 'text-white/60'
           }`}>{member?.Role}</p>
           <div className="mt-2 flex flex-wrap gap-2">
             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
               member?.Status === 'Active' 
                 ? 'bg-green-500/20 border border-green-500/40 text-green-400'
+                : isHonorary
+                ? 'bg-amber-500/30 border border-amber-400/50 text-amber-300'
+                : isAlumni
+                ? 'bg-emerald-500/30 border border-emerald-400/50 text-emerald-300'
+                : isAdvisor
+                ? 'bg-indigo-500/30 border border-indigo-400/50 text-indigo-300'
                 : 'bg-gray-500/20 border border-gray-500/40 text-gray-400'
             }`}>
               {member?.Status}
             </span>
             {member?.Department && (
-              <span className="inline-flex items-center px-2 py-1 bg-purple-500/20 border border-purple-500/40 rounded-full text-purple-400 text-xs font-medium truncate">
+              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium truncate ${
+                isHonorary
+                  ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300'
+                  : isAlumni
+                  ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
+                  : isAdvisor
+                  ? 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-300'
+                  : 'bg-purple-500/20 border border-purple-500/40 text-purple-400'
+              }`}>
                 {member?.Department}
               </span>
             )}
           </div>
         </div>
       </div>
-      <div className="mt-4 pt-4 border-t border-white/10">
-        <p className="text-white/40 text-xs">Email</p>
-        <p className="text-white text-sm truncate">{member?.['TBC Email']}</p>
+      <div className="mt-4 pt-4 border-t border-white/10 relative z-0">
+        <p className={`text-xs ${isHonorary || isAlumni || isAdvisor ? 'text-white/50' : 'text-white/40'}`}>Email</p>
+        <p className={`text-sm truncate ${isHonorary ? 'text-amber-100' : isAlumni ? 'text-emerald-100' : isAdvisor ? 'text-indigo-100' : 'text-white'}`}>
+          {member?.['TBC Email']}
+        </p>
       </div>
     </div>
   )
@@ -908,26 +1454,38 @@ function StatCard({ title, value, icon, color }: { title: string; value: number;
 }
 
 function DepartmentBreakdown({ members }: { members: any[] }) {
-  const departments = members.reduce((acc: Record<string, number>, m) => {
-    const dept = m.Department || 'Unassigned'
-    acc[dept] = (acc[dept] || 0) + 1
+  const departmentCounts = members.reduce((acc: Record<string, number>, m) => {
+    if (!m.Department) return acc
+    
+    const departments = m.Department.split(',').map((d: string) => d.trim())
+    
+    departments.forEach((dept: string) => {
+      if (dept && dept.toLowerCase() !== 'unassigned') {
+        acc[dept] = (acc[dept] || 0) + 1
+      }
+    })
+    
     return acc
   }, {})
 
-  const sortedDepts = Object.entries(departments).sort((a, b) => b[1] - a[1])
+  const sortedDepts = Object.entries(departmentCounts).sort((a, b) => b[1] - a[1])
+  const totalCount = members.filter(m => m.Department).length
 
   return (
     <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6">
-      <h3 className="text-xl font-bold text-white mb-4">Members by Department</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-bold text-white">Department Distribution</h3>
+        <span className="text-white/40 text-xs">{sortedDepts.length} departments</span>
+      </div>
       <div className="space-y-3">
         {sortedDepts.map(([dept, count]) => (
-          <div key={dept} className="flex items-center justify-between">
-            <span className="text-white/80 text-sm">{dept}</span>
+          <div key={dept} className="flex items-center justify-between group hover:bg-white/5 rounded-lg p-2 -mx-2 transition-colors duration-200">
+            <span className="text-white/80 text-sm font-medium">{dept}</span>
             <div className="flex items-center gap-3">
               <div className="w-32 bg-white/10 rounded-full h-2 overflow-hidden">
                 <div 
-                  className="bg-blue-500 h-full rounded-full transition-all duration-500"
-                  style={{ width: `${(count / members.length) * 100}%` }}
+                  className="bg-gradient-to-r from-blue-500 to-cyan-500 h-full rounded-full transition-all duration-500 group-hover:from-blue-400 group-hover:to-cyan-400"
+                  style={{ width: `${(count / totalCount) * 100}%` }}
                 />
               </div>
               <span className="text-white font-semibold text-sm w-8 text-right">{count}</span>
@@ -939,33 +1497,65 @@ function DepartmentBreakdown({ members }: { members: any[] }) {
   )
 }
 
-function RoleBreakdown({ members }: { members: any[] }) {
-  const roles = members.reduce((acc: Record<string, number>, m) => {
-    const role = m.Role || 'Unknown'
-    acc[role] = (acc[role] || 0) + 1
+function StatusBreakdown({ members }: { members: any[] }) {
+  const statusCounts = members.reduce((acc: Record<string, number>, m) => {
+    const status = m.Status || 'Unknown'
+    acc[status] = (acc[status] || 0) + 1
     return acc
   }, {})
 
-  const sortedRoles = Object.entries(roles).sort((a, b) => b[1] - a[1])
+  const statusOrder = ['Active', 'Honorary', 'Alumni', 'Advisor', 'Passive', 'Left', 'Kicked out']
+  const sortedStatuses = Object.entries(statusCounts).sort((a, b) => {
+    const aIndex = statusOrder.indexOf(a[0])
+    const bIndex = statusOrder.indexOf(b[0])
+    if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex
+    if (aIndex !== -1) return -1
+    if (bIndex !== -1) return 1
+    return b[1] - a[1]
+  })
+
+  const statusColors: Record<string, string> = {
+    'Active': 'from-green-500 to-emerald-500',
+    'Honorary': 'from-amber-500 to-yellow-500',
+    'Alumni': 'from-emerald-500 to-teal-500',
+    'Advisor': 'from-indigo-500 to-violet-500',
+    'Passive': 'from-gray-500 to-slate-500',
+    'Left': 'from-orange-500 to-red-500',
+    'Kicked out': 'from-red-500 to-rose-500'
+  }
+
+  const totalCount = members.length
 
   return (
     <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6">
-      <h3 className="text-xl font-bold text-white mb-4">Members by Role</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-xl font-bold text-white">Member Status</h3>
+        <span className="text-white/40 text-xs">{totalCount} total</span>
+      </div>
       <div className="space-y-3">
-        {sortedRoles.map(([role, count]) => (
-          <div key={role} className="flex items-center justify-between">
-            <span className="text-white/80 text-sm">{role}</span>
-            <div className="flex items-center gap-3">
-              <div className="w-32 bg-white/10 rounded-full h-2 overflow-hidden">
-                <div 
-                  className="bg-purple-500 h-full rounded-full transition-all duration-500"
-                  style={{ width: `${(count / members.length) * 100}%` }}
-                />
+        {sortedStatuses.map(([status, count]) => {
+          const percentage = ((count / totalCount) * 100).toFixed(1)
+          return (
+            <div key={status} className="flex items-center justify-between group hover:bg-white/5 rounded-lg p-2 -mx-2 transition-colors duration-200">
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${statusColors[status] || 'from-gray-500 to-slate-500'}`} />
+                <span className="text-white/80 text-sm font-medium">{status}</span>
               </div>
-              <span className="text-white font-semibold text-sm w-8 text-right">{count}</span>
+              <div className="flex items-center gap-3">
+                <div className="w-32 bg-white/10 rounded-full h-2 overflow-hidden">
+                  <div 
+                    className={`bg-gradient-to-r ${statusColors[status] || 'from-gray-500 to-slate-500'} h-full rounded-full transition-all duration-500`}
+                    style={{ width: `${percentage}%` }}
+                  />
+                </div>
+                <div className="flex items-center gap-1">
+                  <span className="text-white font-semibold text-sm w-8 text-right">{count}</span>
+                  <span className="text-white/40 text-xs w-10 text-right">({percentage}%)</span>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     </div>
   )
