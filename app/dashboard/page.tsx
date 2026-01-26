@@ -1346,7 +1346,20 @@ function EditableProfileForm({
   isBoardMember?: boolean
   isOwnProfile?: boolean
 }) {
-  const fieldSections = [
+  type FieldDefinition = {
+    key: string
+    label: string
+    type: string
+    placeholder: string
+    disabled?: boolean
+    options?: string[]
+  }
+
+  const fieldSections: Array<{
+    title: string
+    icon: React.ReactNode
+    fields: FieldDefinition[]
+  }> = [
     {
       title: 'Personal Information',
       icon: (
@@ -1368,9 +1381,31 @@ function EditableProfileForm({
         </svg>
       ),
       fields: [
-        { key: 'Department', label: 'Department', type: 'text', placeholder: 'Your department', disabled: !isBoardMember },
-        { key: 'Role', label: 'Role', type: 'text', placeholder: 'Your role', disabled: !isBoardMember },
-        { key: 'Status', label: 'Status', type: 'text', placeholder: 'Active, Alumni, etc.', disabled: !isBoardMember },
+        { key: 'Department', label: 'Department', type: 'select', placeholder: 'Your department', disabled: isBoardMember, options: [
+          'Industry',
+          'Web3 Talents',
+          'Legal & Finance',
+          'External Relations',
+          'Education',
+          'Marketing',
+          'IT & Development',
+          'Research',
+        ] },
+        { key: 'Role', label: 'Role', type: 'select', placeholder: 'Your role', disabled: isBoardMember, options: [
+          'Core Member',
+          'Board Member',
+          'Ex-Core Member',
+          'Guest',
+        ] },
+        { key: 'Status', label: 'Status', type: 'select', placeholder: 'Active, Alumni, etc.', disabled: isBoardMember, options: [
+          'Active',
+          'Alumni',
+          'Honorary',
+          'Advisor',
+          'Passive',
+          'Kicked out',
+          'Left',
+        ] },
         { key: 'Semester Joined', label: 'Semester Joined', type: 'text', placeholder: 'e.g., WS2024', disabled: !isBoardMember },
         { key: 'Active Semesters', label: 'Active Semesters', type: 'number', placeholder: '0', disabled: !isBoardMember }
       ]
@@ -1433,17 +1468,40 @@ function EditableProfileForm({
                   {field.label}
                   {field.disabled && <span className="ml-2 text-white/40">(Read-only)</span>}
                 </label>
-                <input
-                  type={field.type}
-                  value={member?.[field.key] || ''}
-                  onChange={(e) => onInputChange(field.key, e.target.value)}
-                  placeholder={field.placeholder}
-                  disabled={field.disabled}
-                  className="w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-                />
+                {field.type === 'select' ? (
+                  <select
+                    value={member?.[field.key] || ''}
+                    onChange={(e) => onInputChange(field.key, e.target.value)}
+                    disabled={field.disabled}
+                    className="w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="" className="bg-gray-900 text-white">Select {field.label.toLowerCase()}</option>
+                    {field.options?.map((option: string) => (
+                      <option key={option} value={option} className="bg-gray-900 text-white">{option}</option>
+                    ))}
+                  </select>
+                ) : (
+                  <input
+                    type={field.type}
+                    value={member?.[field.key] || ''}
+                    onChange={(e) => onInputChange(field.key, e.target.value)}
+                    placeholder={field.placeholder}
+                    disabled={field.disabled}
+                    className="w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  />
+                )}
               </div>
             ))}
           </div>
+          {section.title === 'Professional & Social' && (
+            <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+              <p className="text-blue-200 text-sm">
+                <strong>Privacy Notice:</strong> Your contact information and social media profiles are stored securely in our encrypted database. 
+                This data is used solely for internal member communication and networking purposes within the organization. 
+                We are committed to protecting your privacy and will never share your personal information with third parties without your explicit consent.
+              </p>
+            </div>
+          )}
         </div>
       ))}
     </form>
