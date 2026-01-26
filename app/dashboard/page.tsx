@@ -4,14 +4,16 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { memberService } from '@/lib/members'
+import { supabase } from '@/lib/supabase'
 import confetti from 'canvas-confetti'
+import UniversityAutocomplete from '@/app/components/UniversityAutocomplete'
 
 type TabType = 'profile' | 'members' | 'stats'
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
-  const [member, setMember] = useState<any>(null) // The logged-in user's member profile
-  const [viewedMember, setViewedMember] = useState<any>(null) // The member being viewed/edited (can be self or another)
+  const [member, setMember] = useState<any>(null)
+  const [viewedMember, setViewedMember] = useState<any>(null)
   const [allMembers, setAllMembers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
@@ -27,6 +29,8 @@ export default function Dashboard() {
   const [clickCount, setClickCount] = useState(0)
   const [lastClickTime, setLastClickTime] = useState(0)
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null)
+  const [hasSpecialAccess, setHasSpecialAccess] = useState(false)
+  const [viewedMemberHasSpecialAccess, setViewedMemberHasSpecialAccess] = useState(false)
   const router = useRouter()
 
   const getPictureUrl = (picture: any) => {
@@ -58,6 +62,8 @@ export default function Dashboard() {
   const canEditMember = (targetMember: any) => {
     if (!member || !targetMember) return false
     
+    if (hasSpecialAccess) return true
+    
     if (member.id === targetMember.id) return true
     
     if (member.Role === 'Board Member' && targetMember.Department) {
@@ -74,6 +80,26 @@ export default function Dashboard() {
     return false
   }
 
+  const canEditField = (fieldKey: string, isOwnProfile: boolean) => {
+    if (fieldKey === 'TBC Email') {
+      if (!hasSpecialAccess || isOwnProfile) return false
+      if (viewedMemberHasSpecialAccess) return false
+      return true
+    }
+    
+    if (hasSpecialAccess && !isOwnProfile) return true
+    
+    const adminFields = ['Role', 'Status', 'Department', 'Semester Joined', 'Active Semesters']
+    
+    if (adminFields.includes(fieldKey)) {
+      if (hasSpecialAccess) return true
+      if (member?.Role === 'Board Member' && !isOwnProfile) return true
+      return false
+    }
+    
+    return true
+  }
+
   useEffect(() => {
     const loadUserData = async () => {
       const { user: currentUser } = await auth.getCurrentUser()
@@ -84,6 +110,9 @@ export default function Dashboard() {
       }
 
       setUser(currentUser)
+      
+      const { data: specialAccessResult } = await supabase.rpc('has_special_access')
+      setHasSpecialAccess(specialAccessResult === true)
       
       const { data: memberData, error: memberError } = await memberService.getMemberByEmail(currentUser.email!)
       
@@ -100,7 +129,7 @@ export default function Dashboard() {
       }
 
       setMember(memberData)
-      setViewedMember(memberData) // Initially view own profile
+      setViewedMember(memberData)
 
       const { data: allMembersData } = await memberService.getAllMembers()
       if (allMembersData) {
@@ -185,17 +214,31 @@ export default function Dashboard() {
     setLastClickTime(now)
   }
 
-  const handleEditClick = () => {
+  const handleEditClick = async () => {
     setEditedMember({ ...viewedMember })
     setEditing(true)
     setActiveTab('profile')
+    
+    if (viewedMember && viewedMember['TBC Email']) {
+      const { data } = await supabase.rpc('check_email_has_special_access', {
+        check_email: viewedMember['TBC Email']
+      })
+      setViewedMemberHasSpecialAccess(data === true)
+    }
   }
 
-  const handleEditOtherMember = (targetMember: any) => {
+  const handleEditOtherMember = async (targetMember: any) => {
     setViewedMember(targetMember)
     setEditedMember({ ...targetMember })
     setEditing(true)
     setActiveTab('profile')
+    
+    if (targetMember && targetMember['TBC Email']) {
+      const { data } = await supabase.rpc('check_email_has_special_access', {
+        check_email: targetMember['TBC Email']
+      })
+      setViewedMemberHasSpecialAccess(data === true)
+    }
     
     setMessage({ 
       type: 'success', 
@@ -209,6 +252,7 @@ export default function Dashboard() {
     setEditing(false)
     setEditedMember(null)
     setSelectedImageFile(null)
+    setViewedMemberHasSpecialAccess(false)
     setActiveTab('profile')
   }
 
@@ -216,6 +260,7 @@ export default function Dashboard() {
     setEditing(false)
     setEditedMember(null)
     setSelectedImageFile(null)
+    setViewedMemberHasSpecialAccess(false)
   }
 
   const handleInputChange = (field: string, value: any) => {
@@ -687,14 +732,42 @@ export default function Dashboard() {
               <div className="flex-1">
                 <div className="flex items-start justify-between mb-1">
                   <h2 className="text-2xl font-bold text-white">{viewedMember?.Name}</h2>
-                  {viewedMember?.Role === 'Board Member' && (
-                    <div className="flex items-center gap-1 px-2 py-1 bg-yellow-500/20 border border-yellow-500/40 rounded-lg">
-                      <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                      </svg>
-                      <span className="text-yellow-300 text-xs font-semibold">Board</span>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {hasSpecialAccess && viewedMember?.id === member?.id && (
+                      <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border backdrop-blur-sm ${
+                        viewedMember?.Role === 'Board Member'
+                          ? 'bg-yellow-500/30 border-yellow-400/60'
+                          : viewedMember?.Role === 'Core Member'
+                          ? 'bg-blue-500/30 border-blue-400/60'
+                          : 'bg-purple-500/30 border-purple-400/60'
+                      }`}>
+                        <svg className={`w-3.5 h-3.5 ${
+                          viewedMember?.Role === 'Board Member'
+                            ? 'text-yellow-300'
+                            : viewedMember?.Role === 'Core Member'
+                            ? 'text-blue-300'
+                            : 'text-purple-300'
+                        }`} fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className={`text-xs font-semibold ${
+                          viewedMember?.Role === 'Board Member'
+                            ? 'text-yellow-200'
+                            : viewedMember?.Role === 'Core Member'
+                            ? 'text-blue-200'
+                            : 'text-purple-200'
+                        }`}>Admin</span>
+                      </div>
+                    )}
+                    {viewedMember?.Role === 'Board Member' && (
+                      <div className="flex items-center gap-1 px-2 py-1 bg-yellow-500/20 border border-yellow-500/40 rounded-lg">
+                        <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                        <span className="text-yellow-300 text-xs font-semibold">Board</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <p className="text-white/60 text-sm mb-3">{viewedMember?.['TBC Email']}</p>
                 
@@ -806,8 +879,10 @@ export default function Dashboard() {
                   onSave={handleSave}
                   onCancel={handleCancel}
                   saving={saving}
+                  hasSpecialAccess={hasSpecialAccess}
                   isBoardMember={member?.Role === 'Board Member'}
                   isOwnProfile={viewedMember?.id === member?.id}
+                  canEditField={canEditField}
                 />
               ) : (
                 <ProfileDisplay member={viewedMember} sections={sections} />
@@ -1335,16 +1410,20 @@ function EditableProfileForm({
   onSave,
   onCancel,
   saving,
+  hasSpecialAccess = false,
   isBoardMember = false,
-  isOwnProfile = true
+  isOwnProfile = true,
+  canEditField
 }: {
   member: any
   onInputChange: (field: string, value: any) => void
   onSave: () => void
   onCancel: () => void
   saving: boolean
+  hasSpecialAccess?: boolean
   isBoardMember?: boolean
   isOwnProfile?: boolean
+  canEditField: (fieldKey: string, isOwnProfile: boolean) => boolean
 }) {
   type FieldDefinition = {
     key: string
@@ -1381,7 +1460,7 @@ function EditableProfileForm({
         </svg>
       ),
       fields: [
-        { key: 'Department', label: 'Department', type: 'select', placeholder: 'Your department', disabled: isBoardMember, options: [
+        { key: 'Department', label: 'Department', type: 'select', placeholder: 'Your department', options: [
           'Industry',
           'Web3 Talents',
           'Legal & Finance',
@@ -1391,13 +1470,13 @@ function EditableProfileForm({
           'IT & Development',
           'Research',
         ] },
-        { key: 'Role', label: 'Role', type: 'select', placeholder: 'Your role', disabled: isBoardMember, options: [
+        { key: 'Role', label: 'Role', type: 'select', placeholder: 'Your role', options: [
           'Core Member',
           'Board Member',
           'Ex-Core Member',
           'Guest',
         ] },
-        { key: 'Status', label: 'Status', type: 'select', placeholder: 'Active, Alumni, etc.', disabled: isBoardMember, options: [
+        { key: 'Status', label: 'Status', type: 'select', placeholder: 'Active, Alumni, etc.', options: [
           'Active',
           'Alumni',
           'Honorary',
@@ -1406,8 +1485,8 @@ function EditableProfileForm({
           'Kicked out',
           'Left',
         ] },
-        { key: 'Semester Joined', label: 'Semester Joined', type: 'text', placeholder: 'e.g., WS2024', disabled: !isBoardMember },
-        { key: 'Active Semesters', label: 'Active Semesters', type: 'number', placeholder: '0', disabled: !isBoardMember }
+        { key: 'Semester Joined', label: 'Semester Joined', type: 'text', placeholder: 'e.g., WS2024' },
+        { key: 'Active Semesters', label: 'Active Semesters', type: 'number', placeholder: '0' }
       ]
     },
     {
@@ -1418,7 +1497,7 @@ function EditableProfileForm({
         </svg>
       ),
       fields: [
-        { key: 'TBC Email', label: 'TBC Email', type: 'email', disabled: true, placeholder: 'Your TBC email' },
+        { key: 'TBC Email', label: 'TBC Email', type: 'email', placeholder: 'Your TBC email' },
         { key: 'Private Email', label: 'Private Email', type: 'email', placeholder: 'Your personal email' },
         { key: 'Phone', label: 'Phone', type: 'tel', placeholder: '+49 123 456789' }
       ]
@@ -1462,17 +1541,25 @@ function EditableProfileForm({
             <h4 className="text-lg font-semibold text-white">{section.title}</h4>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {section.fields.map((field, fieldIdx) => (
+            {section.fields.map((field, fieldIdx) => {
+              const isFieldDisabled = !canEditField(field.key, isOwnProfile)
+              return (
               <div key={fieldIdx} className={field.key === 'Project/Task' || field.key === 'Area of Expertise' ? 'md:col-span-2' : ''}>
                 <label className="block text-white/60 text-xs uppercase tracking-wider font-medium mb-2">
                   {field.label}
-                  {field.disabled && <span className="ml-2 text-white/40">(Read-only)</span>}
+                  {isFieldDisabled && <span className="ml-2 text-white/40">(Read-only)</span>}
                 </label>
-                {field.type === 'select' ? (
+                {field.key === 'Uni' ? (
+                  <UniversityAutocomplete
+                    value={member?.[field.key] || ''}
+                    onChange={(value) => onInputChange(field.key, value)}
+                    disabled={isFieldDisabled}
+                  />
+                ) : field.type === 'select' ? (
                   <select
                     value={member?.[field.key] || ''}
                     onChange={(e) => onInputChange(field.key, e.target.value)}
-                    disabled={field.disabled}
+                    disabled={isFieldDisabled}
                     className="w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="" className="bg-gray-900 text-white">Select {field.label.toLowerCase()}</option>
@@ -1486,12 +1573,12 @@ function EditableProfileForm({
                     value={member?.[field.key] || ''}
                     onChange={(e) => onInputChange(field.key, e.target.value)}
                     placeholder={field.placeholder}
-                    disabled={field.disabled}
+                    disabled={isFieldDisabled}
                     className="w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 )}
               </div>
-            ))}
+            )})}
           </div>
           {section.title === 'Professional & Social' && (
             <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
