@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { memberService } from '@/lib/members'
 import confetti from 'canvas-confetti'
+import UniversityAutocomplete from '@/app/components/UniversityAutocomplete'
 
 type TabType = 'profile' | 'members' | 'stats'
 
@@ -1381,7 +1382,7 @@ function EditableProfileForm({
         </svg>
       ),
       fields: [
-        { key: 'Department', label: 'Department', type: 'select', placeholder: 'Your department', disabled: isBoardMember, options: [
+        { key: 'Department', label: 'Department', type: 'select', placeholder: 'Your department', disabled: !isBoardMember, options: [
           'Industry',
           'Web3 Talents',
           'Legal & Finance',
@@ -1391,13 +1392,13 @@ function EditableProfileForm({
           'IT & Development',
           'Research',
         ] },
-        { key: 'Role', label: 'Role', type: 'select', placeholder: 'Your role', disabled: isBoardMember, options: [
+        { key: 'Role', label: 'Role', type: 'select', placeholder: 'Your role', disabled: !isBoardMember, options: [
           'Core Member',
           'Board Member',
           'Ex-Core Member',
           'Guest',
         ] },
-        { key: 'Status', label: 'Status', type: 'select', placeholder: 'Active, Alumni, etc.', disabled: isBoardMember, options: [
+        { key: 'Status', label: 'Status', type: 'select', placeholder: 'Active, Alumni, etc.', disabled: !isBoardMember, options: [
           'Active',
           'Alumni',
           'Honorary',
@@ -1468,7 +1469,13 @@ function EditableProfileForm({
                   {field.label}
                   {field.disabled && <span className="ml-2 text-white/40">(Read-only)</span>}
                 </label>
-                {field.type === 'select' ? (
+                {field.key === 'Uni' ? (
+                  <UniversityAutocomplete
+                    value={member?.[field.key] || ''}
+                    onChange={(value) => onInputChange(field.key, value)}
+                    disabled={field.disabled}
+                  />
+                ) : field.type === 'select' ? (
                   <select
                     value={member?.[field.key] || ''}
                     onChange={(e) => onInputChange(field.key, e.target.value)}
