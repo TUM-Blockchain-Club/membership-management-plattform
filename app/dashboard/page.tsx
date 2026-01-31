@@ -4,17 +4,19 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { memberService } from '@/lib/members'
+import { eventService } from '@/lib/events'
 import { supabase } from '@/lib/supabase'
 import confetti from 'canvas-confetti'
 import UniversityAutocomplete from '@/app/components/UniversityAutocomplete'
 
-type TabType = 'profile' | 'members' | 'stats'
+type TabType = 'profile' | 'members' | 'stats' | 'events'
 
 export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
   const [member, setMember] = useState<any>(null)
   const [viewedMember, setViewedMember] = useState<any>(null)
   const [allMembers, setAllMembers] = useState<any[]>([])
+  const [events, setEvents] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [editedMember, setEditedMember] = useState<any>(null)
@@ -58,6 +60,65 @@ export default function Dashboard() {
     }
     
     return null
+  }
+
+  const formatEventDate = (startAt: string, endAt: string) => {
+    console.log('📅 Formatting event date:', { startAt, endAt })
+    const start = new Date(startAt)
+    const end = new Date(endAt)
+
+    // Check if it's a multi-day event
+    const startDate = start.toDateString()
+    const endDate = end.toDateString()
+
+    if (startDate !== endDate) {
+      // Multi-day event
+      const startMonth = start.toLocaleDateString('en-US', { month: 'short' })
+      const endMonth = end.toLocaleDateString('en-US', { month: 'short' })
+      const startDay = start.getDate()
+      const endDay = end.getDate()
+      const year = start.getFullYear()
+
+      if (startMonth === endMonth) {
+        const result = `${startMonth} ${startDay}-${endDay}, ${year}`
+        console.log('📅 Multi-day same month result:', result)
+        return result
+      } else {
+        const result = `${startMonth} ${startDay} - ${endMonth} ${endDay}, ${year}`
+        console.log('📅 Multi-day different month result:', result)
+        return result
+      }
+    } else {
+      // Single day event
+      const result = start.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric'
+      })
+      console.log('📅 Single day result:', result)
+      return result
+    }
+  }
+
+  const formatEventTime = (startAt: string, endAt: string) => {
+    console.log('🕐 Formatting event time:', { startAt, endAt })
+    const start = new Date(startAt)
+    const end = new Date(endAt)
+
+    const startTime = start.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+    const endTime = end.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    })
+
+    const result = `${startTime} - ${endTime}`
+    console.log('🕐 Time result:', result)
+    return result
   }
 
   const canEditMember = (targetMember: any) => {
@@ -174,6 +235,17 @@ export default function Dashboard() {
       if (allMembersData) {
         setAllMembers(allMembersData)
       }
+
+      console.log('📅 Dashboard: Fetching events data...')
+      const { data: eventsData, error: eventsError } = await eventService.getUpcomingEvents(memberData.id)
+      if (eventsError) {
+        console.error('❌ Dashboard: Failed to fetch events:', eventsError)
+      } else if (eventsData) {
+        console.log('✅ Dashboard: Events loaded successfully:', eventsData.length, 'events')
+        setEvents(eventsData)
+      } else {
+        console.log('⚠️ Dashboard: No events data received')
+      }
       
       setLoading(false)
     }
@@ -184,6 +256,60 @@ export default function Dashboard() {
   const handleSignOut = async () => {
     await auth.signOut()
     router.push('/signin')
+  }
+
+  const handleEventRegistration = async (eventId: string | number, isCurrentlyRegistered: boolean) => {
+    console.log('🎯 handleEventRegistration called:', { eventId, isCurrentlyRegistered, memberId: member?.id })
+    if (!member) {
+      console.error('❌ No member data available')
+      return
+    }
+
+    try {
+      if (isCurrentlyRegistered) {
+        // Unregister from event
+        console.log('📤 Unregistering from event:', eventId)
+        const { error } = await supabase
+          .from('event_registrations')
+          .delete()
+          .eq('event_id', eventId)
+          .eq('member_id', member.id)
+
+        if (error) {
+          console.error('❌ Delete error:', error)
+          throw error
+        }
+        console.log('✅ Unregistered from event:', eventId)
+      } else {
+        // Register for event
+        console.log('📥 Registering for event:', eventId, 'with member_id:', member.id)
+        const { error } = await supabase
+          .from('event_registrations')
+          .insert({
+            event_id: eventId,
+            member_id: member.id
+          })
+
+        if (error) {
+          console.error('❌ Insert error:', error)
+          throw error
+        }
+        console.log('✅ Registered for event:', eventId)
+      }
+
+      // Refresh events data
+      console.log('🔄 Refreshing events data...')
+      const { data: updatedEvents } = await eventService.getUpcomingEvents(member.id)
+      if (updatedEvents) {
+        setEvents(updatedEvents)
+        console.log('✅ Events data refreshed')
+      } else {
+        console.log('⚠️ No updated events data received')
+      }
+    } catch (error) {
+      console.error('❌ Event registration error:', error)
+      setMessage({ type: 'error', text: 'Failed to update event registration. Please try again.' })
+    }
   }
 
   const triggerBlockchainEffect = () => {
@@ -612,6 +738,21 @@ const handleSave = async () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
                   Statistics
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab('events')}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeTab === 'events'
+                    ? 'bg-blue-600 text-white'
+                    : 'text-white/60 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  Events
                 </div>
               </button>
             </nav>
@@ -1306,6 +1447,41 @@ const handleSave = async () => {
               </div>
             </div>
           )}
+
+          {activeTab === 'events' && (
+            <div>
+              <h2 className="text-2xl font-bold text-white mb-6">Upcoming Events</h2>
+              {(() => {
+                console.log('🎨 Dashboard: Rendering events tab with', events.length, 'events')
+                return null
+              })()}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {events.map((event, index) => {
+                  const colors = ['blue', 'purple', 'green', 'orange', 'cyan', 'pink']
+                  const color = colors[index % colors.length]
+
+                  return (
+                    <EventCard
+                      key={event.id}
+                      title={event.title}
+                      date={formatEventDate(event.start_at, event.end_at)}
+                      time={formatEventTime(event.start_at, event.end_at)}
+                      location={event.location}
+                      description={event.description}
+                      organizer={event.organizer_department}
+                      maxAttendees={event.capacity_total}
+                      currentAttendees={event.current_registrations || 0}
+                      hasApplyButton={true}
+                      isApplied={event.is_registered || false}
+                      color={color}
+                      onApply={() => handleEventRegistration(event.id, event.is_registered || false)}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </div>
@@ -1522,7 +1698,14 @@ function EditableProfileForm({
       ),
       fields: [
         { key: 'Name', label: 'Full Name', type: 'text', placeholder: 'Enter your full name' },
-        { key: 'Degree', label: 'Degree', type: 'text', placeholder: 'e.g., Bachelor, Master, PhD' },
+        { key: 'Degree', label: 'Degree', type: 'select', placeholder: 'Select your degree', options: [
+          'Bachelor',
+          'Master',
+          'PhD',
+          'Associate',
+          'Diploma',
+          'Other'
+        ] },
         { key: 'Uni', label: 'University', type: 'text', placeholder: 'Enter your university' }
       ]
     },
@@ -1601,7 +1784,14 @@ function EditableProfileForm({
       fields: [
         { key: 'Project/Task', label: 'Current Project/Task', type: 'text', placeholder: 'What are you working on?' },
         { key: 'Area of Expertise', label: 'Area of Expertise', type: 'text', placeholder: 'Your expertise areas' },
-        { key: 'Size Merch', label: 'Merch Size', type: 'text', placeholder: 'XS, S, M, L, XL, XXL' }
+        { key: 'Size Merch', label: 'Merch Size', type: 'select', placeholder: 'Select your merch size', options: [
+          'XS',
+          'S',
+          'M',
+          'L',
+          'XL',
+          'XXL'
+        ] }
       ]
     }
   ]
@@ -1654,7 +1844,7 @@ function EditableProfileForm({
               </div>
             )})}
           </div>
-          {section.title === 'Professional & Social' && (
+          {section.title === 'Contact Information' && (
             <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
               <p className="text-blue-200 text-sm">
                 <strong>Privacy Notice:</strong> Your contact information and social media profiles are stored securely in our encrypted database. 
@@ -1918,6 +2108,108 @@ function StatCard({ title, value, icon, color }: { title: string; value: number;
         </div>
         <div className="opacity-60">{icon}</div>
       </div>
+    </div>
+  )
+}
+
+function EventCard({ 
+  title, 
+  date, 
+  time, 
+  location, 
+  description, 
+  organizer, 
+  maxAttendees, 
+  currentAttendees, 
+  hasApplyButton, 
+  isApplied, 
+  color,
+  onApply
+}: { 
+  title: string
+  date: string
+  time: string
+  location: string
+  description: string
+  organizer: string
+  maxAttendees: number | null
+  currentAttendees: number | null
+  hasApplyButton: boolean
+  isApplied: boolean
+  color: string
+  onApply?: () => void
+}) {
+  const colorClasses = {
+    blue: 'from-blue-500/20 to-blue-600/20 border-blue-500/40',
+    green: 'from-green-500/20 to-green-600/20 border-green-500/40',
+    purple: 'from-purple-500/20 to-purple-600/20 border-purple-500/40',
+    orange: 'from-orange-500/20 to-orange-600/20 border-orange-500/40',
+    cyan: 'from-cyan-500/20 to-cyan-600/20 border-cyan-500/40',
+    pink: 'from-pink-500/20 to-pink-600/20 border-pink-500/40'
+  }
+
+  const buttonColorClasses = {
+    blue: 'bg-blue-600 hover:bg-blue-700 text-white',
+    green: 'bg-green-600 hover:bg-green-700 text-white',
+    purple: 'bg-purple-600 hover:bg-purple-700 text-white',
+    orange: 'bg-orange-600 hover:bg-orange-700 text-white',
+    cyan: 'bg-cyan-600 hover:bg-cyan-700 text-white',
+    pink: 'bg-pink-600 hover:bg-pink-700 text-white'
+  }
+  
+  return (
+    <div className={`bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses]} border backdrop-blur-md rounded-xl p-6 hover:border-white/30 transition-all duration-200`}>
+      <div className="flex items-start justify-between mb-4">
+        <div className="flex-1">
+          <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+          <div className="space-y-1 text-sm text-white/70">
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {date}
+            </div>
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {time}
+            </div>
+            <div className="flex items-center gap-2">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              {location}
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <p className="text-white/80 text-sm mb-4 leading-relaxed">{description}</p>
+      
+      <div className="flex items-center justify-between text-xs text-white/60 mb-4">
+        <span>Organized by: {organizer}</span>
+        {maxAttendees && (
+          <span>{currentAttendees || 0}/{maxAttendees} attending</span>
+        )}
+      </div>
+      
+      {hasApplyButton && (
+        <button
+          onClick={() => {
+            console.log('🔘', isApplied ? 'Deregister' : 'Apply', 'button clicked for event:', title, 'onApply exists:', !!onApply)
+            onApply?.()
+          }}
+          className={`w-full px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+            isApplied 
+              ? 'bg-red-600 hover:bg-red-700 text-white' 
+              : buttonColorClasses[color as keyof typeof buttonColorClasses]
+          }`}
+        >
+          {isApplied ? 'Deregister' : 'Apply Now'}
+        </button>
+      )}
     </div>
   )
 }
