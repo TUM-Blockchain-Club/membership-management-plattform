@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [lastClickTime, setLastClickTime] = useState(0)
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null)
   const router = useRouter()
+  const [creatingMember, setCreatingMember] = useState(false)
 
   const getPictureUrl = (picture: any) => {
     if (!picture) return null
@@ -73,6 +74,44 @@ export default function Dashboard() {
     
     return false
   }
+
+  const handleAddMember = () => {
+    setCreatingMember(true)
+    setViewedMember(null)
+    setEditedMember(makeEmptyMember())
+    setEditing(true)
+    setActiveTab('profile')
+    setMessage(null)
+    setSelectedImageFile(null)
+  }
+
+  const makeEmptyMember = () => ({
+    Name: null,
+    Degree: null,
+    Uni: null,
+
+    Department: null,
+    Role: null,
+    Status: null,
+    'Semester Joined': null,
+    'Active Semesters': null,
+
+    'TBC Email': null,
+    'Private Email': null,
+    Phone: null,
+
+    Linkedin: null,
+    Telegram: null,
+    Discord: null,
+    Instagram: null,
+    Twitter: null,
+
+    'Project/Task': null,
+    'Area of Expertise': null,
+    'Size Merch': null,
+
+    Picture: null,
+  })
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -225,67 +264,60 @@ export default function Dashboard() {
     }))
   }
 
-  const handleSave = async () => {
-    setSaving(true)
-    setMessage(null)
-    
-    try {
-      const updatedData = { ...editedMember }
-      delete updatedData.Picture
-      
-      if (selectedImageFile) {
-        const { data: imageUrl, error: uploadError } = await memberService.uploadProfilePicture(
-          viewedMember.id.toString(),
-          selectedImageFile,
-          viewedMember.Picture
-        )
-        
-        if (uploadError) {
-          setMessage({ type: 'error', text: `Failed to upload image: ${uploadError.message}` })
-          setSaving(false)
-          return
-        }
-        
-        if (!imageUrl) {
-          setMessage({ type: 'error', text: 'Upload succeeded but no URL returned' })
-          setSaving(false)
-          return
-        }
-        
-        updatedData.Picture = imageUrl
-      }
-      
-      const { data: updatedMember, error: updateError } = await memberService.updateMember(viewedMember.id, updatedData)
-      
-      if (updateError) {
-        setMessage({ type: 'error', text: `Failed to update profile: ${updateError.message}` })
-        setSaving(false)
+const handleSave = async () => {
+  setSaving(true)
+  setMessage(null)
+
+  try {
+    const updatedData = { ...editedMember }
+    delete updatedData.Picture
+
+    // optional image upload (only if user selected an image)
+    if (selectedImageFile) {
+      // If creating, you may not have an id yet -> upload after insert OR use email as key
+      // simplest: insert first, then upload using returned id
+    }
+
+    if (creatingMember) {
+      const { data: created, error } = await memberService.createMember(updatedData)
+      if (error) {
+        setMessage({ type: 'error', text: `Failed to create member: ${error.message}` })
         return
       }
-      
-      // Update the viewed member
-      setViewedMember(updatedMember)
-      
-      // If editing own profile, also update member state
-      if (viewedMember.id === member.id) {
-        setMember(updatedMember)
-      }
-      
-      // Update in allMembers array
-      setAllMembers(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m))
-      
-      setMessage({ type: 'success', text: 'Profile updated successfully!' })
+
+      setAllMembers(prev => [created, ...prev])
+      setViewedMember(created)
+      setCreatingMember(false)
       setEditing(false)
       setEditedMember(null)
       setSelectedImageFile(null)
-      
+      setMessage({ type: 'success', text: 'Member created successfully!' })
       setTimeout(() => setMessage(null), 3000)
-    } catch (error) {
-      setMessage({ type: 'error', text: 'Failed to update profile. Please try again.' })
-    } finally {
-      setSaving(false)
+      return
     }
+
+    // existing edit (your current logic)
+    const { data: updatedMember, error: updateError } =
+      await memberService.updateMember(viewedMember.id, updatedData)
+
+    if (updateError) {
+      setMessage({ type: 'error', text: `Failed to update profile: ${updateError.message}` })
+      return
+    }
+
+    setViewedMember(updatedMember)
+    if (viewedMember.id === member.id) setMember(updatedMember)
+    setAllMembers(prev => prev.map(m => m.id === updatedMember.id ? updatedMember : m))
+
+    setMessage({ type: 'success', text: 'Profile updated successfully!' })
+    setEditing(false)
+    setEditedMember(null)
+    setSelectedImageFile(null)
+    setTimeout(() => setMessage(null), 3000)
+  } finally {
+    setSaving(false)
   }
+}
 
   if (loading) {
     return (
@@ -698,49 +730,54 @@ export default function Dashboard() {
                 </div>
                 <p className="text-white/60 text-sm mb-3">{viewedMember?.['TBC Email']}</p>
                 
-                <div className="flex items-center gap-3 flex-wrap">
-                  <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${
-                    viewedMember?.Role === 'Board Member'
-                      ? 'bg-yellow-500/20 border-yellow-500/40 text-yellow-300'
-                      : viewedMember?.Role === 'Core Member'
-                      ? 'bg-blue-500/20 border-blue-500/40 text-blue-300'
-                      : 'bg-purple-500/20 border-purple-500/40 text-purple-300'
-                  }`}>
-                    {viewedMember?.Role}
-                  </span>
-                  <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${
+                {!creatingMember && (
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${
+                  viewedMember?.Role === 'Board Member'
+                    ? 'bg-yellow-500/20 border-yellow-500/40 text-yellow-300'
+                    : viewedMember?.Role === 'Core Member'
+                    ? 'bg-blue-500/20 border-blue-500/40 text-blue-300'
+                    : 'bg-purple-500/20 border-purple-500/40 text-purple-300'
+                }`}>
+                  {viewedMember?.Role}
+                </span>
+
+                <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${
+                  viewedMember?.Status === 'Active' 
+                    ? 'bg-green-500/20 border-green-500/40 text-green-300'
+                    : viewedMember?.Status === 'Honorary'
+                    ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                    : viewedMember?.Status === 'Alumni'
+                    ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                    : viewedMember?.Status === 'Advisor'
+                    ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
+                    : 'bg-gray-500/20 border-gray-500/40 text-gray-300'
+                }`}>
+                  <span className={`w-2 h-2 rounded-full mr-2 ${
                     viewedMember?.Status === 'Active' 
-                      ? 'bg-green-500/20 border-green-500/40 text-green-300'
+                      ? 'bg-green-400 shadow-lg shadow-green-400/50'
                       : viewedMember?.Status === 'Honorary'
-                      ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
+                      ? 'bg-amber-400 shadow-lg shadow-amber-400/50'
                       : viewedMember?.Status === 'Alumni'
-                      ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                      ? 'bg-emerald-400 shadow-lg shadow-emerald-400/50'
                       : viewedMember?.Status === 'Advisor'
-                      ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
-                      : 'bg-gray-500/20 border-gray-500/40 text-gray-300'
-                  }`}>
-                    <span className={`w-2 h-2 rounded-full mr-2 ${
-                      viewedMember?.Status === 'Active' 
-                        ? 'bg-green-400 shadow-lg shadow-green-400/50'
-                        : viewedMember?.Status === 'Honorary'
-                        ? 'bg-amber-400 shadow-lg shadow-amber-400/50'
-                        : viewedMember?.Status === 'Alumni'
-                        ? 'bg-emerald-400 shadow-lg shadow-emerald-400/50'
-                        : viewedMember?.Status === 'Advisor'
-                        ? 'bg-indigo-400 shadow-lg shadow-indigo-400/50'
-                        : 'bg-gray-400'
-                    }`} />
-                    {viewedMember?.Status}
+                      ? 'bg-indigo-400 shadow-lg shadow-indigo-400/50'
+                      : 'bg-gray-400'
+                  }`} />
+                  {viewedMember?.Status}
+                </span>
+
+                {viewedMember?.Department && (
+                  <span className="inline-flex items-center px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white/80 text-sm font-medium">
+                    <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    {viewedMember?.Department}
                   </span>
-                  {viewedMember?.Department && (
-                    <span className="inline-flex items-center px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white/80 text-sm font-medium">
-                      <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                      </svg>
-                      {viewedMember?.Department}
-                    </span>
-                  )}
-                </div>
+                )}
+              </div>
+            )}
+
               </div>
             </div>
           </div>
@@ -834,17 +871,54 @@ export default function Dashboard() {
               <div className="mb-6">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-2xl font-bold text-white">All Members</h2>
-                  <div className="relative">
-                    <input
-                      type="text"
-                      placeholder="Search members..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10 pr-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
-                    />
-                    <svg className="w-5 h-5 text-white/40 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                    </svg>
+
+                  {/* RIGHT SIDE: button + search */}
+                  <div className="flex items-center gap-3">
+                    {member?.Role === 'Board Member' && (
+                      <button
+                        onClick={handleAddMember}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-all duration-200 flex items-center gap-2"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 4v16m8-8H4"
+                          />
+                        </svg>
+                        Add Member
+                      </button>
+                    )}
+
+                    {/* existing search box */}
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search members..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10 pr-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+                      />
+                      <svg
+                        className="w-5 h-5 text-white/40 absolute left-3 top-2.5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 0 0114 0z"
+                        />
+                      </svg>
+                    </div>
                   </div>
                 </div>
 
@@ -1383,7 +1457,7 @@ function EditableProfileForm({
         </svg>
       ),
       fields: [
-        { key: 'TBC Email', label: 'TBC Email', type: 'email', disabled: true, placeholder: 'Your TBC email' },
+        { key: 'TBC Email', label: 'TBC Email', type: 'email', disabled: !isOwnProfile && !isBoardMember ? true : false, placeholder: 'member@tbc.email' },
         { key: 'Private Email', label: 'Private Email', type: 'email', placeholder: 'Your personal email' },
         { key: 'Phone', label: 'Phone', type: 'tel', placeholder: '+49 123 456789' }
       ]
@@ -1396,11 +1470,11 @@ function EditableProfileForm({
         </svg>
       ),
       fields: [
-        { key: 'Linkedin', label: 'LinkedIn URL', type: 'url', placeholder: 'https://linkedin.com/in/...' },
-        { key: 'Telegram', label: 'Telegram', type: 'text', placeholder: 'username (without @)' },
-        { key: 'Discord', label: 'Discord', type: 'text', placeholder: 'username' },
-        { key: 'Instagram', label: 'Instagram', type: 'text', placeholder: 'username (without @)' },
-        { key: 'Twitter', label: 'Twitter/X', type: 'text', placeholder: 'username (without @)' }
+        { key: 'Linkedin', label: 'LinkedIn URL', type: 'url', placeholder: 'https://www.linkedin.com/in...' },
+        { key: 'Telegram', label: 'Telegram', type: 'text', placeholder: '' },
+        { key: 'Discord', label: 'Discord', type: 'text', placeholder: '' },
+        { key: 'Instagram', label: 'Instagram', type: 'text', placeholder: '' },
+        { key: 'Twitter', label: 'Twitter/X', type: 'text', placeholder: '' }
       ]
     },
     {
