@@ -513,11 +513,11 @@ const handleSave = async () => {
         </svg>
       ),
       fields: [
-        { label: 'LinkedIn', value: formatLink(viewedMember?.Linkedin, 'View Profile'), raw: viewedMember?.Linkedin },
-        { label: 'Telegram', value: formatUsername(viewedMember?.Telegram, 'Telegram') },
-        { label: 'Discord', value: formatUsername(viewedMember?.Discord, 'Discord') },
-        { label: 'Instagram', value: formatUsername(viewedMember?.Instagram, 'Instagram') },
-        { label: 'Twitter/X', value: formatUsername(viewedMember?.Twitter, 'Twitter/X') }
+        { key: 'Linkedin', label: 'LinkedIn URL', type: 'url', placeholder: 'https://www.linkedin.com/in/john-doe' },
+        { key: 'Telegram', label: 'Telegram', type: 'text', placeholder: 'john_doe' },
+        { key: 'Discord', label: 'Discord', type: 'text', placeholder: 'john_doe#1234' },
+        { key: 'Instagram', label: 'Instagram', type: 'text', placeholder: 'john_doe' },
+        { key: 'Twitter', label: 'Twitter/X', type: 'text', placeholder: 'john_doe' }
       ]
     },
     {
@@ -1584,11 +1584,11 @@ function EditableProfileForm({
         </svg>
       ),
       fields: [
-        { key: 'Linkedin', label: 'LinkedIn URL', type: 'url', placeholder: 'https://www.linkedin.com/in...' },
-        { key: 'Telegram', label: 'Telegram', type: 'text', placeholder: '' },
-        { key: 'Discord', label: 'Discord', type: 'text', placeholder: '' },
-        { key: 'Instagram', label: 'Instagram', type: 'text', placeholder: '' },
-        { key: 'Twitter', label: 'Twitter/X', type: 'text', placeholder: '' }
+        { key: 'Linkedin', label: 'LinkedIn URL', type: 'url', placeholder: 'https://www.linkedin.com/in/john-doe' },
+        { key: 'Telegram', label: 'Telegram', type: 'text', placeholder: 'john_doe' },
+        { key: 'Discord', label: 'Discord', type: 'text', placeholder: 'john_doe#1234' },
+        { key: 'Instagram', label: 'Instagram', type: 'text', placeholder: 'john_doe' },
+        { key: 'Twitter', label: 'Twitter/X', type: 'text', placeholder: 'john_doe' }
       ]
     },
     {
