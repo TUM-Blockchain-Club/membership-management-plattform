@@ -117,12 +117,12 @@ export default function AuthCallback() {
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
         <p className="text-white/60 mb-6">Signing you in...</p>
         
-        <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-left">
+        {/* <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-left">
           <p className="text-white/80 text-xs font-mono mb-2">Debug Info:</p>
           {debugInfo.map((info, i) => (
             <p key={i} className="text-white/60 text-xs font-mono">{info}</p>
           ))}
-        </div>
+        </div> */}
       </div>
     </div>
   )
