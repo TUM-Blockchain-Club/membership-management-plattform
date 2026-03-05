@@ -1090,7 +1090,7 @@ const handleSave = async () => {
 
                   {/* RIGHT SIDE: button + search */}
                   <div className="flex items-center gap-3">
-                    {member?.Role === 'Board Member' && (
+                    {((member?.Role === 'Board Member') || (hasSpecialAccess)) && (
                       <button
                         onClick={handleAddMember}
                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-all duration-200 flex items-center gap-2"
