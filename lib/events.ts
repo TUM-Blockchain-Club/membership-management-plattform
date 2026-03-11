@@ -13,6 +13,15 @@ export interface Event {
   is_registered?: boolean
 }
 
+export interface Participant {
+  member_id: number
+  members_main: {
+    id: number
+    Name: string
+    [key: string]: any
+  } | null
+}
+
 export const eventService = {
   getUpcomingEvents: async (memberId?: number, limit: number = 6) => {
     console.log('🔍 Events Service: Fetching upcoming events')
@@ -72,6 +81,38 @@ export const eventService = {
       return { data: eventsWithRegistrations, error: null }
     } catch (err) {
       console.error('💥 Events Service Exception:', err)
+      return { data: null, error: err as Error }
+    }
+  },
+
+  /**
+   * Fetch the participants (registered members) for a given event.
+   */
+  getEventParticipants: async (eventId: string | number) => {
+    console.log('🔍 Events Service: Fetching participants for event', eventId)
+    try {
+      // use explicit columns so supabase doesn't try to select a non-existent "participants" table
+      const { data, error } = await supabase
+        .from('event_registrations')
+        // join to members_main via the foreign key; include only the fields we need
+        .select('member_id, members_main(id, Name)')
+        .eq('event_id', eventId)
+
+      if (error) {
+        console.error('❌ Error fetching participants:', error)
+        return { data: null, error }
+      }
+
+      // sometimes supabase returns the joined row as an array; normalize to object
+      const normalized: Participant[] = (data || []).map((r: any) => {
+        let memberObj = r.members_main
+        if (Array.isArray(memberObj)) memberObj = memberObj[0] || null
+        return { member_id: r.member_id, members_main: memberObj }
+      })
+
+      return { data: normalized, error: null }
+    } catch (err) {
+      console.error('💥 Exception fetching participants:', err)
       return { data: null, error: err as Error }
     }
   }

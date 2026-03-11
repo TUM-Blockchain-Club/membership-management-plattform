@@ -17,6 +17,10 @@ export default function Dashboard() {
   const [viewedMember, setViewedMember] = useState<any>(null)
   const [allMembers, setAllMembers] = useState<any[]>([])
   const [events, setEvents] = useState<any[]>([])
+  const [participants, setParticipants] = useState<any[]>([])
+  const [participantsLoading, setParticipantsLoading] = useState(false)
+  const [showParticipantsModal, setShowParticipantsModal] = useState(false)
+  const [modalEventTitle, setModalEventTitle] = useState('')
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
   const [editedMember, setEditedMember] = useState<any>(null)
@@ -201,6 +205,11 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
+    // make sure modal doesn't hang open when user switches tabs
+    if (activeTab !== 'events') {
+      setShowParticipantsModal(false)
+    }
+
     const loadUserData = async () => {
       const { user: currentUser } = await auth.getCurrentUser()
       
@@ -310,6 +319,24 @@ export default function Dashboard() {
       console.error('❌ Event registration error:', error)
       setMessage({ type: 'error', text: 'Failed to update event registration. Please try again.' })
     }
+  }
+
+  const handleViewParticipants = async (eventId: string | number, title: string) => {
+    console.log('👥 Loading participants for event', eventId)
+    setParticipantsLoading(true)
+    setModalEventTitle(title)
+
+    const { data: participantsData, error } = await eventService.getEventParticipants(eventId)
+    if (error) {
+      console.error('❌ Failed to fetch participants via service:', error)
+      setMessage({ type: 'error', text: 'Could not load event participants.' })
+      setParticipants([])
+    } else {
+      setParticipants(participantsData || [])
+    }
+
+    setParticipantsLoading(false)
+    setShowParticipantsModal(true)
   }
 
   const triggerBlockchainEffect = () => {
@@ -1476,10 +1503,45 @@ const handleSave = async () => {
                       isApplied={event.is_registered || false}
                       color={color}
                       onApply={() => handleEventRegistration(event.id, event.is_registered || false)}
+                      showParticipantsButton={!!event.current_registrations && member?.Role === 'Board Member'}
+                      onViewParticipants={() => handleViewParticipants(event.id, event.title)}
                     />
                   )
                 })}
               </div>
+
+              {showParticipantsModal && (
+                <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+                  <div className="bg-black/90 rounded-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
+                    <h3 className="text-xl font-bold text-white mb-4 flex items-center justify-between">
+                      <span>Participants for {modalEventTitle}</span>
+                      <span className="text-sm text-white/60">{participants.length} registered</span>
+                    </h3>
+
+                    {participantsLoading ? (
+                      <p className="text-white/60">Loading...</p>
+                    ) : participants.length === 0 ? (
+                      <p className="text-white/60">No registrations yet.</p>
+                    ) : (
+                      <ul className="divide-y divide-white/20">
+                        {participants.map((p: any) => (
+                          <li key={p.member_id} className="py-2 flex items-center gap-3">
+                            <span className="w-2 h-2 rounded-full bg-blue-400" />
+                            <span className="text-white font-medium">{p.members_main?.Name || 'Unknown'}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+
+                    <button
+                      onClick={() => setShowParticipantsModal(false)}
+                      className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </main>
@@ -2124,7 +2186,9 @@ function EventCard({
   hasApplyButton, 
   isApplied, 
   color,
-  onApply
+  onApply,
+  showParticipantsButton,
+  onViewParticipants
 }: { 
   title: string
   date: string
@@ -2138,6 +2202,8 @@ function EventCard({
   isApplied: boolean
   color: string
   onApply?: () => void
+  showParticipantsButton?: boolean
+  onViewParticipants?: () => void
 }) {
   const colorClasses = {
     blue: 'from-blue-500/20 to-blue-600/20 border-blue-500/40',
@@ -2158,10 +2224,12 @@ function EventCard({
   }
   
   return (
-    <div className={`bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses]} border backdrop-blur-md rounded-xl p-6 hover:border-white/30 transition-all duration-200`}>
+    <div className={`bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses]} border backdrop-blur-md rounded-xl p-6 hover:border-white/30 transition-all duration-200 relative`}>
       <div className="flex items-start justify-between mb-4">
         <div className="flex-1">
-          <h3 className="text-xl font-bold text-white mb-2">{title}</h3>
+          <h3 className="text-xl font-bold text-white mb-2 relative">
+            {title}
+          </h3>
           <div className="space-y-1 text-sm text-white/70">
             <div className="flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2184,6 +2252,21 @@ function EventCard({
             </div>
           </div>
         </div>
+        {showParticipantsButton && onViewParticipants && (
+          <button
+            onClick={() => {
+              console.log('👁️‍🗨️ view participants for', title)
+              onViewParticipants()
+            }}
+            className="ml-3 p-1 text-white/60 hover:text-white transition-colors"
+            title="View participants"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+          </button>
+        )}
       </div>
       
       <p className="text-white/80 text-sm mb-4 leading-relaxed">{description}</p>
@@ -2210,6 +2293,7 @@ function EventCard({
           {isApplied ? 'Deregister' : 'Apply Now'}
         </button>
       )}
+
     </div>
   )
 }
