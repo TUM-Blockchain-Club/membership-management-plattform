@@ -98,6 +98,45 @@ body {
   }
 }
 
+/* Mobile-specific improvements */
+@media (max-width: 640px) {
+  .grid-pattern {
+    background-size: 30px 30px;
+  }
+  
+  @keyframes gridMove {
+    0% {
+      transform: translate(0, 0);
+    }
+    100% {
+      transform: translate(30px, 30px);
+    }
+  }
+}
+
+/* Smooth scrolling for mobile */
+@media (max-width: 768px) {
+  body {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Prevent text overflow on mobile */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
 @keyframes scaleIn {
   from {
     opacity: 0;

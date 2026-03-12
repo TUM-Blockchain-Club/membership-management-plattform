@@ -71,12 +71,10 @@ export default function Dashboard() {
     const start = new Date(startAt)
     const end = new Date(endAt)
 
-    // Check if it's a multi-day event
     const startDate = start.toDateString()
     const endDate = end.toDateString()
 
     if (startDate !== endDate) {
-      // Multi-day event
       const startMonth = start.toLocaleDateString('en-US', { month: 'short' })
       const endMonth = end.toLocaleDateString('en-US', { month: 'short' })
       const startDay = start.getDate()
@@ -93,7 +91,6 @@ export default function Dashboard() {
         return result
       }
     } else {
-      // Single day event
       const result = start.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -276,7 +273,6 @@ export default function Dashboard() {
 
     try {
       if (isCurrentlyRegistered) {
-        // Unregister from event
         console.log('📤 Unregistering from event:', eventId)
         const { error } = await supabase
           .from('event_registrations')
@@ -290,7 +286,6 @@ export default function Dashboard() {
         }
         console.log('✅ Unregistered from event:', eventId)
       } else {
-        // Register for event
         console.log('📥 Registering for event:', eventId, 'with member_id:', member.id)
         const { error } = await supabase
           .from('event_registrations')
@@ -306,7 +301,6 @@ export default function Dashboard() {
         console.log('✅ Registered for event:', eventId)
       }
 
-      // Refresh events data
       console.log('🔄 Refreshing events data...')
       const { data: updatedEvents } = await eventService.getUpcomingEvents(member.id)
       if (updatedEvents) {
@@ -470,10 +464,7 @@ const handleSave = async () => {
     const updatedData = { ...editedMember }
     delete updatedData.Picture
 
-    // optional image upload (only if user selected an image)
     if (selectedImageFile) {
-      // If creating, you may not have an id yet -> upload after insert OR use email as key
-      // simplest: insert first, then upload using returned id
     }
 
     if (creatingMember) {
@@ -494,7 +485,6 @@ const handleSave = async () => {
       return
     }
 
-    // existing edit (your current logic)
     const { data: updatedMember, error: updateError } =
       await memberService.updateMember(viewedMember.id, updatedData)
 
@@ -561,7 +551,6 @@ const handleSave = async () => {
     return (a.Name || '').localeCompare(b.Name || '')
   })
 
-  // Group members by role and status for display
   const boardMembers = filteredMembers.filter(m => m.Role === 'Board Member')
   const coreMembers = filteredMembers.filter(m => m.Role === 'Core Member')
   const exCoreHonorary = filteredMembers.filter(m => m.Role === 'Ex-Core Member' && m.Status === 'Honorary')
@@ -592,7 +581,6 @@ const handleSave = async () => {
     exCore: allMembers.filter(m => m.Role === 'Ex-Core Member').length
   }
 
-  // Helper functions for formatting profile data
   const formatLink = (url: string | null, platform: string) => {
     if (!url) return <span className="text-white/40">Not provided</span>;
     return (
@@ -615,7 +603,6 @@ const handleSave = async () => {
     return <span className="text-white">@{username}</span>;
   };
 
-  // Profile sections for display
   const sections = [
     {
       title: 'Personal Information',
@@ -697,26 +684,26 @@ const handleSave = async () => {
 
       <div className="relative z-10">
         <header className="border-b border-white/10 backdrop-blur-md sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-6 py-6 flex items-center justify-between">
-            <div>
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex items-center justify-between flex-wrap gap-3">
+            <div className="flex-1 min-w-0">
               <h1 
-                className="text-3xl font-bold text-white cursor-default select-none transition-transform duration-200 hover:scale-105"
+                className="text-2xl sm:text-3xl font-bold text-white cursor-default select-none transition-transform duration-200 hover:scale-105 truncate"
                 onClick={handleTitleClick}
               >
                 Dashboard
               </h1>
-              <p className="text-white/60 text-sm mt-1">Welcome back, {member?.Name?.split(' ')[0]}</p>
+              <p className="text-white/60 text-xs sm:text-sm mt-0.5 sm:mt-1 truncate">Welcome back, {member?.Name?.split(' ')[0]}</p>
             </div>
             <button
               onClick={handleSignOut}
-              className="px-6 py-2 text-sm text-white/80 hover:text-white border border-white/20 hover:border-white/40 rounded-lg transition-all duration-200"
+              className="px-4 sm:px-6 py-2 text-xs sm:text-sm text-white/80 hover:text-white border border-white/20 hover:border-white/40 rounded-lg transition-all duration-200 whitespace-nowrap"
             >
               Sign Out
             </button>
           </div>
           
-          <div className="max-w-7xl mx-auto px-6 pb-4">
-            <nav className="flex gap-2">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-3 sm:pb-4">
+            <nav className="flex gap-1 sm:gap-2 overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
               <button
                 onClick={() => {
                   setActiveTab('profile')
@@ -724,59 +711,62 @@ const handleSave = async () => {
                   setEditing(false)
                   setEditedMember(null)
                 }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                   activeTab === 'profile'
                     ? 'bg-blue-600 text-white'
                     : 'text-white/60 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
-                  My Profile
+                  <span className="hidden sm:inline">My Profile</span>
+                  <span className="sm:hidden">Profile</span>
                 </div>
               </button>
               <button
                 onClick={() => setActiveTab('members')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                   activeTab === 'members'
                     ? 'bg-blue-600 text-white'
                     : 'text-white/60 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                   </svg>
-                  All Members
+                  <span className="hidden sm:inline">All Members</span>
+                  <span className="sm:hidden">Members</span>
                 </div>
               </button>
               <button
                 onClick={() => setActiveTab('stats')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                   activeTab === 'stats'
                     ? 'bg-blue-600 text-white'
                     : 'text-white/60 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
-                  Statistics
+                  <span className="hidden sm:inline">Statistics</span>
+                  <span className="sm:hidden">Stats</span>
                 </div>
               </button>
               <button
                 onClick={() => setActiveTab('events')}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap flex-shrink-0 ${
                   activeTab === 'events'
                     ? 'bg-blue-600 text-white'
                     : 'text-white/60 hover:text-white hover:bg-white/5'
                 }`}
               >
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   Events
@@ -786,10 +776,10 @@ const handleSave = async () => {
           </div>
         </header>
 
-        <main className="max-w-7xl mx-auto px-6 py-12">
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12">
           {message && (
             <div className="max-w-4xl mx-auto">
-              <div className={`mb-6 p-4 rounded-2xl border ${
+              <div className={`mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl sm:rounded-2xl border text-sm sm:text-base ${
                 message.type === 'success' 
                   ? 'bg-green-500/10 border-green-500/30 text-green-400' 
                   : 'bg-red-500/10 border-red-500/30 text-red-400'
@@ -803,20 +793,21 @@ const handleSave = async () => {
             <div className="max-w-4xl mx-auto">
               {/* Back to My Profile button - shown when editing another member */}
               {viewedMember && member && viewedMember.id !== member.id && (
-                <div className="mb-4">
+                <div className="mb-3 sm:mb-4">
                   <button
                     onClick={handleBackToMyProfile}
-                    className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 rounded-lg text-blue-300 hover:text-blue-200 transition-all duration-200 flex items-center gap-2"
+                    className="px-3 sm:px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 rounded-lg text-blue-300 hover:text-blue-200 text-xs sm:text-sm transition-all duration-200 flex items-center gap-1.5 sm:gap-2"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                     </svg>
-                    Back to My Profile
+                    <span className="hidden sm:inline">Back to My Profile</span>
+                    <span className="sm:hidden">Back</span>
                   </button>
                 </div>
               )}
               
-              <div className={`backdrop-blur-md border rounded-2xl p-8 mb-8 relative overflow-hidden ${
+              <div className={`backdrop-blur-md border rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 relative overflow-hidden ${
                 viewedMember?.Role === 'Board Member'
                   ? 'bg-gradient-to-br from-yellow-500/10 via-orange-500/5 to-yellow-500/10 border-yellow-500/30'
                   : viewedMember?.Role === 'Core Member'
@@ -830,7 +821,7 @@ const handleSave = async () => {
                   : 'bg-white/5 border-white/10'
               }`}>
                 {/* Decorative corner accent */}
-                <div className={`absolute top-0 right-0 w-32 h-32 opacity-20 blur-3xl ${
+                <div className={`absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 opacity-20 blur-3xl ${
                   viewedMember?.Role === 'Board Member'
                     ? 'bg-yellow-500'
                     : viewedMember?.Role === 'Core Member'
@@ -844,14 +835,14 @@ const handleSave = async () => {
                     : 'bg-purple-500'
                 }`} />
                 
-            <div className="flex items-start gap-6 relative z-10">
-              <div className="flex-shrink-0">
+            <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 relative z-10">
+              <div className="flex-shrink-0 mx-auto sm:mx-0">
                 <div className="relative group">
                   {getPictureUrl(editing && editedMember ? editedMember.Picture : viewedMember?.Picture) ? (
                     <img 
                       src={getPictureUrl(editing && editedMember ? editedMember.Picture : viewedMember?.Picture) || ''}
                       alt={viewedMember?.Name}
-                      className={`w-24 h-24 rounded-full object-cover border-2 ${
+                      className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-2 ${
                         viewedMember?.Role === 'Board Member'
                           ? 'border-yellow-500/50'
                           : viewedMember?.Role === 'Core Member'
@@ -870,7 +861,7 @@ const handleSave = async () => {
                       }}
                     />
                   ) : null}
-                  <div className={`w-24 h-24 rounded-full flex items-center justify-center border-2 ${
+                  <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center border-2 ${
                     viewedMember?.Role === 'Board Member'
                       ? 'bg-gradient-to-br from-yellow-500 to-orange-600 border-yellow-500/50'
                       : viewedMember?.Role === 'Core Member'
@@ -883,7 +874,7 @@ const handleSave = async () => {
                       ? 'bg-gradient-to-br from-indigo-500 to-violet-600 border-indigo-500/50'
                       : 'bg-gradient-to-br from-blue-500 to-purple-600 border-white/20'
                   } ${getPictureUrl(editing && editedMember ? editedMember.Picture : viewedMember?.Picture) ? 'hidden' : ''}`}>
-                    <span className="text-3xl font-bold text-white">
+                    <span className="text-2xl sm:text-3xl font-bold text-white">
                       {viewedMember?.Name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
                     </span>
                   </div>
@@ -891,12 +882,12 @@ const handleSave = async () => {
                   {editing && (
                     <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
                       {uploadingImage ? (
-                        <svg className="animate-spin h-8 w-8 text-white" viewBox="0 0 24 24">
+                        <svg className="animate-spin h-6 w-6 sm:h-8 sm:w-8 text-white" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                         </svg>
                       ) : (
-                        <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
@@ -929,19 +920,19 @@ const handleSave = async () => {
                 </div>
               </div>
 
-              <div className="flex-1">
-                <div className="flex items-start justify-between mb-1">
-                  <h2 className="text-2xl font-bold text-white">{viewedMember?.Name}</h2>
-                  <div className="flex items-center gap-2">
+              <div className="flex-1 w-full sm:w-auto text-center sm:text-left">
+                <div className="flex flex-col sm:flex-row items-center sm:items-start sm:justify-between mb-1 gap-2">
+                  <h2 className="text-xl sm:text-2xl font-bold text-white break-words">{viewedMember?.Name}</h2>
+                  <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
                     {hasSpecialAccess && viewedMember?.id === member?.id && (
-                      <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border backdrop-blur-sm ${
+                      <div className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border backdrop-blur-sm ${
                         viewedMember?.Role === 'Board Member'
                           ? 'bg-yellow-500/30 border-yellow-400/60'
                           : viewedMember?.Role === 'Core Member'
                           ? 'bg-blue-500/30 border-blue-400/60'
                           : 'bg-purple-500/30 border-purple-400/60'
                       }`}>
-                        <svg className={`w-3.5 h-3.5 ${
+                        <svg className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${
                           viewedMember?.Role === 'Board Member'
                             ? 'text-yellow-300'
                             : viewedMember?.Role === 'Core Member'
@@ -960,8 +951,8 @@ const handleSave = async () => {
                       </div>
                     )}
                     {viewedMember?.Role === 'Board Member' && (
-                      <div className="flex items-center gap-1 px-2 py-1 bg-yellow-500/20 border border-yellow-500/40 rounded-lg">
-                        <svg className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+                      <div className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-yellow-500/20 border border-yellow-500/40 rounded-lg">
+                        <svg className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
                           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                         </svg>
                         <span className="text-yellow-300 text-xs font-semibold">Board</span>
@@ -969,11 +960,11 @@ const handleSave = async () => {
                     )}
                   </div>
                 </div>
-                <p className="text-white/60 text-sm mb-3">{viewedMember?.['TBC Email']}</p>
+                <p className="text-white/60 text-xs sm:text-sm mb-2 sm:mb-3 break-all">{viewedMember?.['TBC Email']}</p>
                 
                 {!creatingMember && (
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${
+              <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
+                <span className={`inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium border ${
                   viewedMember?.Role === 'Board Member'
                     ? 'bg-yellow-500/20 border-yellow-500/40 text-yellow-300'
                     : viewedMember?.Role === 'Core Member'
@@ -983,7 +974,7 @@ const handleSave = async () => {
                   {viewedMember?.Role}
                 </span>
 
-                <span className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border ${
+                <span className={`inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium border ${
                   viewedMember?.Status === 'Active' 
                     ? 'bg-green-500/20 border-green-500/40 text-green-300'
                     : viewedMember?.Status === 'Honorary'
@@ -994,7 +985,7 @@ const handleSave = async () => {
                     ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
                     : 'bg-gray-500/20 border-gray-500/40 text-gray-300'
                 }`}>
-                  <span className={`w-2 h-2 rounded-full mr-2 ${
+                  <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full mr-1.5 sm:mr-2 ${
                     viewedMember?.Status === 'Active' 
                       ? 'bg-green-400 shadow-lg shadow-green-400/50'
                       : viewedMember?.Status === 'Honorary'
@@ -1009,11 +1000,11 @@ const handleSave = async () => {
                 </span>
 
                 {viewedMember?.Department && (
-                  <span className="inline-flex items-center px-3 py-1.5 bg-white/10 border border-white/20 rounded-lg text-white/80 text-sm font-medium">
-                    <svg className="w-3.5 h-3.5 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <span className="inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 bg-white/10 border border-white/20 rounded-lg text-white/80 text-xs sm:text-sm font-medium">
+                    <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
-                    {viewedMember?.Department}
+                    <span className="truncate">{viewedMember?.Department}</span>
                   </span>
                 )}
               </div>
@@ -1023,60 +1014,64 @@ const handleSave = async () => {
             </div>
           </div>
 
-          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl overflow-hidden">
-            <div className="border-b border-white/10 px-8 py-6 flex items-center justify-between">
-              <h3 className="text-xl font-bold text-white">Profile Information</h3>
-              <div className="flex gap-3">
+          <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl sm:rounded-2xl overflow-hidden">
+            <div className="border-b border-white/10 px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <h3 className="text-lg sm:text-xl font-bold text-white">Profile Information</h3>
+              <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
                 {!editing ? (
                   <button
                     onClick={handleEditClick}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors duration-200 flex items-center gap-2"
+                    className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm rounded-lg transition-colors duration-200 flex items-center justify-center gap-1.5 sm:gap-2"
                   >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
-                    Edit Profile
+                    <span className="hidden sm:inline">Edit Profile</span>
+                    <span className="sm:hidden">Edit</span>
                   </button>
                 ) : (
                   <>
                     <button
                       onClick={handleSave}
                       disabled={saving}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-all duration-200 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 flex items-center gap-2"
+                      className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white text-xs sm:text-sm rounded-lg transition-all duration-200 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 flex items-center justify-center gap-1.5 sm:gap-2"
                     >
                       {saving ? (
                         <>
-                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                          <svg className="animate-spin h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                           </svg>
-                          Saving...
+                          <span className="hidden sm:inline">Saving...</span>
+                          <span className="sm:hidden">...</span>
                         </>
                       ) : (
                         <>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                           </svg>
-                          Save Changes
+                          <span className="hidden sm:inline">Save Changes</span>
+                          <span className="sm:hidden">Save</span>
                         </>
                       )}
                     </button>
                     <button
                       onClick={handleCancel}
                       disabled={saving}
-                      className="px-4 py-2 bg-white/10 hover:bg-white/20 disabled:bg-white/5 disabled:cursor-not-allowed text-white text-sm rounded-lg transition-all duration-200 flex items-center gap-2"
+                      className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 bg-white/10 hover:bg-white/20 disabled:bg-white/5 disabled:cursor-not-allowed text-white text-xs sm:text-sm rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
-                      Cancel
+                      <span className="hidden sm:inline">Cancel</span>
+                      <span className="sm:hidden">Cancel</span>
                     </button>
                   </>
                 )}
               </div>
             </div>
 
-            <div className="p-8">
+            <div className="p-4 sm:p-6 md:p-8">
               {editing ? (
                 <EditableProfileForm
                   member={editedMember}
@@ -1112,18 +1107,17 @@ const handleSave = async () => {
               />
               
               <div className="mb-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-2xl font-bold text-white">All Members</h2>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-3">
+                  <h2 className="text-xl sm:text-2xl font-bold text-white">All Members</h2>
 
-                  {/* RIGHT SIDE: button + search */}
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
                     {((member?.Role === 'Board Member') || (hasSpecialAccess)) && (
                       <button
                         onClick={handleAddMember}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-all duration-200 flex items-center gap-2"
+                        className="px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm rounded-lg transition-all duration-200 flex items-center gap-1.5 sm:gap-2 whitespace-nowrap"
                       >
                         <svg
-                          className="w-4 h-4"
+                          className="w-3.5 h-3.5 sm:w-4 sm:h-4"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -1135,7 +1129,8 @@ const handleSave = async () => {
                             d="M12 4v16m8-8H4"
                           />
                         </svg>
-                        Add Member
+                        <span className="hidden sm:inline">Add Member</span>
+                        <span className="sm:hidden">Add</span>
                       </button>
                     )}
 
@@ -1146,9 +1141,9 @@ const handleSave = async () => {
                         placeholder="Search members..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 pr-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+                        className="pl-5 pr-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
                       />
-                      <svg
+                      {/* <svg
                         className="w-5 h-5 text-white/40 absolute left-3 top-2.5"
                         fill="none"
                         stroke="currentColor"
@@ -1160,18 +1155,18 @@ const handleSave = async () => {
                           strokeWidth={2}
                           d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 0 0114 0z"
                         />
-                      </svg>
+                      </svg> */}
                     </div>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-3">
-                  <div className="flex items-center gap-2">
-                    <label className="text-white/60 text-sm">Status:</label>
+                <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3">
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <label className="text-white/60 text-xs sm:text-sm whitespace-nowrap">Status:</label>
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-3 py-1.5 bg-black/40 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:bg-black/50 transition-colors"
+                      className="flex-1 sm:flex-initial px-2 sm:px-3 py-1.5 bg-black/40 border border-white/20 rounded-lg text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:bg-black/50 transition-colors"
                     >
                       <option value="all" className="bg-gray-900 text-white">All Statuses</option>
                       {uniqueStatuses.map(status => (
@@ -1180,12 +1175,12 @@ const handleSave = async () => {
                     </select>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <label className="text-white/60 text-sm">Department:</label>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <label className="text-white/60 text-xs sm:text-sm whitespace-nowrap">Department:</label>
                     <select
                       value={departmentFilter}
                       onChange={(e) => setDepartmentFilter(e.target.value)}
-                      className="px-3 py-1.5 bg-black/40 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:bg-black/50 transition-colors"
+                      className="flex-1 sm:flex-initial px-2 sm:px-3 py-1.5 bg-black/40 border border-white/20 rounded-lg text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:bg-black/50 transition-colors"
                     >
                       <option value="all" className="bg-gray-900 text-white">All Departments</option>
                       {uniqueDepartments.map(dept => (
@@ -1194,12 +1189,12 @@ const handleSave = async () => {
                     </select>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <label className="text-white/60 text-sm">Role:</label>
+                  <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <label className="text-white/60 text-xs sm:text-sm whitespace-nowrap">Role:</label>
                     <select
                       value={roleFilter}
                       onChange={(e) => setRoleFilter(e.target.value)}
-                      className="px-3 py-1.5 bg-black/40 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:bg-black/50 transition-colors"
+                      className="flex-1 sm:flex-initial px-2 sm:px-3 py-1.5 bg-black/40 border border-white/20 rounded-lg text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:bg-black/50 transition-colors"
                     >
                       <option value="all" className="bg-gray-900 text-white">All Roles</option>
                       {uniqueRoles.map(role => (
@@ -1216,9 +1211,9 @@ const handleSave = async () => {
                         setRoleFilter('all')
                         setSearchQuery('')
                       }}
-                      className="px-3 py-1.5 bg-red-500/20 border border-red-500/40 rounded-lg text-red-400 text-sm hover:bg-red-500/30 transition-colors flex items-center gap-1"
+                      className="px-3 py-1.5 bg-red-500/20 border border-red-500/40 rounded-lg text-red-400 text-xs sm:text-sm hover:bg-red-500/30 transition-colors flex items-center gap-1.5 w-full sm:w-auto justify-center"
                     >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                       </svg>
                       Clear Filters
@@ -1226,15 +1221,14 @@ const handleSave = async () => {
                   )}
                 </div>
 
-              <div className="mt-4 text-white/60 text-sm">
+              <div className="mt-3 sm:mt-4 text-white/60 text-xs sm:text-sm">
                 Showing {filteredMembers.length} of {allMembers.length} members
               </div>
               </div>
               
-              {/* Board Members */}
               {boardMembers.length > 0 && (
-                <div id="board" className="mb-8 scroll-mt-32">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div id="board" className="mb-6 sm:mb-8 scroll-mt-32">
+                  <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                     {boardMembers.map((m) => (
                       <MemberCard 
                         key={m.id} 
@@ -1249,15 +1243,13 @@ const handleSave = async () => {
                 </div>
               )}
 
-              {/* Separator between Board and Core Members */}
               {boardMembers.length > 0 && coreMembers.length > 0 && (
                 <SeparatorLine title="Core Members" gradient color="blue" />
               )}
 
-              {/* Core Members */}
               {coreMembers.length > 0 && (
-                <div id="core" className="mb-8 scroll-mt-32">
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div id="core" className="mb-6 sm:mb-8 scroll-mt-32">
+                  <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                     {coreMembers.map((m) => (
                       <MemberCard 
                         key={m.id} 
@@ -1272,23 +1264,21 @@ const handleSave = async () => {
                 </div>
               )}
 
-              {/* Separator between Core and Ex-Core Members */}
               {(boardMembers.length > 0 || coreMembers.length > 0) && (exCoreHonorary.length > 0 || exCoreAlumni.length > 0 || exCoreAdvisors.length > 0 || exCoreOthers.length > 0) && (
                 <SeparatorLine title="Ex-Core Members" gradient color="purple" />
               )}
 
-              {/* Ex-Core Honorary Members */}
               {exCoreHonorary.length > 0 && (
-                <div id="honorary" className="mb-8 scroll-mt-32">
-                  <div className="mb-4 flex items-center gap-3">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/40 rounded-lg">
-                      <svg className="w-5 h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+                <div id="honorary" className="mb-6 sm:mb-8 scroll-mt-32">
+                  <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+                    <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/40 rounded-lg">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
                         <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
                       </svg>
-                      <span className="text-amber-300 font-semibold">Honorary Members</span>
+                      <span className="text-amber-300 font-semibold text-xs sm:text-sm">Honorary Members</span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                     {exCoreHonorary.map((m) => (
                       <MemberCard 
                         key={m.id} 
@@ -1304,24 +1294,22 @@ const handleSave = async () => {
                 </div>
               )}
 
-              {/* Separator between Honorary and Alumni */}
               {exCoreHonorary.length > 0 && exCoreAlumni.length > 0 && (
                 <SubSeparatorLine />
               )}
 
-              {/* Ex-Core Alumni Members */}
               {exCoreAlumni.length > 0 && (
-                <div id="alumni" className="mb-8 scroll-mt-32">
-                  <div className="mb-4 flex items-center gap-3">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 rounded-lg">
-                      <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div id="alumni" className="mb-6 sm:mb-8 scroll-mt-32">
+                  <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+                    <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 rounded-lg">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5z" />
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
                       </svg>
-                      <span className="text-emerald-300 font-semibold">Alumni</span>
+                      <span className="text-emerald-300 font-semibold text-xs sm:text-sm">Alumni</span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                     {exCoreAlumni.map((m) => (
                       <MemberCard 
                         key={m.id} 
@@ -1337,23 +1325,21 @@ const handleSave = async () => {
                 </div>
               )}
 
-              {/* Separator between Alumni and Advisors */}
               {exCoreAlumni.length > 0 && exCoreAdvisors.length > 0 && (
                 <SubSeparatorLine />
               )}
 
-              {/* Ex-Core Advisor Members */}
               {exCoreAdvisors.length > 0 && (
-                <div id="advisors" className="mb-8 scroll-mt-32">
-                  <div className="mb-4 flex items-center gap-3">
-                    <div className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-500/20 to-violet-500/20 border border-indigo-500/40 rounded-lg">
-                      <svg className="w-5 h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div id="advisors" className="mb-6 sm:mb-8 scroll-mt-32">
+                  <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
+                    <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-indigo-500/20 to-violet-500/20 border border-indigo-500/40 rounded-lg">
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                       </svg>
-                      <span className="text-indigo-300 font-semibold">Advisors</span>
+                      <span className="text-indigo-300 font-semibold text-xs sm:text-sm">Advisors</span>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                     {exCoreAdvisors.map((m) => (
                       <MemberCard 
                         key={m.id} 
@@ -1369,15 +1355,14 @@ const handleSave = async () => {
                 </div>
               )}
 
-              {/* Other Ex-Core Members */}
               {exCoreOthers.length > 0 && (
-                <div id="others" className="mb-8 scroll-mt-32">
+                <div id="others" className="mb-6 sm:mb-8 scroll-mt-32">
                   {(exCoreHonorary.length > 0 || exCoreAlumni.length > 0 || exCoreAdvisors.length > 0) && (
-                    <div className="mb-6 flex items-center gap-3">
+                    <div className="mb-4 sm:mb-6 flex items-center gap-3">
                       <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
                     </div>
                   )}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
                     {exCoreOthers.map((m) => (
                       <MemberCard 
                         key={m.id} 
@@ -1423,14 +1408,14 @@ const handleSave = async () => {
 
           {activeTab === 'stats' && (
             <div>
-              <h2 className="text-2xl font-bold text-white mb-6">Organization Statistics</h2>
+              <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Organization Statistics</h2>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+              <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6 mb-6 sm:mb-8">
                 <StatCard
                   title="Total Members"
                   value={stats.total}
                   icon={
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                     </svg>
                   }
@@ -1440,7 +1425,7 @@ const handleSave = async () => {
                   title="Active Members"
                   value={stats.active}
                   icon={
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                   }
@@ -1450,7 +1435,7 @@ const handleSave = async () => {
                   title="Departments"
                   value={stats.departments}
                   icon={
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                   }
@@ -1460,7 +1445,7 @@ const handleSave = async () => {
                   title="Ex-Core Members"
                   value={stats.exCore}
                   icon={
-                    <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 sm:w-6 sm:h-6 md:w-8 md:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
                   }
@@ -1468,7 +1453,7 @@ const handleSave = async () => {
                 />
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                 <DepartmentBreakdown members={allMembers.filter(m => m.Status === 'Active')} />
                 <StatusBreakdown members={allMembers} />
               </div>
@@ -1617,7 +1602,7 @@ function QuickNavigation({ sections }: { sections: Array<{ id: string; label: st
   }
 
   return (
-    <div className="fixed left-8 top-1/2 -translate-y-1/2 z-40 hidden xl:block">
+    <div className="fixed left-8 top-1/2 -translate-y-1/2 z-40 hidden 2xl:block">
       <div className="relative">
         {/* Background glow effect */}
         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-purple-500/10 rounded-2xl blur-xl" />
@@ -1935,7 +1920,7 @@ function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni = fals
   const isCoreMember = member?.Role === 'Core Member'
   
   return (
-    <div className={`backdrop-blur-md border rounded-xl p-6 hover:border-white/30 transition-all duration-200 relative overflow-hidden ${
+    <div className={`backdrop-blur-md border rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 hover:border-white/30 transition-all duration-200 relative overflow-hidden ${
       isBoardMember 
         ? 'bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-yellow-500/40 shadow-lg shadow-yellow-500/10' 
         : isHonorary
@@ -1948,81 +1933,78 @@ function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni = fals
         ? 'bg-gradient-to-br from-blue-500/10 to-purple-500/10 border-blue-500/30'
         : 'bg-white/5 border-white/10'
     }`}>
-      {/* Sparkle effect for honorary members */}
       {isHonorary && (
         <>
-          <div className="absolute top-0 right-0 w-20 h-20 bg-amber-400/10 rounded-full blur-xl" />
-          <div className="absolute bottom-0 left-0 w-16 h-16 bg-yellow-400/10 rounded-full blur-xl" />
+          <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-amber-400/10 rounded-full blur-xl" />
+          <div className="absolute bottom-0 left-0 w-12 h-12 sm:w-16 sm:h-16 bg-yellow-400/10 rounded-full blur-xl" />
         </>
       )}
       
-      {/* Glow effect for alumni */}
       {isAlumni && (
         <>
-          <div className="absolute top-0 left-0 w-24 h-24 bg-emerald-400/10 rounded-full blur-xl" />
-          <div className="absolute bottom-0 right-0 w-20 h-20 bg-teal-400/10 rounded-full blur-xl" />
+          <div className="absolute top-0 left-0 w-20 h-20 sm:w-24 sm:h-24 bg-emerald-400/10 rounded-full blur-xl" />
+          <div className="absolute bottom-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-teal-400/10 rounded-full blur-xl" />
         </>
       )}
       
-      {/* Glow effect for advisors */}
       {isAdvisor && (
         <>
-          <div className="absolute top-0 right-0 w-24 h-24 bg-indigo-400/10 rounded-full blur-xl" />
-          <div className="absolute bottom-0 left-0 w-20 h-20 bg-violet-400/10 rounded-full blur-xl" />
+          <div className="absolute top-0 right-0 w-20 h-20 sm:w-24 sm:h-24 bg-indigo-400/10 rounded-full blur-xl" />
+          <div className="absolute bottom-0 left-0 w-16 h-16 sm:w-20 sm:h-20 bg-violet-400/10 rounded-full blur-xl" />
         </>
       )}
       
       {isBoardMember && (
-        <div className="absolute top-2 right-2 z-10">
-          <div className="flex items-center gap-1 px-2 py-1 bg-yellow-500/20 border border-yellow-500/40 rounded-full">
-            <svg className="w-3 h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
+        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10">
+          <div className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-yellow-500/20 border border-yellow-500/40 rounded-full">
+            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
-            <span className="text-yellow-400 text-xs font-semibold">Board</span>
+            <span className="text-yellow-400 text-[10px] sm:text-xs font-semibold hidden sm:inline">Board</span>
           </div>
         </div>
       )}
       
       {isHonorary && (
-        <div className="absolute top-2 right-2 z-10">
-          <div className="flex items-center gap-1 px-2 py-1 bg-amber-500/30 border border-amber-400/50 rounded-full backdrop-blur-sm">
-            <svg className="w-3 h-3 text-amber-300" fill="currentColor" viewBox="0 0 20 20">
+        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10">
+          <div className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-amber-500/30 border border-amber-400/50 rounded-full backdrop-blur-sm">
+            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-300" fill="currentColor" viewBox="0 0 20 20">
               <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
             </svg>
-            <span className="text-amber-200 text-xs font-semibold">Honorary</span>
+            <span className="text-amber-200 text-[10px] sm:text-xs font-semibold hidden sm:inline">Honorary</span>
           </div>
         </div>
       )}
       
       {isAlumni && (
-        <div className="absolute top-2 right-2 z-10">
-          <div className="flex items-center gap-1 px-2 py-1 bg-emerald-500/30 border border-emerald-400/50 rounded-full backdrop-blur-sm">
-            <svg className="w-3 h-3 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 20 20">
+        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10">
+          <div className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-emerald-500/30 border border-emerald-400/50 rounded-full backdrop-blur-sm">
+            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 20 20">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
             </svg>
-            <span className="text-emerald-200 text-xs font-semibold">Alumni</span>
+            <span className="text-emerald-200 text-[10px] sm:text-xs font-semibold hidden sm:inline">Alumni</span>
           </div>
         </div>
       )}
       
       {isAdvisor && (
-        <div className="absolute top-2 right-2 z-10">
-          <div className="flex items-center gap-1 px-2 py-1 bg-indigo-500/30 border border-indigo-400/50 rounded-full backdrop-blur-sm">
-            <svg className="w-3 h-3 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 20 20">
+        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10">
+          <div className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-indigo-500/30 border border-indigo-400/50 rounded-full backdrop-blur-sm">
+            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 20 20">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
             </svg>
-            <span className="text-indigo-200 text-xs font-semibold">Advisor</span>
+            <span className="text-indigo-200 text-[10px] sm:text-xs font-semibold hidden sm:inline">Advisor</span>
           </div>
         </div>
       )}
       
-      <div className="flex items-start gap-4 relative z-0">
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3 md:gap-4 relative z-0">
         <div className="flex-shrink-0">
           {getPictureUrl(member?.Picture) ? (
             <img 
               src={getPictureUrl(member?.Picture) || ''}
               alt={member?.Name}
-              className={`w-20 h-20 rounded-full object-cover border-2 ${
+              className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full object-cover border-2 ${
                 isBoardMember 
                   ? 'border-yellow-500/60' 
                   : isHonorary 
@@ -2041,7 +2023,7 @@ function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni = fals
               }}
             />
           ) : null}
-          <div className={`w-20 h-20 rounded-full bg-gradient-to-br ${
+          <div className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br ${
             isBoardMember 
               ? 'from-yellow-500 to-orange-600' 
               : isHonorary
@@ -2066,13 +2048,13 @@ function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni = fals
               ? 'border-blue-500/60' 
               : 'border-white/20'
           } ${getPictureUrl(member?.Picture) ? 'hidden' : ''}`}>
-            <span className="text-2xl font-bold text-white">
+            <span className="text-lg sm:text-xl md:text-2xl font-bold text-white">
               {member?.Name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
             </span>
           </div>
         </div>
-        <div className="flex-1 min-w-0">
-          <h3 className={`text-lg font-semibold truncate ${
+        <div className="flex-1 min-w-0 text-center sm:text-left w-full sm:w-auto">
+          <h3 className={`text-sm sm:text-base md:text-lg font-semibold truncate ${
             isHonorary 
               ? 'text-amber-100' 
               : isAlumni
@@ -2081,7 +2063,7 @@ function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni = fals
               ? 'text-indigo-100'
               : 'text-white'
           }`}>{member?.Name}</h3>
-          <p className={`text-sm truncate font-medium ${
+          <p className={`text-xs sm:text-sm truncate font-medium ${
             isBoardMember 
               ? 'text-yellow-400' 
               : isHonorary
@@ -2094,8 +2076,8 @@ function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni = fals
               ? 'text-blue-400' 
               : 'text-white/60'
           }`}>{member?.Role}</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+          <div className="mt-1.5 sm:mt-2 flex flex-wrap gap-1 sm:gap-2 justify-center sm:justify-start">
+            <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${
               member?.Status === 'Active' 
                 ? 'bg-green-500/20 border border-green-500/40 text-green-400'
                 : isHonorary
@@ -2109,7 +2091,7 @@ function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni = fals
               {member?.Status}
             </span>
             {member?.Department && (
-              <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium truncate ${
+              <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium truncate max-w-full ${
                 isHonorary
                   ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300'
                   : isAlumni
@@ -2124,27 +2106,28 @@ function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni = fals
           </div>
         </div>
       </div>
-      <div className="mt-4 pt-4 border-t border-white/10 relative z-0">
-        <div className="flex items-center justify-between">
-          <div className="flex-1">
-            <p className={`text-xs ${isHonorary || isAlumni || isAdvisor ? 'text-white/50' : 'text-white/40'}`}>Email</p>
-            <p className={`text-sm truncate ${isHonorary ? 'text-amber-100' : isAlumni ? 'text-emerald-100' : isAdvisor ? 'text-indigo-100' : 'text-white'}`}>
+      <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/10 relative z-0">
+        <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-2">
+          <div className="flex-1 w-full sm:w-auto text-center sm:text-left">
+            <p className={`text-[10px] sm:text-xs ${isHonorary || isAlumni || isAdvisor ? 'text-white/50' : 'text-white/40'}`}>Email</p>
+            <p className={`text-xs sm:text-sm truncate ${isHonorary ? 'text-amber-100' : isAlumni ? 'text-emerald-100' : isAdvisor ? 'text-indigo-100' : 'text-white'}`}>
               {member?.['TBC Email']}
             </p>
           </div>
           {canEdit && onEdit && (
             <button
               onClick={onEdit}
-              className={`ml-3 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 flex items-center gap-1 ${
+              className={`w-full sm:w-auto sm:ml-3 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1 ${
                 isOwnProfile
                   ? 'bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 hover:text-blue-200'
                   : 'bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 hover:text-purple-200'
               }`}
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
               </svg>
-              {isOwnProfile ? 'My Profile' : 'Edit'}
+              <span className="hidden sm:inline">{isOwnProfile ? 'My Profile' : 'Edit'}</span>
+              <span className="sm:hidden">{isOwnProfile ? 'Me' : 'Edit'}</span>
             </button>
           )}
         </div>
@@ -2162,11 +2145,11 @@ function StatCard({ title, value, icon, color }: { title: string; value: number;
   }
   
   return (
-    <div className={`bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses]} border backdrop-blur-md rounded-xl p-6`}>
+    <div className={`bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses]} border backdrop-blur-md rounded-xl p-3 sm:p-4 md:p-6`}>
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-white/60 text-sm font-medium mb-1">{title}</p>
-          <p className="text-4xl font-bold text-white">{value}</p>
+          <p className="text-white/60 text-[10px] sm:text-xs md:text-sm font-medium mb-0.5 sm:mb-1">{title}</p>
+          <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{value}</p>
         </div>
         <div className="opacity-60">{icon}</div>
       </div>
@@ -2317,23 +2300,23 @@ function DepartmentBreakdown({ members }: { members: any[] }) {
   const totalCount = members.filter(m => m.Department).length
 
   return (
-    <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-bold text-white">Department Distribution</h3>
-        <span className="text-white/40 text-xs">{sortedDepts.length} departments</span>
+    <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-3 sm:p-4 md:p-6">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h3 className="text-base sm:text-lg md:text-xl font-bold text-white">Department Distribution</h3>
+        <span className="text-white/40 text-[10px] sm:text-xs">{sortedDepts.length} departments</span>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {sortedDepts.map(([dept, count]) => (
-          <div key={dept} className="flex items-center justify-between group hover:bg-white/5 rounded-lg p-2 -mx-2 transition-colors duration-200">
-            <span className="text-white/80 text-sm font-medium">{dept}</span>
-            <div className="flex items-center gap-3">
-              <div className="w-32 bg-white/10 rounded-full h-2 overflow-hidden">
+          <div key={dept} className="flex items-center justify-between group hover:bg-white/5 rounded-lg p-1.5 sm:p-2 -mx-1.5 sm:-mx-2 transition-colors duration-200">
+            <span className="text-white/80 text-xs sm:text-sm font-medium truncate flex-1 mr-2">{dept}</span>
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+              <div className="w-16 sm:w-24 md:w-32 bg-white/10 rounded-full h-2 overflow-hidden">
                 <div 
                   className="bg-gradient-to-r from-blue-500 to-cyan-500 h-full rounded-full transition-all duration-500 group-hover:from-blue-400 group-hover:to-cyan-400"
                   style={{ width: `${(count / totalCount) * 100}%` }}
                 />
               </div>
-              <span className="text-white font-semibold text-sm w-8 text-right">{count}</span>
+              <span className="text-white font-semibold text-xs sm:text-sm w-6 sm:w-8 text-right">{count}</span>
             </div>
           </div>
         ))}
@@ -2372,30 +2355,30 @@ function StatusBreakdown({ members }: { members: any[] }) {
   const totalCount = members.length
 
   return (
-    <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-bold text-white">Member Status</h3>
-        <span className="text-white/40 text-xs">{totalCount} total</span>
+    <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-3 sm:p-4 md:p-6">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h3 className="text-base sm:text-lg md:text-xl font-bold text-white">Member Status</h3>
+        <span className="text-white/40 text-[10px] sm:text-xs">{totalCount} total</span>
       </div>
-      <div className="space-y-3">
+      <div className="space-y-2 sm:space-y-3">
         {sortedStatuses.map(([status, count]) => {
           const percentage = ((count / totalCount) * 100).toFixed(1)
           return (
-            <div key={status} className="flex items-center justify-between group hover:bg-white/5 rounded-lg p-2 -mx-2 transition-colors duration-200">
-              <div className="flex items-center gap-2">
-                <div className={`w-2 h-2 rounded-full bg-gradient-to-r ${statusColors[status] || 'from-gray-500 to-slate-500'}`} />
-                <span className="text-white/80 text-sm font-medium">{status}</span>
+            <div key={status} className="flex items-center justify-between group hover:bg-white/5 rounded-lg p-1.5 sm:p-2 -mx-1.5 sm:-mx-2 transition-colors duration-200">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0 mr-2">
+                <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-gradient-to-r flex-shrink-0 ${statusColors[status] || 'from-gray-500 to-slate-500'}`} />
+                <span className="text-white/80 text-xs sm:text-sm font-medium truncate">{status}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="w-32 bg-white/10 rounded-full h-2 overflow-hidden">
+              <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                <div className="w-16 sm:w-24 md:w-32 bg-white/10 rounded-full h-2 overflow-hidden">
                   <div 
                     className={`bg-gradient-to-r ${statusColors[status] || 'from-gray-500 to-slate-500'} h-full rounded-full transition-all duration-500`}
                     style={{ width: `${percentage}%` }}
                   />
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-white font-semibold text-sm w-8 text-right">{count}</span>
-                  <span className="text-white/40 text-xs w-10 text-right">({percentage}%)</span>
+                <div className="flex items-center gap-0.5 sm:gap-1">
+                  <span className="text-white font-semibold text-xs sm:text-sm w-6 sm:w-8 text-right">{count}</span>
+                  <span className="text-white/40 text-[9px] sm:text-xs w-8 sm:w-10 text-right">({percentage}%)</span>
                 </div>
               </div>
             </div>
