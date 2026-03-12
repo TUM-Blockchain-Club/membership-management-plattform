@@ -1488,7 +1488,7 @@ const handleSave = async () => {
                       isApplied={event.is_registered || false}
                       color={color}
                       onApply={() => handleEventRegistration(event.id, event.is_registered || false)}
-                      showParticipantsButton={!!event.current_registrations && member?.Role === 'Board Member'}
+                      showParticipantsButton={!!event.current_registrations && (member?.Role === 'Board Member' || hasSpecialAccess)}
                       onViewParticipants={() => handleViewParticipants(event.id, event.title)}
                     />
                   )
