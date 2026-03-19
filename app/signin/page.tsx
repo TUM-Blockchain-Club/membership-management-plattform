@@ -13,6 +13,14 @@ export default function SignIn() {
   const [error, setError] = useState('')
   const router = useRouter()
 
+  const getRedirectTarget = () => {
+    if (typeof window === 'undefined') return '/dashboard'
+
+    const searchParams = new URLSearchParams(window.location.search)
+    const nextParam = searchParams.get('next')
+    return nextParam?.startsWith('/') ? nextParam : '/dashboard'
+  }
+
   const handleEmailSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
@@ -24,7 +32,7 @@ export default function SignIn() {
       setError(signInError.message)
       setLoading(false)
     } else {
-      router.push('/dashboard')
+      router.push(getRedirectTarget())
     }
   }
 
@@ -146,7 +154,7 @@ export default function SignIn() {
           </form>
 
           <p className="mt-4 sm:mt-6 text-center text-xs sm:text-sm text-white/60">
-            Don't have an account?{' '}
+            Don&apos;t have an account?{' '}
             <Link href="/signup" className="text-blue-400 hover:text-blue-300 transition-colors">
               Sign up
             </Link>
