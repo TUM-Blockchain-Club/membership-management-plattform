@@ -12,7 +12,7 @@ export function ProfileDisplay({ sections }: { sections: ProfileSection[] }) {
           {section.fields.map((field, fieldIdx: number) => (
             <div key={fieldIdx} className="space-y-1">
               <p className="text-white/50 text-xs uppercase tracking-wider font-medium">{field.label}</p>
-              <div className="text-white text-sm">{field.value || '—'}</div>
+              <div className="text-white text-sm">{field.value ?? '—'}</div>
             </div>
           ))}
         </div>

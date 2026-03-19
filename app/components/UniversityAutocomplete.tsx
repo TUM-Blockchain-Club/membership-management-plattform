@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { searchUniversities } from '@/lib/universities'
 
 interface Institution {
@@ -27,10 +27,6 @@ export default function UniversityAutocomplete({ value, onChange, disabled = fal
   const debounceTimeout = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
-    setInputValue(value || '')
-  }, [value])
-
-  useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
         inputRef.current &&
@@ -49,6 +45,7 @@ export default function UniversityAutocomplete({ value, onChange, disabled = fal
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newValue = e.target.value
     setInputValue(newValue)
+    onChange(newValue)
     setSelectedIndex(-1)
     
     if (debounceTimeout.current) {
@@ -104,7 +101,9 @@ export default function UniversityAutocomplete({ value, onChange, disabled = fal
   }
 
   const handleBlur = () => {
-    onChange(inputValue)
+    if (inputValue !== value) {
+      onChange(inputValue)
+    }
   }
 
   return (

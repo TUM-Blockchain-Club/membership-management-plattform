@@ -17,6 +17,8 @@ export function EditableProfileForm({
   isOwnProfile?: boolean
   canEditField: (fieldKey: string, isOwnProfile: boolean) => boolean
 }) {
+  const memberRecord = member as Record<string, string | number | null | undefined>
+
   type FieldDefinition = {
     key: string
     label: string
@@ -121,13 +123,13 @@ export function EditableProfileForm({
                   </label>
                   {field.key === 'Uni' ? (
                     <UniversityAutocomplete
-                      value={String(member?.[field.key] ?? '')}
+                      value={String(memberRecord[field.key] ?? '')}
                       onChange={(value) => onInputChange(field.key, value)}
                       disabled={isFieldDisabled}
                     />
                   ) : field.type === 'select' ? (
                     <select
-                      value={String(member?.[field.key] ?? '')}
+                      value={String(memberRecord[field.key] ?? '')}
                       onChange={(e) => onInputChange(field.key, e.target.value)}
                       disabled={isFieldDisabled}
                       className="w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -140,7 +142,7 @@ export function EditableProfileForm({
                   ) : (
                     <input
                       type={field.type}
-                      value={String(member?.[field.key] ?? '')}
+                      value={String(memberRecord[field.key] ?? '')}
                       onChange={(e) => onInputChange(field.key, e.target.value)}
                       placeholder={field.placeholder}
                       disabled={isFieldDisabled}
