@@ -109,7 +109,7 @@ export const memberService = {
       fileName = `${userId}.${fileExt}`
     }
     
-    const { data, error } = await supabase.storage
+    const { error } = await supabase.storage
       .from('member-pictures')
       .upload(fileName, file, {
         cacheControl: '3600',
@@ -136,8 +136,9 @@ export const memberService = {
       return { error: listError }
     }
     
-    const userFiles = files.filter(file => file.name.startsWith(`${userId}-`))
-    const filePaths = userFiles.map(file => file.name)
+    const typedFiles = files as Array<{ name: string }>
+    const userFiles = typedFiles.filter((file) => file.name.startsWith(`${userId}-`))
+    const filePaths = userFiles.map((file) => file.name)
     
     if (filePaths.length === 0) return { error: null }
     
