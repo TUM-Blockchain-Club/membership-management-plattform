@@ -1,4 +1,6 @@
 import type { ReactNode } from 'react'
+import type { Event, Participant } from '@/lib/events'
+import type { Member } from '@/lib/types/database.types'
 
 export type ProfileSectionField = {
   label: string
@@ -11,13 +13,24 @@ export type ProfileSection = {
   fields: ProfileSectionField[]
 }
 
-export type EditableMember = Record<string, string | number | null | undefined>
+export type DashboardMember = Member
 
-export type DashboardMember = {
-  Name?: string | null
-  Role?: string | null
-  Status?: string | null
-  Department?: string | null
-  Picture?: unknown
-  'TBC Email'?: string | null
+export type EditableMember = Partial<DashboardMember>
+
+export type DashboardEvent = Event
+
+export type DashboardParticipant = Participant
+
+export type DashboardStats = {
+  total: number
+  active: number
+  departments: number
+  exCore: number
+}
+
+export type DashboardTab = 'profile' | 'members' | 'stats' | 'events'
+
+export type DashboardMessage = {
+  type: 'success' | 'error'
+  text: string
 }
