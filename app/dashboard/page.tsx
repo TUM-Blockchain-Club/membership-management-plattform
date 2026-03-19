@@ -515,7 +515,12 @@ const handleSave = async () => {
     )
   }
 
-  const filteredMembers = allMembers.filter(m => 
+  const canViewRemovedMembers = member?.Role === 'Board Member' || hasSpecialAccess
+  const membersVisibleByRole = canViewRemovedMembers
+    ? allMembers
+    : allMembers.filter((m) => m.Status !== 'Left' && m.Status !== 'Kicked out')
+
+  const filteredMembers = membersVisibleByRole.filter(m => 
     m.Name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     m.Department?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     m.Role?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -559,17 +564,16 @@ const handleSave = async () => {
   const exCoreOthers = filteredMembers.filter(m => m.Role === 'Ex-Core Member' && m.Status !== 'Honorary' && m.Status !== 'Alumni' && m.Status !== 'Advisor')
   const otherMembers = filteredMembers.filter(m => m.Role !== 'Board Member' && m.Role !== 'Core Member' && m.Role !== 'Ex-Core Member')
 
-  const uniqueStatuses = [...new Set(allMembers.map(m => m.Status).filter(Boolean))]
-  const uniqueDepartments = [...new Set(allMembers.map(m => m.Department).filter(Boolean))]
-  const uniqueRoles = [...new Set(allMembers.map(m => m.Role).filter(Boolean))]
-  const membersVisibleByRole = allMembers
+  const uniqueStatuses = [...new Set(membersVisibleByRole.map(m => m.Status).filter(Boolean))]
+  const uniqueDepartments = [...new Set(membersVisibleByRole.map(m => m.Department).filter(Boolean))]
+  const uniqueRoles = [...new Set(membersVisibleByRole.map(m => m.Role).filter(Boolean))]
 
   const stats = {
-    total: allMembers.length,
-    active: allMembers.filter(m => m.Status === 'Active').length,
+    total: membersVisibleByRole.length,
+    active: membersVisibleByRole.filter(m => m.Status === 'Active').length,
     departments: (() => {
       const deptSet = new Set<string>()
-      allMembers.forEach(m => {
+      membersVisibleByRole.forEach(m => {
         if (m.Department) {
           m.Department.split(',').forEach((d: string) => {
             const dept = d.trim()
@@ -579,7 +583,7 @@ const handleSave = async () => {
       })
       return deptSet.size
     })(),
-    exCore: allMembers.filter(m => m.Role === 'Ex-Core Member').length
+    exCore: membersVisibleByRole.filter(m => m.Role === 'Ex-Core Member').length
   }
 
   const sections = [
@@ -666,7 +670,7 @@ const handleSave = async () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex items-center justify-between flex-wrap gap-3">
             <div className="flex-1 min-w-0">
               <h1 
-                className="text-2xl sm:text-3xl font-bold text-white cursor-default select-none transition-transform duration-200 hover:scale-105 truncate"
+                className="inline-block transform-gpu origin-left text-2xl sm:text-3xl font-bold text-white cursor-default select-none transition-transform duration-200 hover:scale-105 truncate"
                 onClick={handleTitleClick}
               >
                 Dashboard
