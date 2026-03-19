@@ -1,4 +1,5 @@
 import { MemberCard, QuickNavigation, SeparatorLine, SubSeparatorLine } from '@/app/components/dashboard'
+import type { DashboardMember } from '@/app/components/dashboard/types'
 
 export function MembersTab({
   boardMembers,
@@ -29,14 +30,14 @@ export function MembersTab({
   handleEditClick,
   handleEditOtherMember,
 }: {
-  boardMembers: any[]
-  coreMembers: any[]
-  exCoreHonorary: any[]
-  exCoreAlumni: any[]
-  exCoreAdvisors: any[]
-  exCoreOthers: any[]
-  otherMembers: any[]
-  member: any
+  boardMembers: DashboardMember[]
+  coreMembers: DashboardMember[]
+  exCoreHonorary: DashboardMember[]
+  exCoreAlumni: DashboardMember[]
+  exCoreAdvisors: DashboardMember[]
+  exCoreOthers: DashboardMember[]
+  otherMembers: DashboardMember[]
+  member: DashboardMember | null
   hasSpecialAccess: boolean
   handleAddMember: () => void
   searchQuery: string
@@ -50,12 +51,12 @@ export function MembersTab({
   uniqueStatuses: string[]
   uniqueDepartments: string[]
   uniqueRoles: string[]
-  filteredMembers: any[]
-  membersVisibleByRole: any[]
+  filteredMembers: DashboardMember[]
+  membersVisibleByRole: DashboardMember[]
   getPictureUrl: (picture: unknown) => string | null
-  canEditMember: (targetMember: any) => boolean
+  canEditMember: (targetMember: DashboardMember) => boolean
   handleEditClick: () => void
-  handleEditOtherMember: (targetMember: any) => void
+  handleEditOtherMember: (targetMember: DashboardMember) => void
 }) {
   return (
     <div className="relative">
@@ -88,16 +89,16 @@ export function MembersTab({
               </button>
             )}
 
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search members..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-5 pr-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
-              />
-            </div>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Search members..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-4 pr-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+            />
           </div>
+        </div>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3">
