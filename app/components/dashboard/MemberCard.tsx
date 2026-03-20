@@ -1,11 +1,11 @@
  'use client'
 
 import Image from 'next/image'
-import { DashboardMember } from './types'
+import { DashboardMemberWithPicture } from './types'
 
 export function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni = false, isAdvisor = false, canEdit = false, isOwnProfile = false, onEdit }: {
-  member: DashboardMember;
-  getPictureUrl: (pic: unknown) => string | null;
+  member: DashboardMemberWithPicture;
+  getPictureUrl?: (pic: unknown) => string | null;
   isHonorary?: boolean;
   isAlumni?: boolean;
   isAdvisor?: boolean;
@@ -17,7 +17,7 @@ export function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni
   const statusLabel = member?.Status?.trim() || ''
   const departmentLabel = member?.Department?.trim() || ''
   const emailLabel = member?.['TBC Email']?.trim() || 'No email provided'
-  const pictureUrl = getPictureUrl(member?.Picture)
+  const pictureUrl = member.pictureUrl ?? getPictureUrl?.(member?.Picture) ?? null
 
   const isBoardMember = roleLabel === 'Board Member'
   const isCoreMember = roleLabel === 'Core Member'

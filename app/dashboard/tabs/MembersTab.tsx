@@ -1,5 +1,128 @@
 import { MemberCard, QuickNavigation, SeparatorLine, SubSeparatorLine } from '@/app/components/dashboard'
-import type { DashboardMember } from '@/app/components/dashboard/types'
+import type { DashboardMember, DashboardMemberWithPicture } from '@/app/components/dashboard/types'
+import { memo, useMemo } from 'react'
+import { List, type RowComponentProps } from 'react-window'
+
+type MembersTabRow =
+  | { type: 'section_header'; id: string; title: string }
+  | {
+      type: 'member'
+      id: string
+      member: DashboardMemberWithPicture
+      flags: { isHonorary?: boolean; isAlumni?: boolean; isAdvisor?: boolean }
+      sectionId: string
+    }
+
+type VirtualizedMembersGroupProps = {
+  sectionId: string
+  title?: string
+  members: DashboardMemberWithPicture[]
+  cardFlags?: { isHonorary?: boolean; isAlumni?: boolean; isAdvisor?: boolean }
+  member: DashboardMember | null
+  canEditMember: (targetMember: DashboardMember) => boolean
+  handleEditClick: () => void
+  handleEditOtherMember: (targetMember: DashboardMember) => void
+  rowHeight?: number
+}
+
+type MembersRowComponentProps = {
+  rows: MembersTabRow[]
+  member: DashboardMember | null
+  canEditMember: (targetMember: DashboardMember) => boolean
+  handleEditClick: () => void
+  handleEditOtherMember: (targetMember: DashboardMember) => void
+}
+
+function MembersRow({ index, style, rows, member, canEditMember, handleEditClick, handleEditOtherMember }: RowComponentProps<MembersRowComponentProps>) {
+  const row = rows[index]
+
+  if (row.type === 'section_header') {
+    return (
+      <div style={style} className="px-2 sm:px-3">
+        <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3 h-full">
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+          <span className="text-white/60 text-xs sm:text-sm uppercase tracking-wider">{row.title}</span>
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+        </div>
+      </div>
+    )
+  }
+
+  const current = row.member
+
+  return (
+    <div style={style} className="px-2 sm:px-3 py-2">
+      <MemberCard
+        member={current}
+        canEdit={canEditMember(current)}
+        isOwnProfile={member?.id === current.id}
+        isHonorary={row.flags.isHonorary}
+        isAlumni={row.flags.isAlumni}
+        isAdvisor={row.flags.isAdvisor}
+        onEdit={() => (member?.id === current.id ? handleEditClick() : handleEditOtherMember(current))}
+      />
+    </div>
+  )
+}
+
+function VirtualizedMembersGroup({
+  sectionId,
+  title,
+  members,
+  cardFlags,
+  member,
+  canEditMember,
+  handleEditClick,
+  handleEditOtherMember,
+  rowHeight = 360,
+}: VirtualizedMembersGroupProps) {
+  const rows = useMemo(() => {
+    const memberRows: MembersTabRow[] = members.map((m) => ({
+      type: 'member',
+      id: `${sectionId}-${m.id}`,
+      member: m,
+      flags: cardFlags ?? {},
+      sectionId,
+    }))
+
+    if (!title) return memberRows
+
+    return [{ type: 'section_header', id: `${sectionId}-header`, title }, ...memberRows] satisfies MembersTabRow[]
+  }, [cardFlags, members, sectionId, title])
+
+  const rowProps = useMemo<MembersRowComponentProps>(
+    () => ({ rows, member, canEditMember, handleEditClick, handleEditOtherMember }),
+    [rows, member, canEditMember, handleEditClick, handleEditOtherMember]
+  )
+
+  if (rows.length === 0) return null
+
+  const itemCount = rows.length
+
+  const getItemSize = (index: number) => (rows[index].type === 'section_header' ? 56 : rowHeight)
+
+  const totalHeight = rows.reduce((sum, _, index) => sum + getItemSize(index), 0)
+  const maxHeight = rowHeight * 3 + (title ? 56 : 0)
+  const height = Math.min(totalHeight, maxHeight)
+
+  return (
+    <div id={sectionId} className="mb-6 sm:mb-8 scroll-mt-32">
+      <List
+        defaultHeight={height}
+        style={{ height, width: '100%' }}
+        rowCount={itemCount}
+        rowHeight={getItemSize}
+        rowComponent={MembersRow}
+        rowProps={rowProps}
+        overscanCount={4}
+      >
+        {undefined}
+      </List>
+    </div>
+  )
+}
+
+const MemoizedVirtualizedMembersGroup = memo(VirtualizedMembersGroup)
 
 export function MembersTab({
   boardMembers,
@@ -25,7 +148,7 @@ export function MembersTab({
   uniqueRoles,
   filteredMembers,
   membersVisibleByRole,
-  getPictureUrl,
+  allMembersWithPictures,
   canEditMember,
   handleEditClick,
   handleEditOtherMember,
@@ -53,11 +176,46 @@ export function MembersTab({
   uniqueRoles: string[]
   filteredMembers: DashboardMember[]
   membersVisibleByRole: DashboardMember[]
-  getPictureUrl: (picture: unknown) => string | null
+  allMembersWithPictures: DashboardMemberWithPicture[]
   canEditMember: (targetMember: DashboardMember) => boolean
   handleEditClick: () => void
   handleEditOtherMember: (targetMember: DashboardMember) => void
 }) {
+  const membersById = useMemo(() => {
+    const map = new Map<number, DashboardMemberWithPicture>()
+    allMembersWithPictures.forEach((m) => map.set(m.id, m))
+    return map
+  }, [allMembersWithPictures])
+
+  const boardMembersWithPictures = useMemo(
+    () => boardMembers.map((m) => membersById.get(m.id) ?? { ...m, pictureUrl: null }),
+    [boardMembers, membersById]
+  )
+  const coreMembersWithPictures = useMemo(
+    () => coreMembers.map((m) => membersById.get(m.id) ?? { ...m, pictureUrl: null }),
+    [coreMembers, membersById]
+  )
+  const exCoreHonoraryWithPictures = useMemo(
+    () => exCoreHonorary.map((m) => membersById.get(m.id) ?? { ...m, pictureUrl: null }),
+    [exCoreHonorary, membersById]
+  )
+  const exCoreAlumniWithPictures = useMemo(
+    () => exCoreAlumni.map((m) => membersById.get(m.id) ?? { ...m, pictureUrl: null }),
+    [exCoreAlumni, membersById]
+  )
+  const exCoreAdvisorsWithPictures = useMemo(
+    () => exCoreAdvisors.map((m) => membersById.get(m.id) ?? { ...m, pictureUrl: null }),
+    [exCoreAdvisors, membersById]
+  )
+  const exCoreOthersWithPictures = useMemo(
+    () => exCoreOthers.map((m) => membersById.get(m.id) ?? { ...m, pictureUrl: null }),
+    [exCoreOthers, membersById]
+  )
+  const otherMembersWithPictures = useMemo(
+    () => otherMembers.map((m) => membersById.get(m.id) ?? { ...m, pictureUrl: null }),
+    [otherMembers, membersById]
+  )
+
   return (
     <div className="relative">
       <QuickNavigation
@@ -168,39 +326,27 @@ export function MembersTab({
       </div>
 
       {boardMembers.length > 0 && (
-        <div id="board" className="mb-6 sm:mb-8 scroll-mt-32">
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-            {boardMembers.map((m) => (
-              <MemberCard
-                key={m.id}
-                member={m}
-                getPictureUrl={getPictureUrl}
-                canEdit={canEditMember(m)}
-                isOwnProfile={member?.id === m.id}
-                onEdit={() => member?.id === m.id ? handleEditClick() : handleEditOtherMember(m)}
-              />
-            ))}
-          </div>
-        </div>
+        <MemoizedVirtualizedMembersGroup
+          sectionId="board"
+          members={boardMembersWithPictures}
+          member={member}
+          canEditMember={canEditMember}
+          handleEditClick={handleEditClick}
+          handleEditOtherMember={handleEditOtherMember}
+        />
       )}
 
       {boardMembers.length > 0 && coreMembers.length > 0 && <SeparatorLine title="Core Members" gradient color="blue" />}
 
       {coreMembers.length > 0 && (
-        <div id="core" className="mb-6 sm:mb-8 scroll-mt-32">
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-            {coreMembers.map((m) => (
-              <MemberCard
-                key={m.id}
-                member={m}
-                getPictureUrl={getPictureUrl}
-                canEdit={canEditMember(m)}
-                isOwnProfile={member?.id === m.id}
-                onEdit={() => member?.id === m.id ? handleEditClick() : handleEditOtherMember(m)}
-              />
-            ))}
-          </div>
-        </div>
+        <MemoizedVirtualizedMembersGroup
+          sectionId="core"
+          members={coreMembersWithPictures}
+          member={member}
+          canEditMember={canEditMember}
+          handleEditClick={handleEditClick}
+          handleEditOtherMember={handleEditOtherMember}
+        />
       )}
 
       {(boardMembers.length > 0 || coreMembers.length > 0) && (exCoreHonorary.length > 0 || exCoreAlumni.length > 0 || exCoreAdvisors.length > 0 || exCoreOthers.length > 0) && (
@@ -208,7 +354,7 @@ export function MembersTab({
       )}
 
       {exCoreHonorary.length > 0 && (
-        <div id="honorary" className="mb-6 sm:mb-8 scroll-mt-32">
+        <div className="mb-6 sm:mb-8">
           <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
             <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 border border-amber-500/40 rounded-lg">
               <svg className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
@@ -217,18 +363,22 @@ export function MembersTab({
               <span className="text-amber-300 font-semibold text-xs sm:text-sm">Honorary Members</span>
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-            {exCoreHonorary.map((m) => (
-              <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} isHonorary canEdit={canEditMember(m)} isOwnProfile={member?.id === m.id} onEdit={() => member?.id === m.id ? handleEditClick() : handleEditOtherMember(m)} />
-            ))}
-          </div>
+          <MemoizedVirtualizedMembersGroup
+            sectionId="honorary"
+            members={exCoreHonoraryWithPictures}
+            cardFlags={{ isHonorary: true }}
+            member={member}
+            canEditMember={canEditMember}
+            handleEditClick={handleEditClick}
+            handleEditOtherMember={handleEditOtherMember}
+          />
         </div>
       )}
 
       {exCoreHonorary.length > 0 && exCoreAlumni.length > 0 && <SubSeparatorLine />}
 
       {exCoreAlumni.length > 0 && (
-        <div id="alumni" className="mb-6 sm:mb-8 scroll-mt-32">
+        <div className="mb-6 sm:mb-8">
           <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
             <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-emerald-500/20 to-teal-500/20 border border-emerald-500/40 rounded-lg">
               <svg className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -238,18 +388,22 @@ export function MembersTab({
               <span className="text-emerald-300 font-semibold text-xs sm:text-sm">Alumni</span>
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-            {exCoreAlumni.map((m) => (
-              <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} isAlumni canEdit={canEditMember(m)} isOwnProfile={member?.id === m.id} onEdit={() => member?.id === m.id ? handleEditClick() : handleEditOtherMember(m)} />
-            ))}
-          </div>
+          <MemoizedVirtualizedMembersGroup
+            sectionId="alumni"
+            members={exCoreAlumniWithPictures}
+            cardFlags={{ isAlumni: true }}
+            member={member}
+            canEditMember={canEditMember}
+            handleEditClick={handleEditClick}
+            handleEditOtherMember={handleEditOtherMember}
+          />
         </div>
       )}
 
       {exCoreAlumni.length > 0 && exCoreAdvisors.length > 0 && <SubSeparatorLine />}
 
       {exCoreAdvisors.length > 0 && (
-        <div id="advisors" className="mb-6 sm:mb-8 scroll-mt-32">
+        <div className="mb-6 sm:mb-8">
           <div className="mb-3 sm:mb-4 flex items-center gap-2 sm:gap-3">
             <div className="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 md:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-indigo-500/20 to-violet-500/20 border border-indigo-500/40 rounded-lg">
               <svg className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -258,11 +412,15 @@ export function MembersTab({
               <span className="text-indigo-300 font-semibold text-xs sm:text-sm">Advisors</span>
             </div>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-            {exCoreAdvisors.map((m) => (
-              <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} isAdvisor canEdit={canEditMember(m)} isOwnProfile={member?.id === m.id} onEdit={() => member?.id === m.id ? handleEditClick() : handleEditOtherMember(m)} />
-            ))}
-          </div>
+          <MemoizedVirtualizedMembersGroup
+            sectionId="advisors"
+            members={exCoreAdvisorsWithPictures}
+            cardFlags={{ isAdvisor: true }}
+            member={member}
+            canEditMember={canEditMember}
+            handleEditClick={handleEditClick}
+            handleEditOtherMember={handleEditOtherMember}
+          />
         </div>
       )}
 
@@ -273,22 +431,28 @@ export function MembersTab({
               <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
             </div>
           )}
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 md:gap-6">
-            {exCoreOthers.map((m) => (
-              <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} canEdit={canEditMember(m)} isOwnProfile={member?.id === m.id} onEdit={() => member?.id === m.id ? handleEditClick() : handleEditOtherMember(m)} />
-            ))}
-          </div>
+          <MemoizedVirtualizedMembersGroup
+            sectionId="others"
+            members={exCoreOthersWithPictures}
+            member={member}
+            canEditMember={canEditMember}
+            handleEditClick={handleEditClick}
+            handleEditOtherMember={handleEditOtherMember}
+          />
         </div>
       )}
 
       {otherMembers.length > 0 && (
         <div className="mb-8">
           {filteredMembers.length > otherMembers.length && <SeparatorLine title="Other Members" />}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {otherMembers.map((m) => (
-              <MemberCard key={m.id} member={m} getPictureUrl={getPictureUrl} canEdit={canEditMember(m)} isOwnProfile={member?.id === m.id} onEdit={() => member?.id === m.id ? handleEditClick() : handleEditOtherMember(m)} />
-            ))}
-          </div>
+          <MemoizedVirtualizedMembersGroup
+            sectionId="other-members"
+            members={otherMembersWithPictures}
+            member={member}
+            canEditMember={canEditMember}
+            handleEditClick={handleEditClick}
+            handleEditOtherMember={handleEditOtherMember}
+          />
         </div>
       )}
 
