@@ -1,6 +1,6 @@
-export type MemberRole = 'Core Member' | 'Ex-Core Member' | 'Board Member';
+export type MemberRole = 'Core Member' | 'Ex-Core Member' | 'Board Member' | 'Guest';
 
-export type MemberStatus = 'Active' | 'Alumni' | 'Advisor' | 'Passive' | 'Kicked out' | 'Left';
+export type MemberStatus = 'Active' | 'Honorary' | 'Alumni' | 'Advisor' | 'Passive' | 'Kicked out' | 'Left';
 
 export type Department = 
   | 'Industry'
@@ -14,30 +14,36 @@ export type Department =
 
 export type MerchSize = 'XS' | 'S' | 'M' | 'L' | 'XL' | 'XXL';
 
-// Updated to match actual members_main table structure
+export type MemberPicture =
+  | string
+  | {
+      data?: number[]
+    }
+  | null
+
 export interface Member {
   id: number;
   created_at: string;
-  Name: string;
-  Role: string;
-  Status: string;
+  Name: string | null;
+  Role: MemberRole | string | null;
+  Status: MemberStatus | string | null;
   Department: string | null;
   'Project/Task': string | null;
   'Area of Expertise': string | null;
-  Picture: any;  // Buffer/URL
+  Picture: MemberPicture;
   'Active Semesters': number | null;
   Uni: string | null;
   'Semester Joined': string | null;
   Degree: string | null;
   Phone: string | null;
   'Private Email': string | null;
-  'TBC Email': string;
+  'TBC Email': string | null;
   Linkedin: string | null;
   Telegram: string | null;
   Discord: string | null;
   Instagram: string | null;
   Twitter: string | null;
-  'Size Merch': string | null;
+  'Size Merch': MerchSize | string | null;
 }
 
 export interface Database {

@@ -1,6 +1,7 @@
 import { DepartmentBreakdown, StatCard, StatusBreakdown } from '@/app/components/dashboard'
+import type { DashboardMember, DashboardStats } from '@/app/components/dashboard/types'
 
-export function StatsTab({ stats, membersVisibleByRole }: { stats: any; membersVisibleByRole: any[] }) {
+export function StatsTab({ stats, membersVisibleByRole }: { stats: DashboardStats; membersVisibleByRole: DashboardMember[] }) {
   return (
     <div>
       <h2 className="text-xl sm:text-2xl font-bold text-white mb-4 sm:mb-6">Organization Statistics</h2>

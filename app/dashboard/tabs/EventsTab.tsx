@@ -1,4 +1,5 @@
 import { EventCard } from '@/app/components/dashboard'
+import type { DashboardEvent, DashboardMember, DashboardParticipant } from '@/app/components/dashboard/types'
 
 export function EventsTab({
   events,
@@ -14,27 +15,22 @@ export function EventsTab({
   participantsLoading,
   setShowParticipantsModal,
 }: {
-  events: any[]
+  events: DashboardEvent[]
   formatEventDate: (startAt: string, endAt: string) => string
   formatEventTime: (startAt: string, endAt: string) => string
   handleEventRegistration: (eventId: string | number, isCurrentlyRegistered: boolean) => void
-  member: any
+  member: DashboardMember | null
   hasSpecialAccess: boolean
   handleViewParticipants: (eventId: string | number, title: string) => void
   showParticipantsModal: boolean
   modalEventTitle: string
-  participants: any[]
+  participants: DashboardParticipant[]
   participantsLoading: boolean
   setShowParticipantsModal: (show: boolean) => void
 }) {
   return (
     <div>
       <h2 className="text-2xl font-bold text-white mb-6">Upcoming Events</h2>
-      {(() => {
-        console.log('🎨 Dashboard: Rendering events tab with', events.length, 'events')
-        return null
-      })()}
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {events.map((event, index) => {
           const colors = ['blue', 'purple', 'green', 'orange', 'cyan', 'pink']
@@ -76,7 +72,7 @@ export function EventsTab({
               <p className="text-white/60">No registrations yet.</p>
             ) : (
               <ul className="divide-y divide-white/20">
-                {participants.map((p: any) => (
+                {participants.map((p) => (
                   <li key={p.member_id} className="py-2 flex items-center gap-3">
                     <span className="w-2 h-2 rounded-full bg-blue-400" />
                     <span className="text-white font-medium">{p.members_main?.Name || 'Unknown'}</span>

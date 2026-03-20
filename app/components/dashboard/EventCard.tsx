@@ -76,10 +76,7 @@ export function EventCard({
         </div>
         {showParticipantsButton && onViewParticipants && (
           <button
-            onClick={() => {
-              console.log('👁️‍🗨️ view participants for', title)
-              onViewParticipants()
-            }}
+            onClick={onViewParticipants}
             className="ml-3 p-1 text-white/60 hover:text-white transition-colors"
             title="View participants"
           >
@@ -100,10 +97,7 @@ export function EventCard({
 
       {hasApplyButton && (
         <button
-          onClick={() => {
-            console.log('🔘', isApplied ? 'Deregister' : 'Apply', 'button clicked for event:', title, 'onApply exists:', !!onApply)
-            onApply?.()
-          }}
+          onClick={onApply}
           className={`w-full px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
             isApplied ? 'bg-red-600 hover:bg-red-700 text-white' : buttonColorClasses[color as keyof typeof buttonColorClasses]
           }`}

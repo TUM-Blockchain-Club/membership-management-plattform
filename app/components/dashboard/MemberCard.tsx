@@ -1,3 +1,6 @@
+ 'use client'
+
+import Image from 'next/image'
 import { DashboardMember } from './types'
 
 export function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni = false, isAdvisor = false, canEdit = false, isOwnProfile = false, onEdit }: {
@@ -10,8 +13,14 @@ export function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni
   isOwnProfile?: boolean;
   onEdit?: () => void;
 }) {
-  const isBoardMember = member?.Role === 'Board Member'
-  const isCoreMember = member?.Role === 'Core Member'
+  const roleLabel = member?.Role?.trim() || 'Member'
+  const statusLabel = member?.Status?.trim() || ''
+  const departmentLabel = member?.Department?.trim() || ''
+  const emailLabel = member?.['TBC Email']?.trim() || 'No email provided'
+  const pictureUrl = getPictureUrl(member?.Picture)
+
+  const isBoardMember = roleLabel === 'Board Member'
+  const isCoreMember = roleLabel === 'Core Member'
 
   return (
     <div className={`backdrop-blur-md border rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 hover:border-white/30 transition-all duration-200 relative overflow-hidden ${
@@ -94,39 +103,40 @@ export function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni
 
       <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3 md:gap-4 relative z-0">
         <div className="flex-shrink-0">
-          {getPictureUrl(member?.Picture) ? (
-            <img
-              src={getPictureUrl(member?.Picture) || ''}
+          {pictureUrl ? (
+            <Image
+              src={pictureUrl}
               alt={member?.Name || 'Member'}
+              width={80}
+              height={80}
+              unoptimized
               className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full object-cover border-2 ${
                 isBoardMember ? 'border-yellow-500/60' : isHonorary ? 'border-amber-400/60 shadow-lg shadow-amber-500/30' : isAlumni ? 'border-emerald-400/60 shadow-lg shadow-emerald-500/30' : isAdvisor ? 'border-indigo-400/60 shadow-lg shadow-indigo-500/30' : isCoreMember ? 'border-blue-500/60' : 'border-white/20'
               }`}
-              onError={(e) => {
-                e.currentTarget.style.display = 'none'
-                e.currentTarget.nextElementSibling?.classList.remove('hidden')
-              }}
             />
           ) : null}
           <div className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br ${
             isBoardMember ? 'from-yellow-500 to-orange-600' : isHonorary ? 'from-amber-400 to-yellow-500' : isAlumni ? 'from-emerald-400 to-teal-500' : isAdvisor ? 'from-indigo-400 to-violet-500' : isCoreMember ? 'from-blue-500 to-purple-600' : 'from-blue-500 to-purple-600'
           } flex items-center justify-center border-2 ${
             isBoardMember ? 'border-yellow-500/60' : isHonorary ? 'border-amber-400/60 shadow-lg shadow-amber-500/30' : isAlumni ? 'border-emerald-400/60 shadow-lg shadow-emerald-500/30' : isAdvisor ? 'border-indigo-400/60 shadow-lg shadow-indigo-500/30' : isCoreMember ? 'border-blue-500/60' : 'border-white/20'
-          } ${getPictureUrl(member?.Picture) ? 'hidden' : ''}`}>
-            <span className="text-lg sm:text-xl md:text-2xl font-bold text-white">
-              {member?.Name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
-            </span>
+          } ${pictureUrl ? 'hidden' : ''}`}>
+              <span className="text-lg sm:text-xl md:text-2xl font-bold text-white">
+              {member?.Name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || '?'}
+              </span>
+            </div>
           </div>
-        </div>
         <div className="flex-1 min-w-0 text-center sm:text-left w-full sm:w-auto">
           <h3 className={`text-sm sm:text-base md:text-lg font-semibold truncate ${isHonorary ? 'text-amber-100' : isAlumni ? 'text-emerald-100' : isAdvisor ? 'text-indigo-100' : 'text-white'}`}>{member?.Name}</h3>
-          <p className={`text-xs sm:text-sm truncate font-medium ${isBoardMember ? 'text-yellow-400' : isHonorary ? 'text-amber-300' : isAlumni ? 'text-emerald-300' : isAdvisor ? 'text-indigo-300' : isCoreMember ? 'text-blue-400' : 'text-white/60'}`}>{member?.Role}</p>
+          <p className={`text-xs sm:text-sm truncate font-medium ${isBoardMember ? 'text-yellow-400' : isHonorary ? 'text-amber-300' : isAlumni ? 'text-emerald-300' : isAdvisor ? 'text-indigo-300' : isCoreMember ? 'text-blue-400' : 'text-white/60'}`}>{roleLabel}</p>
           <div className="mt-1.5 sm:mt-2 flex flex-wrap gap-1 sm:gap-2 justify-center sm:justify-start">
-            <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${member?.Status === 'Active' ? 'bg-green-500/20 border border-green-500/40 text-green-400' : isHonorary ? 'bg-amber-500/30 border border-amber-400/50 text-amber-300' : isAlumni ? 'bg-emerald-500/30 border border-emerald-400/50 text-emerald-300' : isAdvisor ? 'bg-indigo-500/30 border border-indigo-400/50 text-indigo-300' : 'bg-gray-500/20 border border-gray-500/40 text-gray-400'}`}>
-              {member?.Status}
-            </span>
-            {member?.Department && (
+            {statusLabel && (
+              <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${statusLabel === 'Active' ? 'bg-green-500/20 border border-green-500/40 text-green-400' : isHonorary ? 'bg-amber-500/30 border border-amber-400/50 text-amber-300' : isAlumni ? 'bg-emerald-500/30 border border-emerald-400/50 text-emerald-300' : isAdvisor ? 'bg-indigo-500/30 border border-indigo-400/50 text-indigo-300' : 'bg-gray-500/20 border border-gray-500/40 text-gray-400'}`}>
+                {statusLabel}
+              </span>
+            )}
+            {departmentLabel && (
               <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium truncate max-w-full ${isHonorary ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300' : isAlumni ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300' : isAdvisor ? 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-300' : 'bg-purple-500/20 border border-purple-500/40 text-purple-400'}`}>
-                {member?.Department}
+                {departmentLabel}
               </span>
             )}
           </div>
@@ -137,7 +147,7 @@ export function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni
           <div className="flex-1 w-full sm:w-auto text-center sm:text-left">
             <p className={`text-[10px] sm:text-xs ${isHonorary || isAlumni || isAdvisor ? 'text-white/50' : 'text-white/40'}`}>Email</p>
             <p className={`text-xs sm:text-sm truncate ${isHonorary ? 'text-amber-100' : isAlumni ? 'text-emerald-100' : isAdvisor ? 'text-indigo-100' : 'text-white'}`}>
-              {member?.['TBC Email']}
+              {emailLabel}
             </p>
           </div>
           {canEdit && onEdit && (
