@@ -11,7 +11,6 @@ import { DashboardFooter, DashboardHeader, MemberEditorModal } from '@/app/compo
 import type {
   DashboardEvent,
   DashboardMember,
-  DashboardMemberWithPicture,
   DashboardMessage,
   DashboardParticipant,
   DashboardStats,
@@ -89,11 +88,6 @@ const getPictureUrl = (picture: unknown) => {
   return null
 }
 
-const withPictureUrl = (member: DashboardMember): DashboardMemberWithPicture => ({
-  ...member,
-  pictureUrl: getPictureUrl(member.Picture),
-})
-
 const formatEventDate = (startAt: string, endAt: string) => {
   const start = new Date(startAt)
   const end = new Date(endAt)
@@ -146,7 +140,6 @@ export default function Dashboard() {
   const [member, setMember] = useState<DashboardMember | null>(null)
   const [viewedMember, setViewedMember] = useState<DashboardMember | null>(null)
   const [allMembers, setAllMembers] = useState<DashboardMember[]>([])
-  const [allMembersWithPictures, setAllMembersWithPictures] = useState<DashboardMemberWithPicture[]>([])
   const [events, setEvents] = useState<DashboardEvent[]>([])
   const [participants, setParticipants] = useState<DashboardParticipant[]>([])
 
@@ -231,7 +224,6 @@ export default function Dashboard() {
       const { data: allMembersData } = await memberService.getAllMembers()
       if (allMembersData) {
         setAllMembers(allMembersData)
-        setAllMembersWithPictures(allMembersData.map(withPictureUrl))
       }
 
       await loadEvents(memberData.id)
@@ -489,7 +481,6 @@ export default function Dashboard() {
         }
 
         setAllMembers((prev) => [created, ...prev])
-        setAllMembersWithPictures((prev) => [withPictureUrl(created), ...prev])
         setViewedMember(created)
         setCreatingMember(false)
         setEditing(false)
@@ -512,7 +503,6 @@ export default function Dashboard() {
       setViewedMember(updatedMember)
       if (viewedMember.id === member?.id) setMember(updatedMember)
       setAllMembers((prev) => prev.map((m) => (m.id === updatedMember.id ? updatedMember : m)))
-      setAllMembersWithPictures((prev) => prev.map((m) => (m.id === updatedMember.id ? withPictureUrl(updatedMember) : m)))
 
       setMessage({ type: 'success', text: 'Profile updated successfully!' })
       setEditing(false)
@@ -802,7 +792,7 @@ export default function Dashboard() {
               uniqueRoles={uniqueRoles}
               filteredMembers={filteredMembers}
               membersVisibleByRole={membersVisibleByRole}
-              allMembersWithPictures={allMembersWithPictures}
+              getPictureUrl={getPictureUrl}
               canEditMember={canEditMember}
               handleEditClick={handleEditClick}
               handleEditOtherMember={handleEditOtherMember}
