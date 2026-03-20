@@ -15,10 +15,6 @@ export type ProfileSection = {
 
 export type DashboardMember = Member
 
-export type DashboardMemberWithPicture = DashboardMember & {
-  pictureUrl: string | null
-}
-
 export type EditableMember = Partial<DashboardMember>
 
 export type DashboardEvent = Event
