@@ -7,10 +7,11 @@ import { auth } from '@/lib/auth'
 import { eventService } from '@/lib/events'
 import { memberService } from '@/lib/members'
 import { supabase } from '@/lib/supabase'
-import { DashboardFooter, DashboardHeader } from '@/app/components/dashboard'
+import { DashboardFooter, DashboardHeader, MemberEditorModal } from '@/app/components/dashboard'
 import type {
   DashboardEvent,
   DashboardMember,
+  DashboardMemberWithPicture,
   DashboardMessage,
   DashboardParticipant,
   DashboardStats,
@@ -88,6 +89,11 @@ const getPictureUrl = (picture: unknown) => {
   return null
 }
 
+const withPictureUrl = (member: DashboardMember): DashboardMemberWithPicture => ({
+  ...member,
+  pictureUrl: getPictureUrl(member.Picture),
+})
+
 const formatEventDate = (startAt: string, endAt: string) => {
   const start = new Date(startAt)
   const end = new Date(endAt)
@@ -140,6 +146,7 @@ export default function Dashboard() {
   const [member, setMember] = useState<DashboardMember | null>(null)
   const [viewedMember, setViewedMember] = useState<DashboardMember | null>(null)
   const [allMembers, setAllMembers] = useState<DashboardMember[]>([])
+  const [allMembersWithPictures, setAllMembersWithPictures] = useState<DashboardMemberWithPicture[]>([])
   const [events, setEvents] = useState<DashboardEvent[]>([])
   const [participants, setParticipants] = useState<DashboardParticipant[]>([])
 
@@ -168,6 +175,7 @@ export default function Dashboard() {
   const [hasSpecialAccess, setHasSpecialAccess] = useState(false)
   const [viewedMemberHasSpecialAccess, setViewedMemberHasSpecialAccess] = useState(false)
   const [creatingMember, setCreatingMember] = useState(false)
+  const [showMemberEditorModal, setShowMemberEditorModal] = useState(false)
   const [forceMemberView, setForceMemberView] = useState(false)
 
   const effectiveHasSpecialAccess = hasSpecialAccess && !forceMemberView
@@ -223,6 +231,7 @@ export default function Dashboard() {
       const { data: allMembersData } = await memberService.getAllMembers()
       if (allMembersData) {
         setAllMembers(allMembersData)
+        setAllMembersWithPictures(allMembersData.map(withPictureUrl))
       }
 
       await loadEvents(memberData.id)
@@ -397,24 +406,26 @@ export default function Dashboard() {
     setViewedMember(null)
     setEditedMember(makeEmptyMember())
     setEditing(true)
-    setActiveTab('profile')
+    setShowMemberEditorModal(true)
     setMessage(null)
     setSelectedImageFile(null)
   }, [])
 
   const handleEditClick = useCallback(async () => {
+    setCreatingMember(false)
     setEditedMember(viewedMember ? { ...viewedMember } : null)
     setEditing(true)
-    setActiveTab('profile')
+    setShowMemberEditorModal(true)
 
     await loadViewedMemberAccess(viewedMember?.['TBC Email'])
   }, [loadViewedMemberAccess, viewedMember])
 
   const handleEditOtherMember = useCallback(async (targetMember: DashboardMember) => {
+    setCreatingMember(false)
     setViewedMember(targetMember)
     setEditedMember({ ...targetMember })
     setEditing(true)
-    setActiveTab('profile')
+    setShowMemberEditorModal(true)
 
     await loadViewedMemberAccess(targetMember['TBC Email'])
 
@@ -428,6 +439,7 @@ export default function Dashboard() {
     setEditedMember(null)
     setSelectedImageFile(null)
     setViewedMemberHasSpecialAccess(false)
+    setShowMemberEditorModal(false)
     setActiveTab('profile')
   }, [member])
 
@@ -436,7 +448,13 @@ export default function Dashboard() {
     setEditedMember(null)
     setSelectedImageFile(null)
     setViewedMemberHasSpecialAccess(false)
-  }, [])
+    setShowMemberEditorModal(false)
+
+    if (activeTab === 'members') {
+      setViewedMember(member)
+      setCreatingMember(false)
+    }
+  }, [activeTab, member])
 
   const handleInputChange = useCallback((field: string, value: string | number | null) => {
     setEditedMember((prev) =>
@@ -471,9 +489,11 @@ export default function Dashboard() {
         }
 
         setAllMembers((prev) => [created, ...prev])
+        setAllMembersWithPictures((prev) => [withPictureUrl(created), ...prev])
         setViewedMember(created)
         setCreatingMember(false)
         setEditing(false)
+        setShowMemberEditorModal(false)
         setEditedMember(null)
         setSelectedImageFile(null)
         setMessage({ type: 'success', text: 'Member created successfully!' })
@@ -492,9 +512,11 @@ export default function Dashboard() {
       setViewedMember(updatedMember)
       if (viewedMember.id === member?.id) setMember(updatedMember)
       setAllMembers((prev) => prev.map((m) => (m.id === updatedMember.id ? updatedMember : m)))
+      setAllMembersWithPictures((prev) => prev.map((m) => (m.id === updatedMember.id ? withPictureUrl(updatedMember) : m)))
 
       setMessage({ type: 'success', text: 'Profile updated successfully!' })
       setEditing(false)
+      setShowMemberEditorModal(false)
       setEditedMember(null)
       setSelectedImageFile(null)
       setTimeout(() => setMessage(null), 3000)
@@ -507,6 +529,7 @@ export default function Dashboard() {
     setActiveTab('profile')
     setViewedMember(member)
     setEditing(false)
+    setShowMemberEditorModal(false)
     setEditedMember(null)
     setCreatingMember(false)
   }, [member])
@@ -739,6 +762,21 @@ export default function Dashboard() {
             />
           )}
 
+          <MemberEditorModal
+            open={showMemberEditorModal}
+            title={creatingMember ? 'Add Member' : 'Edit Member'}
+            viewedMember={viewedMember}
+            member={member}
+            editedMember={editedMember}
+            creatingMember={creatingMember}
+            saving={saving}
+            uploadingImage={uploadingImage}
+            canEditField={canEditField}
+            handleInputChange={handleInputChange}
+            handleSave={handleSave}
+            handleCancel={handleCancel}
+          />
+
           {activeTab === 'members' && (
             <MembersTab
               boardMembers={boardMembers}
@@ -764,7 +802,7 @@ export default function Dashboard() {
               uniqueRoles={uniqueRoles}
               filteredMembers={filteredMembers}
               membersVisibleByRole={membersVisibleByRole}
-              getPictureUrl={getPictureUrl}
+              allMembersWithPictures={allMembersWithPictures}
               canEditMember={canEditMember}
               handleEditClick={handleEditClick}
               handleEditOtherMember={handleEditOtherMember}
