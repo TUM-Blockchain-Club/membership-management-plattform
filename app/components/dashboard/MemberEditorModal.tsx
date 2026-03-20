@@ -38,8 +38,9 @@ export function MemberEditorModal({
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={handleCancel} />
 
-      <div className="relative w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl border border-white/20 bg-black/90 p-4 sm:p-6 shadow-2xl">
-        <div className="sticky top-0 z-10 mb-4 flex items-center justify-between border-b border-white/10 bg-black/90 pb-3">
+      <div className="relative w-full max-w-4xl h-[90vh] rounded-2xl border border-white/20 bg-black/90 shadow-2xl flex flex-col overflow-hidden">
+        <div className="shrink-0 px-4 sm:px-6 pt-4 sm:pt-6 pb-3 border-b border-white/10 bg-black/95">
+          <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg sm:text-xl font-semibold text-white">{title}</h3>
             <p className="text-xs sm:text-sm text-white/50 mt-1">
@@ -53,18 +54,21 @@ export function MemberEditorModal({
           >
             Close
           </button>
+          </div>
         </div>
 
-        <EditableProfileForm
-          member={editedMember ?? {}}
-          onInputChange={handleInputChange}
-          onSave={handleSave}
-          isBoardMember={member?.Role === 'Board Member'}
-          isOwnProfile={!creatingMember && viewedMember?.id === member?.id}
-          canEditField={canEditField}
-        />
+        <div className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 py-4">
+          <EditableProfileForm
+            member={editedMember ?? {}}
+            onInputChange={handleInputChange}
+            onSave={handleSave}
+            isBoardMember={member?.Role === 'Board Member'}
+            isOwnProfile={!creatingMember && viewedMember?.id === member?.id}
+            canEditField={canEditField}
+          />
+        </div>
 
-        <div className="sticky bottom-0 mt-4 border-t border-white/10 bg-black/90 pt-4 flex items-center justify-end gap-2">
+        <div className="shrink-0 px-4 sm:px-6 py-4 border-t border-white/10 bg-black/95 flex items-center justify-end gap-2">
           <button
             onClick={handleCancel}
             disabled={saving}
