@@ -59,6 +59,16 @@ const TABS: Array<{
       </svg>
     ),
   },
+  {
+    key: 'nft-approvals',
+    labelDesktop: 'NFT Approvals',
+    labelMobile: 'NFTs',
+    icon: (
+      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+      </svg>
+    ),
+  },
 ]
 
 export function DashboardHeader({

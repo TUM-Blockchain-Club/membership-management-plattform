@@ -28,7 +28,7 @@ export type DashboardStats = {
   exCore: number
 }
 
-export type DashboardTab = 'profile' | 'members' | 'stats' | 'events'
+export type DashboardTab = 'profile' | 'members' | 'stats' | 'events' | 'nft-approvals'
 
 export type DashboardMessage = {
   type: 'success' | 'error'

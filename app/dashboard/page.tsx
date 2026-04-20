@@ -18,7 +18,7 @@ import type {
   EditableMember,
   ProfileSection,
 } from '@/app/components/dashboard/types'
-import { EventsTab, MembersTab, ProfileTab, StatsTab } from './tabs'
+import { EventsTab, MembersTab, ProfileTab, StatsTab, NftApprovalsTab } from './tabs'
 
 type AccessResponse = boolean | null
 
@@ -800,6 +800,7 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'stats' && <StatsTab stats={stats} membersVisibleByRole={membersVisibleByRole} />}
+          {activeTab === 'nft-approvals' && <NftApprovalsTab />}
 
           {activeTab === 'events' && (
             <EventsTab
