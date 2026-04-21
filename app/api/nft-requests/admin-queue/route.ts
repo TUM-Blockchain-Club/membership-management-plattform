@@ -81,9 +81,9 @@ export async function GET(request: Request) {
 
     if (memberIds.length > 0) {
       const { data: memberRows, error: memberError } = await dataClient
-        .from("Members")
-        .select('ID, Name, Picture, Department, "TBC Email"')
-        .in("ID", memberIds)
+        .from("members_main")
+        .select('id, Name, Picture, Department, "TBC Email"')
+        .in("id", memberIds)
 
       if (memberError) {
         return NextResponse.json(
@@ -97,28 +97,6 @@ export async function GET(request: Request) {
           .map((member) => normalizeMember(member))
           .map((member) => [member.id, member] as const)
       )
-
-      const missingMemberIds = memberIds.filter((memberId) => !membersById.has(memberId))
-
-      if (missingMemberIds.length > 0) {
-        const { data: membersMainRows, error: membersMainError } = await dataClient
-          .from("members_main")
-          .select('id, Name, Picture, Department, "TBC Email"')
-          .in("id", missingMemberIds)
-
-        if (membersMainError) {
-          return NextResponse.json(
-            { error: membersMainError.message || "Could not load member details for NFT requests." },
-            { status: 500 }
-          )
-        }
-
-        for (const member of ((membersMainRows ?? []) as Record<string, unknown>[]).map((row) =>
-          normalizeMember(row)
-        )) {
-          membersById.set(member.id, member)
-        }
-      }
     }
 
     return NextResponse.json({

@@ -67,35 +67,6 @@ const normalizeCurrentMember = (row: Record<string, unknown> | null): CurrentNft
   }
 }
 
-const findMemberInMembersTable = async (
-  client: SupabaseServerClient,
-  userId: string,
-  email: string | null | undefined
-) => {
-  const byUuid = await client
-    .from("Members")
-    .select("*")
-    .eq("UUID", userId)
-    .maybeSingle()
-
-  const normalizedByUuid = normalizeCurrentMember(byUuid.data)
-  if (normalizedByUuid) {
-    return normalizedByUuid
-  }
-
-  if (!email?.trim()) {
-    return null
-  }
-
-  const byEmail = await client
-    .from("Members")
-    .select("*")
-    .ilike("TBC Email", email)
-    .maybeSingle()
-
-  return normalizeCurrentMember(byEmail.data)
-}
-
 const findMemberInMembersMainTable = async (
   client: SupabaseServerClient,
   email: string | null | undefined
@@ -115,14 +86,9 @@ const findMemberInMembersMainTable = async (
 
 const findMemberByUser = async (
   client: SupabaseServerClient,
-  userId: string,
+  _userId: string,
   email: string | null | undefined
 ) => {
-  const fromMembers = await findMemberInMembersTable(client, userId, email)
-  if (fromMembers) {
-    return fromMembers
-  }
-
   return findMemberInMembersMainTable(client, email)
 }
 
