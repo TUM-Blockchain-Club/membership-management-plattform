@@ -225,7 +225,8 @@ export default function Dashboard() {
       }
 
       const { data: specialAccessResult } = await supabase.rpc('has_special_access')
-      setHasSpecialAccess((specialAccessResult as AccessResponse) === true)
+      const hasLoadedSpecialAccess = (specialAccessResult as AccessResponse) === true
+      setHasSpecialAccess(hasLoadedSpecialAccess)
 
       const { data: memberData, error: memberError } = await memberService.getMemberByEmail(currentUser.email ?? '')
       if (memberError) {
@@ -242,6 +243,7 @@ export default function Dashboard() {
 
       setMember(memberData)
       setViewedMember(memberData)
+      setCanManageNftRequests(false)
 
       await loadViewedMemberAccess(memberData['TBC Email'])
       const { data: nftAdminAccess } = await nftRequestService.getAdminAccess()
