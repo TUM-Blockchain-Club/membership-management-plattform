@@ -3,6 +3,7 @@
 import Image from 'next/image'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DashboardMember } from '@/app/components/dashboard/types'
+import { isLocalDevBypassEnabled } from '@/lib/devBypass'
 import { nftRequestService, type NftRequestRow } from '@/lib/nftRequests'
 
 const AI_PROMPT =
@@ -81,11 +82,8 @@ const getRequestStatusCopy = (request: NftRequestRow | null, loadingExistingRequ
 }
 
 export function NftStatusTab({ member }: { member: DashboardMember | null }) {
-  const envDevBypass = process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === 'true'
-  const runtimeLocalDev =
-    typeof window !== 'undefined' &&
-    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-  const devBypass = envDevBypass || runtimeLocalDev
+  const devBypass =
+    typeof window !== 'undefined' ? isLocalDevBypassEnabled(window.location.hostname) : false
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [useDifferentWallet, setUseDifferentWallet] = useState(false)
   const [displayName, setDisplayName] = useState(member?.Name ?? '')
@@ -370,16 +368,50 @@ export function NftStatusTab({ member }: { member: DashboardMember | null }) {
                 </div>
               </div>
             ) : (
-              <div className="rounded-[28px] border border-white/10 bg-black/20 p-5 shadow-2xl shadow-cyan-950/20 backdrop-blur-sm">
-                <div className="rounded-[22px] border border-dashed border-white/10 bg-black/25 p-5 text-center">
-                  <div className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200/70">
-                    {hasMintedNft ? 'Minted NFT' : 'Awaiting Mint'}
+              <div className="nft-preview-frame rounded-[30px] bg-black/20 p-3 shadow-2xl shadow-cyan-950/30 backdrop-blur-sm">
+                <div className="nft-preview-card relative aspect-[1587/2245] overflow-hidden rounded-[22px] border border-white/10 bg-black">
+                  <Image
+                    src="/nft-base-no-questionmark.png"
+                    alt="Membership NFT base preview"
+                    fill
+                    priority
+                    sizes="280px"
+                    className="object-cover"
+                  />
+
+                  <div className="nft-question-mark-stage" aria-hidden="true">
+                    <div className="nft-question-mark-rotator">
+                      <div className="nft-question-mark-face">
+                        <Image
+                          src="/question-mark-cutout.png"
+                          alt=""
+                          fill
+                          sizes="160px"
+                          className="nft-question-mark-image object-contain"
+                        />
+                      </div>
+                      <div className="nft-question-mark-face nft-question-mark-face-back">
+                        <Image
+                          src="/question-mark-cutout.png"
+                          alt=""
+                          fill
+                          sizes="160px"
+                          className="nft-question-mark-image object-contain"
+                        />
+                      </div>
+                    </div>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-white/60">
-                    {hasMintedNft
-                      ? 'The minted NFT image could not be loaded right now.'
-                      : 'Your final NFT card will appear here once it has been reviewed and minted.'}
-                  </p>
+
+                  <div className="absolute inset-x-5 bottom-5 rounded-[18px] border border-white/10 bg-black/45 px-4 py-3 text-center shadow-xl backdrop-blur-md">
+                    <div className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200/75">
+                      {hasMintedNft ? 'Minted NFT' : 'Awaiting Mint'}
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-white/70">
+                      {hasMintedNft
+                        ? 'The minted NFT image could not be loaded right now.'
+                        : 'Your final NFT card will appear here once it has been reviewed and minted.'}
+                    </p>
+                  </div>
                 </div>
               </div>
             )}

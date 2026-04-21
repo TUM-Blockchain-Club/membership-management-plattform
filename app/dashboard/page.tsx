@@ -7,6 +7,7 @@ import { auth } from '@/lib/auth'
 import { isLocalDevBypassEnabled } from '@/lib/devBypass'
 import { eventService } from '@/lib/events'
 import { memberService } from '@/lib/members'
+import { nftRequestService } from '@/lib/nftRequests'
 import { supabase } from '@/lib/supabase'
 import { DashboardFooter, DashboardHeader, MemberEditorModal } from '@/app/components/dashboard'
 import type {
@@ -178,13 +179,14 @@ export default function Dashboard() {
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null)
   const [hasSpecialAccess, setHasSpecialAccess] = useState(false)
   const [viewedMemberHasSpecialAccess, setViewedMemberHasSpecialAccess] = useState(false)
+  const [canManageNftRequests, setCanManageNftRequests] = useState(false)
   const [creatingMember, setCreatingMember] = useState(false)
   const [showMemberEditorModal, setShowMemberEditorModal] = useState(false)
   const [forceMemberView, setForceMemberView] = useState(false)
 
   const effectiveHasSpecialAccess = hasSpecialAccess && !forceMemberView
   const effectiveIsBoardMember = member?.Role === 'Board Member' && !forceMemberView
-  const canManageNftRequests = (devBypass || isDashboardMemberAdmin(member)) && !forceMemberView
+  const showNftApprovalsTab = canManageNftRequests && !forceMemberView
 
   const loadEvents = useCallback(async (memberId?: number) => {
     const { data: eventsData, error: eventsError } = await eventService.getUpcomingEvents(memberId)
@@ -242,6 +244,8 @@ export default function Dashboard() {
       setViewedMember(memberData)
 
       await loadViewedMemberAccess(memberData['TBC Email'])
+      const { data: nftAdminAccess } = await nftRequestService.getAdminAccess()
+      setCanManageNftRequests(nftAdminAccess === true)
 
       const { data: allMembersData } = await memberService.getAllMembers()
       if (allMembersData) {
@@ -262,10 +266,10 @@ export default function Dashboard() {
   }, [activeTab])
 
   useEffect(() => {
-    if (activeTab === 'nft-approvals' && !canManageNftRequests) {
+    if (activeTab === 'nft-approvals' && !showNftApprovalsTab) {
       setActiveTab('nft-status')
     }
-  }, [activeTab, canManageNftRequests])
+  }, [activeTab, showNftApprovalsTab])
 
   const handleSignOut = useCallback(async () => {
     await auth.signOut()
@@ -558,13 +562,13 @@ export default function Dashboard() {
       return
     }
 
-    if (tab === 'nft-approvals' && !canManageNftRequests) {
+    if (tab === 'nft-approvals' && !showNftApprovalsTab) {
       setActiveTab('nft-status')
       return
     }
 
     setActiveTab(tab)
-  }, [canManageNftRequests, handleProfileTabSelected])
+  }, [showNftApprovalsTab, handleProfileTabSelected])
 
   const canViewRemovedMembers = effectiveIsBoardMember || effectiveHasSpecialAccess
 
@@ -743,7 +747,7 @@ export default function Dashboard() {
           onSignOut={handleSignOut}
           onTitleClick={handleTitleClick}
           canUseMemberViewToggle={hasSpecialAccess || isDashboardMemberAdmin(member)}
-          showNftApprovalsTab={canManageNftRequests}
+          showNftApprovalsTab={showNftApprovalsTab}
           forceMemberView={forceMemberView}
           onToggleMemberView={setForceMemberView}
           onProfileTabSelected={handleProfileTabSelected}
@@ -834,7 +838,7 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'stats' && <StatsTab stats={stats} membersVisibleByRole={membersVisibleByRole} />}
-          {activeTab === 'nft-approvals' && canManageNftRequests && <NftApprovalsTab />}
+          {activeTab === 'nft-approvals' && showNftApprovalsTab && <NftApprovalsTab />}
 
           {activeTab === 'events' && (
             <EventsTab

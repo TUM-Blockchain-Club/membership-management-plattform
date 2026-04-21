@@ -62,6 +62,29 @@ export type DeleteRequestResponse = {
 }
 
 export const nftRequestService = {
+  getAdminAccess: async () => {
+    const response = await fetch('/api/nft-requests/admin-access', {
+      method: 'GET',
+      cache: 'no-store',
+    })
+
+    const payload = (await response.json()) as
+      | { canManage: boolean }
+      | { error?: string }
+
+    if (!response.ok) {
+      return {
+        data: false,
+        error: ('error' in payload ? payload.error : undefined) || 'Could not determine NFT admin access.',
+      }
+    }
+
+    return {
+      data: 'canManage' in payload ? payload.canManage === true : false,
+      error: null,
+    }
+  },
+
   uploadRequestImage: async (memberId: number | string, file: File) => {
     const fileExtension = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() ?? 'png' : 'png'
     const memberPrefix = String(memberId)
