@@ -1,8 +1,26 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { isLocalDevBypassEnabled } from './lib/devBypass'
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request })
+
+  const devBypass = isLocalDevBypassEnabled(request.nextUrl.hostname)
+
+  const { pathname, search } = request.nextUrl
+  const isDashboardRoute = pathname.startsWith('/dashboard')
+  const isSigninRoute = pathname === '/signin'
+
+  if (devBypass) {
+    if (isSigninRoute) {
+      const dashboardUrl = request.nextUrl.clone()
+      dashboardUrl.pathname = '/dashboard'
+      dashboardUrl.search = ''
+      return NextResponse.redirect(dashboardUrl)
+    }
+
+    return response
+  }
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -29,10 +47,6 @@ export async function proxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-
-  const { pathname, search } = request.nextUrl
-  const isDashboardRoute = pathname.startsWith('/dashboard')
-  const isSigninRoute = pathname === '/signin'
 
   if (!user && isDashboardRoute) {
     const signInUrl = request.nextUrl.clone()

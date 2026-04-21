@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { X, AlertTriangle } from "lucide-react"
+import { AlertTriangleIcon, XIcon } from "./icons"
 
 interface RejectModalProps {
   memberName: string
@@ -37,7 +37,7 @@ export function RejectModal({ memberName, onConfirm, onCancel }: RejectModalProp
         <div className="flex items-start justify-between p-6 pb-4">
           <div className="flex items-center gap-3">
             <div className="flex h-9 w-9 items-center justify-center rounded-full bg-destructive/15">
-              <AlertTriangle className="h-4.5 w-4.5 text-destructive-foreground" aria-hidden="true" />
+              <AlertTriangleIcon className="h-4.5 w-4.5 text-destructive-foreground" aria-hidden="true" />
             </div>
             <div>
               <h2 id="reject-modal-title" className="text-base font-semibold text-foreground">
@@ -54,7 +54,7 @@ export function RejectModal({ memberName, onConfirm, onCancel }: RejectModalProp
             className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
             aria-label="Close modal"
           >
-            <X className="h-4 w-4" />
+            <XIcon className="h-4 w-4" />
           </button>
         </div>
 

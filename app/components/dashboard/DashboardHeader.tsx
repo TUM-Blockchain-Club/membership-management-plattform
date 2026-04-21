@@ -8,6 +8,7 @@ type DashboardHeaderProps = {
   onSignOut: () => void
   onTitleClick: () => void
   canUseMemberViewToggle: boolean
+  showNftApprovalsTab: boolean
   forceMemberView: boolean
   onToggleMemberView: (enabled: boolean) => void
   onProfileTabSelected: () => void
@@ -69,6 +70,17 @@ const TABS: Array<{
       </svg>
     ),
   },
+  {
+    key: 'nft-status',
+    labelDesktop: 'NFT Status',
+    labelMobile: 'NFT',
+    icon: (
+      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3l7 4v10l-7 4-7-4V7l7-4z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 3v18m7-14L5 17m0-10l14 10" />
+      </svg>
+    ),
+  },
 ]
 
 export function DashboardHeader({
@@ -78,6 +90,7 @@ export function DashboardHeader({
   onSignOut,
   onTitleClick,
   canUseMemberViewToggle,
+  showNftApprovalsTab,
   forceMemberView,
   onToggleMemberView,
   onProfileTabSelected,
@@ -126,7 +139,7 @@ export function DashboardHeader({
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-3 sm:pb-4">
         <nav className="flex gap-1 sm:gap-2 overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
-          {TABS.map((tab) => (
+          {TABS.filter((tab) => showNftApprovalsTab || tab.key !== 'nft-approvals').map((tab) => (
             <button
               key={tab.key}
               onClick={() => onTabChange(tab.key)}

@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { auth } from '@/lib/auth'
+import { isLocalDevBypassEnabled } from '@/lib/devBypass'
 import { eventService } from '@/lib/events'
 import { memberService } from '@/lib/members'
 import { supabase } from '@/lib/supabase'
@@ -18,7 +19,7 @@ import type {
   EditableMember,
   ProfileSection,
 } from '@/app/components/dashboard/types'
-import { EventsTab, MembersTab, ProfileTab, StatsTab, NftApprovalsTab } from './tabs'
+import { EventsTab, MembersTab, NftApprovalsTab, NftStatusTab, ProfileTab, StatsTab } from './tabs'
 
 type AccessResponse = boolean | null
 
@@ -88,6 +89,13 @@ const getPictureUrl = (picture: unknown) => {
   return null
 }
 
+const isDashboardMemberAdmin = (member: DashboardMember | null) => {
+  if (!member) return false
+
+  const memberRecord = member as unknown as Record<string, unknown>
+  return Boolean(memberRecord.is_Admin) || member.Role === 'Board Member'
+}
+
 const formatEventDate = (startAt: string, endAt: string) => {
   const start = new Date(startAt)
   const end = new Date(endAt)
@@ -137,6 +145,9 @@ const formatEventTime = (startAt: string, endAt: string) => {
 export default function Dashboard() {
   const router = useRouter()
 
+  const devBypass =
+    typeof window !== 'undefined' ? isLocalDevBypassEnabled(window.location.hostname) : false
+
   const [member, setMember] = useState<DashboardMember | null>(null)
   const [viewedMember, setViewedMember] = useState<DashboardMember | null>(null)
   const [allMembers, setAllMembers] = useState<DashboardMember[]>([])
@@ -173,6 +184,7 @@ export default function Dashboard() {
 
   const effectiveHasSpecialAccess = hasSpecialAccess && !forceMemberView
   const effectiveIsBoardMember = member?.Role === 'Board Member' && !forceMemberView
+  const canManageNftRequests = (devBypass || isDashboardMemberAdmin(member)) && !forceMemberView
 
   const loadEvents = useCallback(async (memberId?: number) => {
     const { data: eventsData, error: eventsError } = await eventService.getUpcomingEvents(memberId)
@@ -194,6 +206,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     const loadUserData = async () => {
+      if (devBypass) {
+        setMember(null)
+        setViewedMember(null)
+        setAllMembers([])
+        setEvents([])
+        setParticipants([])
+        setLoading(false)
+        return
+      }
+
       const { user: currentUser } = await auth.getCurrentUser()
       if (!currentUser) {
         router.push('/signin')
@@ -231,13 +253,19 @@ export default function Dashboard() {
     }
 
     void loadUserData()
-  }, [router, loadEvents, loadViewedMemberAccess])
+  }, [router, loadEvents, loadViewedMemberAccess, devBypass])
 
   useEffect(() => {
     if (activeTab !== 'events') {
       setShowParticipantsModal(false)
     }
   }, [activeTab])
+
+  useEffect(() => {
+    if (activeTab === 'nft-approvals' && !canManageNftRequests) {
+      setActiveTab('nft-status')
+    }
+  }, [activeTab, canManageNftRequests])
 
   const handleSignOut = useCallback(async () => {
     await auth.signOut()
@@ -530,8 +558,13 @@ export default function Dashboard() {
       return
     }
 
+    if (tab === 'nft-approvals' && !canManageNftRequests) {
+      setActiveTab('nft-status')
+      return
+    }
+
     setActiveTab(tab)
-  }, [handleProfileTabSelected])
+  }, [canManageNftRequests, handleProfileTabSelected])
 
   const canViewRemovedMembers = effectiveIsBoardMember || effectiveHasSpecialAccess
 
@@ -709,7 +742,8 @@ export default function Dashboard() {
           onTabChange={handleTabChange}
           onSignOut={handleSignOut}
           onTitleClick={handleTitleClick}
-          canUseMemberViewToggle={hasSpecialAccess || member?.Role === 'Board Member'}
+          canUseMemberViewToggle={hasSpecialAccess || isDashboardMemberAdmin(member)}
+          showNftApprovalsTab={canManageNftRequests}
           forceMemberView={forceMemberView}
           onToggleMemberView={setForceMemberView}
           onProfileTabSelected={handleProfileTabSelected}
@@ -800,7 +834,7 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'stats' && <StatsTab stats={stats} membersVisibleByRole={membersVisibleByRole} />}
-          {activeTab === 'nft-approvals' && <NftApprovalsTab />}
+          {activeTab === 'nft-approvals' && canManageNftRequests && <NftApprovalsTab />}
 
           {activeTab === 'events' && (
             <EventsTab
@@ -818,6 +852,8 @@ export default function Dashboard() {
               setShowParticipantsModal={setShowParticipantsModal}
             />
           )}
+
+          {activeTab === 'nft-status' && <NftStatusTab member={member} />}
         </main>
 
         <DashboardFooter />

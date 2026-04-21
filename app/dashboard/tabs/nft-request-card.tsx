@@ -1,116 +1,166 @@
+/* eslint-disable @next/next/no-img-element */
 "use client"
 
-import Image from "next/image"
-import { Check, X, Clock } from "lucide-react"
+import { useState } from "react"
+import type { NftRequestStatus } from "@/lib/nftRequests"
+import { CheckIcon, ClockIcon, XIcon } from "./icons"
 
 export interface NFTRequest {
   id: string
   memberName: string
-  memberAvatar: string
   memberEmail: string
-  nftImage: string
-  nftName: string
-  traits: { label: string; value: string }[]
+  memberDepartment: string | null
+  memberAvatar: string | null
+  memberInitials: string
+  requestImage: string
+  displayName: string
+  funFacts: string | null
+  walletAddress: string | null
   submittedAt: string
-  status: "pending" | "approved" | "rejected"
+  submittedAtValue: string
+  status: NftRequestStatus
+  reviewNote: string | null
+  mintTxHash: string | null
 }
 
 interface NFTRequestCardProps {
   request: NFTRequest
   onApprove: (id: string) => void
   onReject: (id: string) => void
+  isUpdating?: boolean
+  isMinting?: boolean
 }
 
-export function NFTRequestCard({ request, onApprove, onReject }: NFTRequestCardProps) {
+const STATUS_STYLES: Record<NftRequestStatus, string> = {
+  pending: "bg-white/10 text-white border border-white/15",
+  approved: "bg-emerald-500/15 text-emerald-200 border border-emerald-400/30",
+  rejected: "bg-rose-500/15 text-rose-200 border border-rose-400/30",
+}
+
+const shortenHash = (value: string) => `${value.slice(0, 10)}...${value.slice(-8)}`
+
+export function NFTRequestCard({
+  request,
+  onApprove,
+  onReject,
+  isUpdating = false,
+  isMinting = false,
+}: NFTRequestCardProps) {
   const isActionable = request.status === "pending"
+  const [imageFailed, setImageFailed] = useState(false)
 
   return (
-    <article className="bg-card border border-border rounded-2xl overflow-hidden flex flex-col hover:border-primary/40 transition-colors group">
-      {/* NFT Image */}
-      <div className="relative aspect-square bg-muted overflow-hidden">
-        <Image
-          src={request.nftImage}
-          alt={`NFT preview for ${request.nftName}`}
-          fill
-          className="object-cover group-hover:scale-105 transition-transform duration-500"
-        />
-        {/* Status Badge */}
-        {request.status !== "pending" && (
-          <div
-            className={`absolute top-3 right-3 px-2.5 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 ${
-              request.status === "approved"
-                ? "bg-success/20 text-success-foreground border border-success/30"
-                : "bg-destructive/20 text-destructive-foreground border border-destructive/30"
-            }`}
-          >
-            {request.status === "approved" ? (
-              <Check className="h-3 w-3" />
-            ) : (
-              <X className="h-3 w-3" />
-            )}
-            {request.status === "approved" ? "Approved" : "Rejected"}
+    <article className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-xl shadow-black/20 transition-colors hover:border-cyan-400/30">
+      <div className="relative aspect-[4/5] overflow-hidden bg-black">
+        {!imageFailed ? (
+          <img
+            src={request.requestImage}
+            alt={`NFT request image for ${request.displayName}`}
+            className="h-full w-full object-cover"
+            onError={() => setImageFailed(true)}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-black px-6 text-center">
+            <div>
+              <p className="text-sm font-medium text-white">Image unavailable</p>
+              <p className="mt-2 text-xs text-white/45">The request exists, but the storage image could not be loaded.</p>
+            </div>
           </div>
         )}
+
+        <div className={`absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[request.status]}`}>
+          {request.status === "approved" ? (
+            <CheckIcon className="h-3 w-3" />
+          ) : request.status === "rejected" ? (
+            <XIcon className="h-3 w-3" />
+          ) : (
+            <ClockIcon className="h-3 w-3" />
+          )}
+          <span className="capitalize">{request.status}</span>
+        </div>
       </div>
 
-      {/* Card Body */}
-      <div className="p-4 flex flex-col gap-4 flex-1">
-        {/* NFT Title */}
-        <h3 className="text-sm font-semibold text-foreground">{request.nftName}</h3>
+      <div className="flex flex-col gap-4 p-4">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-cyan-200/70">Display Name</p>
+          <h3 className="mt-1 text-lg font-semibold text-white">{request.displayName}</h3>
+        </div>
 
-        {/* Member Info */}
-        <div className="flex items-center gap-2.5">
-          <div className="relative h-8 w-8 rounded-full overflow-hidden border border-border shrink-0">
-            <Image
+        <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
+          {request.memberAvatar ? (
+            <img
               src={request.memberAvatar}
               alt={request.memberName}
-              fill
-              className="object-cover"
+              className="h-10 w-10 shrink-0 rounded-full border border-white/10 object-cover"
             />
-          </div>
-          <div className="min-w-0">
-            <p className="text-xs font-medium text-foreground truncate">{request.memberName}</p>
-            <p className="text-xs text-muted-foreground truncate">{request.memberEmail}</p>
-          </div>
-        </div>
-
-        {/* Traits */}
-        <div className="bg-muted/50 rounded-xl p-3 space-y-1.5">
-          {request.traits.map((trait) => (
-            <div key={trait.label} className="flex items-center justify-between gap-2">
-              <span className="text-xs text-muted-foreground">{trait.label}</span>
-              <span className="text-xs font-medium text-foreground">{trait.value}</span>
+          ) : (
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-xs font-semibold text-white/80">
+              {request.memberInitials}
             </div>
-          ))}
+          )}
+
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-white">{request.memberName}</p>
+            <p className="truncate text-xs text-white/55">{request.memberEmail}</p>
+          </div>
         </div>
 
-        {/* Submitted At */}
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-auto">
-          <Clock className="h-3 w-3 shrink-0" aria-hidden="true" />
+        <div className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-3">
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Fun Facts</p>
+            <p className="mt-1 text-sm leading-6 text-white/80">{request.funFacts || "No fun facts provided."}</p>
+          </div>
+
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Wallet</p>
+            <p className="mt-1 break-all text-sm text-white/80">
+              {request.walletAddress || "Central Wallet"}
+            </p>
+          </div>
+
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Department</p>
+            <p className="mt-1 text-sm text-white/80">{request.memberDepartment || "No department available."}</p>
+          </div>
+
+          {request.reviewNote && (
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Review Note</p>
+              <p className="mt-1 text-sm leading-6 text-white/75">{request.reviewNote}</p>
+            </div>
+          )}
+
+          {request.mintTxHash && (
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Mint Tx</p>
+              <p className="mt-1 break-all text-sm text-emerald-200">{shortenHash(request.mintTxHash)}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5 text-xs text-white/45">
+          <ClockIcon className="h-3 w-3 shrink-0" />
           <span>Submitted {request.submittedAt}</span>
         </div>
 
-        {/* Actions */}
-        {isActionable && (
-          <div className="flex gap-2 pt-1">
+        {isActionable ? (
+          <div className="flex gap-2">
             <button
               onClick={() => onApprove(request.id)}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl bg-success text-success-foreground text-xs font-semibold hover:opacity-90 transition-opacity"
-              aria-label={`Approve NFT request from ${request.memberName}`}
+              disabled={isUpdating || isMinting}
+              className="flex-1 rounded-xl bg-emerald-500 px-3 py-2.5 text-xs font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-500/60"
             >
-              <Check className="h-3.5 w-3.5" />
-              Approve
+              {isMinting ? "Minting..." : "Approve"}
             </button>
             <button
               onClick={() => onReject(request.id)}
-              className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl border border-destructive/50 text-destructive-foreground text-xs font-semibold hover:bg-destructive/15 transition-colors"
-              aria-label={`Reject NFT request from ${request.memberName}`}
+              disabled={isUpdating || isMinting}
+              className="flex-1 rounded-xl border border-rose-400/40 px-3 py-2.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:border-rose-400/20 disabled:text-rose-200/60"
             >
-              <X className="h-3.5 w-3.5" />
               Reject
             </button>
           </div>
-        )}
+        ) : null}
       </div>
     </article>
   )
