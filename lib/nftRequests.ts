@@ -61,6 +61,17 @@ export type DeleteRequestResponse = {
   storageWarning: string | null
 }
 
+export type CurrentNftRequestResponse = {
+  memberId: number
+  member: {
+    id: number
+    name: string | null
+    email: string | null
+    department: string | null
+  }
+  request: NftRequestRow | null
+}
+
 export const nftRequestService = {
   getAdminAccess: async () => {
     const response = await fetch('/api/nft-requests/admin-access', {
@@ -140,45 +151,90 @@ export const nftRequestService = {
     }
   },
 
-  upsertRequest: async (request: NftRequestUpsert) => {
-    const { data, error } = await supabase
-      .from('nft_requests')
-      .upsert(request, {
-        onConflict: 'member_id',
-      })
-      .select()
-      .single()
+  getCurrentRequest: async () => {
+    const response = await fetch('/api/nft-requests/current', {
+      method: 'GET',
+      cache: 'no-store',
+    })
 
-    return { data, error }
-  },
+    const payload = (await response.json()) as
+      | CurrentNftRequestResponse
+      | {
+          error?: string
+        }
 
-  deleteRequest: async (requestId: string, imagePath?: string | null) => {
-    const { error: deleteError } = await supabase
-      .from('nft_requests')
-      .delete()
-      .eq('id', requestId)
-
-    if (deleteError) {
+    if (!response.ok || !('memberId' in payload)) {
       return {
         data: null,
-        error: deleteError.message || 'Could not delete the NFT request.',
-      }
-    }
-
-    let storageWarning: string | null = null
-
-    if (imagePath?.trim()) {
-      const { error: storageError } = await supabase.storage
-        .from(NFT_REQUEST_IMAGE_BUCKET)
-        .remove([imagePath])
-
-      if (storageError) {
-        storageWarning = storageError.message || 'The request was deleted, but the uploaded image could not be removed.'
+        error: ('error' in payload ? payload.error : undefined) || 'Could not load the current NFT request.',
       }
     }
 
     return {
-      data: { storageWarning } as DeleteRequestResponse,
+      data: payload,
+      error: null,
+    }
+  },
+
+  saveCurrentRequest: async (
+    request: Omit<NftRequestUpsert, 'member_id' | 'status' | 'reviewed_at' | 'reviewed_by' | 'review_note'>
+  ) => {
+    const response = await fetch('/api/nft-requests/current', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(request),
+    })
+
+    const payload = (await response.json()) as
+      | {
+          memberId: number
+          request: NftRequestRow
+        }
+      | {
+          error?: string
+        }
+
+    if (!response.ok || !('request' in payload)) {
+      return {
+        data: null,
+        error: {
+          message:
+            ('error' in payload ? payload.error : undefined) ||
+            'Could not save the NFT request.',
+        },
+      }
+    }
+
+    return {
+      data: payload,
+      error: null,
+    }
+  },
+
+  deleteCurrentRequest: async () => {
+    const response = await fetch('/api/nft-requests/current', {
+      method: 'DELETE',
+    })
+
+    const payload = (await response.json()) as
+      | DeleteRequestResponse
+      | {
+          error?: string
+        }
+
+    if (!response.ok || ('error' in payload && payload.error)) {
+      return {
+        data: null,
+        error:
+          ('error' in payload ? payload.error : undefined) ||
+          'Could not delete the NFT request.',
+      }
+    }
+
+    return {
+      data: payload as DeleteRequestResponse,
       error: null,
     }
   },
@@ -213,16 +269,6 @@ export const nftRequestService = {
       data: payload.requests,
       error: null,
     }
-  },
-
-  getRequestByMemberId: async (memberId: number | string) => {
-    const { data, error } = await supabase
-      .from('nft_requests')
-      .select('id, member_id, status, display_name, fun_facts, wallet_address, image_path, image_url, created_at, reviewed_at, reviewed_by, review_note, mint_tx_hash')
-      .eq('member_id', memberId)
-      .maybeSingle()
-
-    return { data: (data as NftRequestRow | null) ?? null, error }
   },
 
   getMembersForRequests: async (memberIds: Array<number | string>) => {

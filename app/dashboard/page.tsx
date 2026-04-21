@@ -208,17 +208,19 @@ export default function Dashboard() {
 
   useEffect(() => {
     const loadUserData = async () => {
-      if (devBypass) {
+      const { user: currentUser } = await auth.getCurrentUser()
+
+      if (!currentUser && devBypass) {
         setMember(null)
         setViewedMember(null)
         setAllMembers([])
         setEvents([])
         setParticipants([])
+        setCanManageNftRequests(true)
         setLoading(false)
         return
       }
 
-      const { user: currentUser } = await auth.getCurrentUser()
       if (!currentUser) {
         router.push('/signin')
         return

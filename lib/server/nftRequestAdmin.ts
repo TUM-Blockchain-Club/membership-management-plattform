@@ -141,7 +141,7 @@ export const requireNftRequestAdmin = async (supabase: SupabaseServerClient, req
   const adminMember = await findAdminMember(supabase, user.id, user.email ?? null)
   const isAdmin = Boolean(adminMember?.is_Admin) || adminMember?.Role === "Board Member"
 
-  if (!isAdmin && !allowLocalDevBypass) {
+  if (!isAdmin) {
     throw new NftRequestAdminError("You are not allowed to manage NFT requests.", 403)
   }
 
