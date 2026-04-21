@@ -175,7 +175,22 @@ export const loadNftCompositeRecord = async (
     throw new NftCompositeError(memberError.message || "Could not load member details.", 500)
   }
 
-  const rawMember = (memberRow as Record<string, unknown> | null) ?? null
+  let rawMember = (memberRow as Record<string, unknown> | null) ?? null
+
+  if (!rawMember) {
+    const { data: membersMainRow, error: membersMainError } = await supabase
+      .from("members_main")
+      .select('id, Department')
+      .eq("id", request.member_id)
+      .maybeSingle()
+
+    if (membersMainError) {
+      throw new NftCompositeError(membersMainError.message || "Could not load member details.", 500)
+    }
+
+    rawMember = (membersMainRow as Record<string, unknown> | null) ?? null
+  }
+
   const rawMemberId = rawMember?.ID ?? rawMember?.id
   const normalizedMemberId =
     typeof rawMemberId === "number"
