@@ -122,23 +122,23 @@ export const resolveCurrentNftRequestMember = async (
 
   if (allowLocalDevBypass) {
     const localBypassMember = await dataClient
-      .from("Members")
+      .from("members_main")
       .select("*")
-      .eq("ID", 0)
+      .eq("id", 0)
       .maybeSingle()
+
+    const normalizedBypassMember = normalizeCurrentMember(localBypassMember.data)
+
+    if (!normalizedBypassMember) {
+      throw new NftRequestCurrentMemberError(
+        "Local dev bypass requires a members_main row with id = 0.",
+        500
+      )
+    }
 
     return {
       user: null,
-      member:
-        normalizeCurrentMember(localBypassMember.data) ?? {
-          ID: 0,
-          Name: "Local Test User",
-          Department: null,
-          "TBC Email": null,
-          UUID: null,
-          Role: null,
-          is_Admin: true,
-        },
+      member: normalizedBypassMember,
       dataClient,
     }
   }

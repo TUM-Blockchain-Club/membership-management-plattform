@@ -211,12 +211,13 @@ export default function Dashboard() {
       const { user: currentUser } = await auth.getCurrentUser()
 
       if (!currentUser && devBypass) {
+        const { data: nftAdminAccess } = await nftRequestService.getAdminAccess()
         setMember(null)
         setViewedMember(null)
         setAllMembers([])
         setEvents([])
         setParticipants([])
-        setCanManageNftRequests(true)
+        setCanManageNftRequests(nftAdminAccess === true)
         setLoading(false)
         return
       }

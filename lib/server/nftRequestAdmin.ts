@@ -18,8 +18,6 @@ type SupabaseQueryClient = {
 
 type AdminMemberRow = {
   ID: number
-  Role: string | null
-  is_Admin: boolean | null
 }
 
 export class NftRequestAdminError extends Error {
@@ -57,35 +55,17 @@ const normalizeAdminMember = (row: Record<string, unknown> | null): AdminMemberR
     return null
   }
 
-  const rawRole = row.Role ?? row.role
-  const rawIsAdmin = row.is_Admin ?? row.is_admin
-
   return {
     ID: normalizedId,
-    Role: typeof rawRole === "string" ? rawRole : null,
-    is_Admin: typeof rawIsAdmin === "boolean" ? rawIsAdmin : rawIsAdmin === null ? null : Boolean(rawIsAdmin),
   }
 }
 
 const findAdminMemberInTable = async (
   client: SupabaseQueryClient,
-  table: "Members" | "members_main",
-  userId: string,
+  table: "members_main",
+  _userId: string,
   email: string | null
 ) => {
-  if (table === "Members") {
-    const byUuid = await client
-      .from("Members")
-      .select("*")
-      .eq("UUID", userId)
-      .maybeSingle()
-
-    const normalizedByUuid = normalizeAdminMember(byUuid.data)
-    if (normalizedByUuid) {
-      return normalizedByUuid
-    }
-  }
-
   if (!email) {
     return null
   }
@@ -110,11 +90,6 @@ const findAdminMember = async (supabase: SupabaseServerClient, userId: string, e
   clients.push(supabase as unknown as SupabaseQueryClient)
 
   for (const client of clients) {
-    const fromMembers = await findAdminMemberInTable(client, "Members", userId, email)
-    if (fromMembers) {
-      return fromMembers
-    }
-
     const fromMembersMain = await findAdminMemberInTable(client, "members_main", userId, email)
     if (fromMembersMain) {
       return fromMembersMain
@@ -132,6 +107,19 @@ export const requireNftRequestAdmin = async (supabase: SupabaseServerClient, req
 
   if (!user) {
     if (allowLocalDevBypass) {
+      const adminClient = getSupabaseAdminClient()
+      const dataClient = (adminClient ?? supabase) as unknown as SupabaseQueryClient
+      const localBypassMember = await dataClient
+        .from("members_main")
+        .select("*")
+        .eq("id", "0")
+        .maybeSingle()
+
+      const normalizedBypassMember = normalizeAdminMember(localBypassMember.data)
+      if (!normalizedBypassMember || ![0, 99].includes(normalizedBypassMember.ID)) {
+        throw new NftRequestAdminError("You are not allowed to manage NFT requests.", 403)
+      }
+
       return { user: null }
     }
 
@@ -139,7 +127,7 @@ export const requireNftRequestAdmin = async (supabase: SupabaseServerClient, req
   }
 
   const adminMember = await findAdminMember(supabase, user.id, user.email ?? null)
-  const isAdmin = Boolean(adminMember?.is_Admin) || adminMember?.Role === "Board Member"
+  const isAdmin = Boolean(adminMember && [0, 99, 107].includes(adminMember.ID))
 
   if (!isAdmin) {
     throw new NftRequestAdminError("You are not allowed to manage NFT requests.", 403)
