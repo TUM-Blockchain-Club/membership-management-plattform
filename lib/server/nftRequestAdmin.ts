@@ -116,7 +116,7 @@ export const requireNftRequestAdmin = async (supabase: SupabaseServerClient, req
         .maybeSingle()
 
       const normalizedBypassMember = normalizeAdminMember(localBypassMember.data)
-      if (!normalizedBypassMember || ![0, 99].includes(normalizedBypassMember.ID)) {
+      if (!normalizedBypassMember || ![0, 99, 107].includes(normalizedBypassMember.ID)) {
         throw new NftRequestAdminError("You are not allowed to manage NFT requests.", 403)
       }
 

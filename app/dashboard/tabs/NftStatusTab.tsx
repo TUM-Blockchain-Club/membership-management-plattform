@@ -71,6 +71,7 @@ export function NftStatusTab({ member }: { member: DashboardMember | null }) {
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [useDifferentWallet, setUseDifferentWallet] = useState(false)
   const [displayName, setDisplayName] = useState(member?.Name ?? '')
+  const [displayNameManuallyEdited, setDisplayNameManuallyEdited] = useState(false)
   const [funFacts, setFunFacts] = useState('')
   const [walletAddress, setWalletAddress] = useState('')
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
@@ -135,10 +136,12 @@ export function NftStatusTab({ member }: { member: DashboardMember | null }) {
   }, [])
 
   useEffect(() => {
-    if (!displayName.trim()) {
-      setDisplayName(currentMemberName ?? '')
+    if (displayNameManuallyEdited || !currentMemberName) {
+      return
     }
-  }, [currentMemberName, displayName])
+
+    setDisplayName(currentMemberName)
+  }, [currentMemberName, displayNameManuallyEdited])
 
   useEffect(() => {
     let cancelled = false
@@ -278,6 +281,7 @@ export function NftStatusTab({ member }: { member: DashboardMember | null }) {
 
       setExistingRequest(null)
       setDisplayName(currentMemberName ?? '')
+      setDisplayNameManuallyEdited(false)
       setFunFacts('')
       setWalletAddress('')
       setUseDifferentWallet(false)
@@ -573,7 +577,10 @@ export function NftStatusTab({ member }: { member: DashboardMember | null }) {
                   type="text"
                   name="displayName"
                   value={displayName}
-                  onChange={(event) => setDisplayName(event.target.value)}
+                  onChange={(event) => {
+                    setDisplayName(event.target.value)
+                    setDisplayNameManuallyEdited(true)
+                  }}
                   placeholder="Enter the name you want on the NFT"
                   disabled={saving}
                   className="mt-2 h-14 w-full rounded-xl border border-white/10 bg-black/30 px-4 text-white outline-none transition focus:border-cyan-400/50 focus:bg-black/40"
