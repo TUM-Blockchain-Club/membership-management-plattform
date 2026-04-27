@@ -64,13 +64,13 @@ export function MintPreviewModal({ request, isMinting, error, onMint, onCancel }
           <div className="overflow-hidden rounded-[24px] border border-white/10 bg-black/50 shadow-[0_20px_60px_rgba(0,0,0,0.42)]">
             {!imageFailed ? (
               <img
-                src={previewUrl}
+                src={`${previewUrl}?v=${new Date().getTime()}`}
                 alt={`Final NFT preview for ${request.displayName}`}
                 className="block w-full object-cover"
                 onError={() => setImageFailed(true)}
               />
             ) : (
-              <div className="flex aspect-[1587/2245] items-center justify-center px-8 text-center">
+              <div className="flex aspect-[1190/1684] items-center justify-center px-8 text-center">
                 <div>
                   <p className="text-base font-semibold text-white">Preview unavailable</p>
                   <p className="mt-2 text-sm text-white/50">
@@ -97,6 +97,14 @@ export function MintPreviewModal({ request, isMinting, error, onMint, onCancel }
             </div>
 
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Degree @ Uni</p>
+              <p className="mt-2 text-sm leading-6 text-white/82 italic">
+                {}
+                {request.degreeAtUni || "Not specified"}
+              </p>
+            </div>
+
+            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
               <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Recipient Wallet</p>
               <p className="mt-2 break-all text-sm leading-6 text-white/82">
                 {request.walletAddress || "Central Wallet"}
@@ -105,11 +113,11 @@ export function MintPreviewModal({ request, isMinting, error, onMint, onCancel }
           </div>
 
           <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-            <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Fun Facts</p>
-            <p className="mt-2 text-sm leading-7 text-white/82">
-              {request.funFacts || "No fun facts provided."}
-            </p>
-          </div>
+  <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Member Flex</p>
+  <p className="mt-2 text-sm leading-7 text-white/82">
+    {request.highlight || "No highlight provided."}
+  </p>
+</div>
 
           {error && (
             <div className="mt-4 rounded-2xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
@@ -127,7 +135,7 @@ export function MintPreviewModal({ request, isMinting, error, onMint, onCancel }
             </button>
             <button
               onClick={onMint}
-              disabled={isMinting || imageFailed}
+              disabled={isMinting}
               className="flex-1 rounded-2xl bg-[#5a038d] px-4 py-3 text-sm font-semibold text-white transition hover:bg-[#6e0ea5] disabled:cursor-not-allowed disabled:bg-[#5a038d]/50"
             >
               {isMinting ? "Minting..." : "Mint NFT"}

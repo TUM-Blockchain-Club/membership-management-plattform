@@ -1,41 +1,47 @@
-import { NextResponse } from "next/server"
-import { loadNftCompositeRecord, NftCompositeError, renderNftCompositeSvg } from "@/lib/server/nftComposite"
-import { NftRequestAdminError, requireNftRequestAdmin } from "@/lib/server/nftRequestAdmin"
-import { getSupabaseAdminClient } from "@/lib/server/supabaseAdmin"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
 
-export const dynamic = "force-dynamic"
+// app/api/nft-requests/[requestId]/preview-image/route.ts
+import { NextResponse } from 'next/server';
+import { createClient } from '@supabase/supabase-js';
+import { buildNftImage, DEPT_MAP } from '@/lib/server/buildNftImage';
 
-type RouteContext = {
-  params: Promise<{
-    requestId: string
-  }>
-}
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
+);
 
-export async function GET(_request: Request, context: RouteContext) {
+export const dynamic = 'force-dynamic';
+
+export async function GET(_req: Request, context: { params: Promise<{ requestId: string }> }) {
   try {
-    const { requestId } = await context.params
-    const supabase = await createSupabaseServerClient()
+    const { requestId } = await context.params;
+    if (!requestId) return new NextResponse('No ID', { status: 400 });
 
-    await requireNftRequestAdmin(supabase, _request)
-    const dataClient = getSupabaseAdminClient() ?? supabase
+    const { data: rec, error } = await supabase
+      .from('nft_requests')
+      .select('*, members_main (*)')
+      .eq('id', requestId)
+      .maybeSingle();
 
-    const record = await loadNftCompositeRecord(dataClient, requestId)
-    const svg = await renderNftCompositeSvg(dataClient, record)
+    if (error || !rec) return new NextResponse('Not found', { status: 404 });
 
-    return new NextResponse(svg, {
+    const m = rec.members_main || {};
+    const buffer = await buildNftImage({
+      nickname:   (m.nickname || rec.display_name || 'NEW MEMBER'),
+      batch:      m.Batch ? String(m.Batch) : '',
+      degreeAtUni: m.degree_at_uni || '',
+      programs: m.highlight || '',
+      department: m.Department || 'Board',
+      imageUrl:   m.nft_avatar,
+    });
+
+    return new NextResponse(buffer as any, {
       status: 200,
       headers: {
-        "Cache-Control": "no-store, max-age=0",
-        "Content-Type": "image/svg+xml; charset=utf-8",
+        'Content-Type': 'image/png',
+        'Cache-Control': 'no-store, max-age=0',
       },
-    })
-  } catch (error) {
-    if (error instanceof NftRequestAdminError || error instanceof NftCompositeError) {
-      return NextResponse.json({ error: error.message }, { status: error.status })
-    }
-
-    const message = error instanceof Error ? error.message : "Could not render the NFT preview."
-    return NextResponse.json({ error: message }, { status: 500 })
+    });
+  } catch (e: any) {
+    return new NextResponse(e.message, { status: 500 });
   }
 }

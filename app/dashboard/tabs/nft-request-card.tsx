@@ -12,9 +12,10 @@ export interface NFTRequest {
   memberDepartment: string | null
   memberAvatar: string | null
   memberInitials: string
+  degreeAtUni: string | null
   requestImage: string
   displayName: string
-  funFacts: string | null
+  highlight: string | null
   walletAddress: string | null
   submittedAt: string
   submittedAtValue: string
@@ -54,11 +55,11 @@ export function NFTRequestCard({
       <div className="relative aspect-[4/5] overflow-hidden bg-black">
         {!imageFailed ? (
           <img
-            src={request.requestImage}
+            src={`/api/nft-requests/${request.id}/preview-image?v=${new Date().getTime()}`}
             alt={`NFT request image for ${request.displayName}`}
             className="h-full w-full object-cover"
             onError={() => setImageFailed(true)}
-          />
+/>
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-black px-6 text-center">
             <div>
@@ -89,7 +90,7 @@ export function NFTRequestCard({
         <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
           {request.memberAvatar ? (
             <img
-              src={request.memberAvatar}
+              src={`${request.memberAvatar}?v=${new Date().getTime()}`}
               alt={request.memberName}
               className="h-10 w-10 shrink-0 rounded-full border border-white/10 object-cover"
             />
@@ -107,8 +108,8 @@ export function NFTRequestCard({
 
         <div className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-3">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Fun Facts</p>
-            <p className="mt-1 text-sm leading-6 text-white/80">{request.funFacts || "No fun facts provided."}</p>
+          <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Highlight</p>
+          <p className="mt-1 text-sm leading-6 text-white/80">{request.highlight || "No highlight provided."}</p>
           </div>
 
           <div>
@@ -121,6 +122,11 @@ export function NFTRequestCard({
           <div>
             <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Department</p>
             <p className="mt-1 text-sm text-white/80">{request.memberDepartment || "No department available."}</p>
+          </div>
+
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Degree @ Uni</p>
+            <p className="mt-1 text-sm text-white/80 italic">{request.degreeAtUni || "Not specified"}</p>
           </div>
 
           {request.reviewNote && (

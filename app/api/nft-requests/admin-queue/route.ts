@@ -25,7 +25,10 @@ type MemberSummary = {
   email: string | null
   department: string | null
   picture: unknown | null
+  degree_at_uni: string | null
+  highlight: string | null
 }
+
 
 const normalizeMemberId = (value: number | string) => {
   const normalized = typeof value === "number" ? value : Number(value)
@@ -45,6 +48,8 @@ const normalizeMember = (member: Record<string, unknown>): MemberSummary => {
   const rawEmail = member["TBC Email"] ?? member.tbc_email ?? member.email
   const rawDepartment = member.Department ?? member.department
   const rawPicture = member.Picture ?? member.picture ?? null
+  const rawDegreeAtUni = member.degree_at_uni ?? null
+  const rawHighlight = member.highlight ?? null
 
   return {
     id: Number.isFinite(normalizedId) ? normalizedId : 0,
@@ -52,6 +57,8 @@ const normalizeMember = (member: Record<string, unknown>): MemberSummary => {
     email: typeof rawEmail === "string" ? rawEmail.trim() || null : null,
     department: typeof rawDepartment === "string" ? rawDepartment.trim() || null : null,
     picture: rawPicture,
+    degree_at_uni: typeof rawDegreeAtUni === "string" ? rawDegreeAtUni.trim() || null : null,
+    highlight: typeof rawHighlight === "string" ? rawHighlight.trim() || null : null,
   }
 }
 
@@ -82,7 +89,7 @@ export async function GET(request: Request) {
     if (memberIds.length > 0) {
       const { data: memberRows, error: memberError } = await dataClient
         .from("members_main")
-        .select('id, Name, Picture, Department, "TBC Email"')
+        .select('id, Name, Picture, Department, "TBC Email", degree_at_uni, highlight')
         .in("id", memberIds)
 
       if (memberError) {

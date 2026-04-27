@@ -98,11 +98,12 @@ const toUiRequest = (
     memberName,
     memberEmail,
     memberDepartment: getMemberText(request.member, "department", "Department"),
+    degreeAtUni: getMemberText(request.member, "degree_at_uni", "Degree_at_Uni"),
     memberAvatar: resolvePictureUrl(getMemberRecord(request.member)?.picture ?? getMemberRecord(request.member)?.Picture ?? null),
     memberInitials: getInitials(memberName),
     requestImage,
     displayName: request.display_name,
-    funFacts: request.fun_facts,
+    highlight: getMemberText(request.member, "highlight", "Highlight"),
     walletAddress: request.wallet_address,
     submittedAt: formatSubmittedAt(request.created_at),
     submittedAtValue: request.created_at,
@@ -232,42 +233,48 @@ export function NftApprovalsTab() {
 
   const handleMint = useCallback(
     async (requestId: string) => {
-      setMintingId(requestId)
-      setError(null)
+      setMintingId(requestId);
+      setError(null);
 
-      const { data, error: mintError, mintTxHash } = await nftRequestService.mintRequest(requestId)
-      if (mintError || !data) {
-        setError(
-          mintTxHash
-            ? `${mintError} Mint hash: ${mintTxHash}`
-            : mintError || "Could not mint the NFT."
-        )
-        setMintingId(null)
-        return
-      }
+      try {
+       
+        const response = await fetch('/api/mint-nft', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestId }),
+        });
+
+        const result = await response.json();
+
+        if (!response.ok || !result.success) {
+          throw new Error(result.error || "Fehler beim Generieren des NFTs.");
+        }
+
 
       setRequests((prev) =>
-        prev.map((request) =>
-          request.id === requestId
-            ? {
-                ...request,
-                status: data.request.status,
-                reviewNote: data.request.review_note,
-                mintTxHash: data.request.mint_tx_hash ?? data.mintTxHash,
-                requestImage:
-                  nftRequestService.getRequestImageProxyUrl(
-                    data.request.image_path,
-                    `${data.request.id}:${data.request.reviewed_at ?? data.request.created_at}`
-                  ) || data.request.image_url,
-              }
-            : request
-        )
-      )
-      setPreviewingId(null)
-      setMintingId(null)
+          prev.map((request) =>
+            request.id === requestId
+              ? ({
+                  ...request,
+                  status: 'minted',
+                  reviewNote: null,
+                } as unknown as typeof request)
+              : request
+          )
+        );
+
+        alert("NFT erfolgreich generiert und im Storage gespeichert!");
+        setPreviewingId(null);
+
+      } catch (err: any) {
+        console.error(err);
+        setError(err.message || "Konnte das NFT nicht generieren.");
+      } finally {
+        setMintingId(null);
+      }
     },
     []
-  )
+  );
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -278,7 +285,7 @@ export function NftApprovalsTab() {
         request.memberName,
         request.memberEmail,
         request.displayName,
-        request.funFacts ?? "",
+        request.highlight ?? "",
         request.walletAddress ?? "",
       ]
         .some((value) => value.toLowerCase().includes(query))
