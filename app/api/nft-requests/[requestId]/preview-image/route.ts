@@ -7,7 +7,7 @@ import { buildNftImage, DEPT_MAP } from '@/lib/server/buildNftImage';
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
-);
+); 
 
 export const dynamic = 'force-dynamic';
 
@@ -45,3 +45,7 @@ export async function GET(_req: Request, context: { params: Promise<{ requestId:
     return new NextResponse(e.message, { status: 500 });
   }
 }
+
+
+
+
