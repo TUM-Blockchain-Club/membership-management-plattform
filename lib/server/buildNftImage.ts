@@ -4,6 +4,13 @@ import fs from 'fs';
 
 const ASSETS_DIR = path.join(process.cwd(), 'public', 'assets');
 
+// 1. Read the font file directly from your local assets
+const fontPath = path.join(ASSETS_DIR, 'Raleway-Regular.ttf'); 
+const fontBuffer = fs.readFileSync(fontPath);
+
+// 2. Convert it to a base64 string so the SVG can read it
+const fontBase64 = fontBuffer.toString('base64');
+
 // ─── SINGLE SOURCE OF TRUTH FOR CANVAS LAYOUT ───────────────────────────────
 // All coordinates are relative to this fixed canvas.
 export const CANVAS_W = 1190;
@@ -99,15 +106,23 @@ export async function buildNftImage(params: {
 
   // ── 5. SVG text layer ─────────────────────────────────────────────────────
   const TEXT_X = 350;
-  
-  // Normal casing applied here
+  // 1. Read your existing Raleway font file and convert it to Base64
+  // (Make sure ASSETS_DIR is defined at the top of your file!)
+  const fontPath = path.join(ASSETS_DIR, 'Raleway-Regular.ttf'); 
+  const fontBase64 = fs.readFileSync(fontPath).toString('base64');
+
   let programLines = programs; 
   
+  // 2. Inject the Base64 font directly into the SVG
   const svgText = `
     <svg xmlns="http://www.w3.org/2000/svg" width="${CANVAS_W}" height="${CANVAS_H}">
       <style>
+        @font-face {
+          font-family: 'Raleway';
+          src: url('data:font/truetype;charset=utf-8;base64,${fontBase64}');
+        }
         .batch { 
-          font-family: 'Georgia', 'Times New Roman', serif; 
+          font-family: 'Raleway', sans-serif; 
           font-weight: normal; 
           font-size: 105px; 
           fill: #5EA5F6; 
@@ -115,7 +130,7 @@ export async function buildNftImage(params: {
           dominant-baseline: central; 
         }
         .line { 
-          font-family: 'Georgia', 'Times New Roman', serif; 
+          font-family: 'Raleway', sans-serif; 
           font-weight: normal; 
           font-size: 58px; 
           fill: rgba(255, 255, 255, 0.9); /* Premium soft white */
