@@ -6,7 +6,7 @@ import type { DashboardMember } from '@/app/components/dashboard/types'
 import { nftRequestService, type NftRequestRow } from '@/lib/nftRequests'
 
 const AI_PROMPT =
-  'Create a clean, professional portrait for a membership NFT: head-and-shoulders framing, looking at the camera, friendly and confident expression, subtle futuristic web3 atmosphere, soft cinematic lighting, modern digital illustration style, polished background, premium card-ready composition, no text, no watermark.'
+  'Create a premium NFT profile avatar for a member of the TBC(tum blockchain club). Subject: a futuristic university hacker and blockchain builder wearing a purple hoodie with one symbol I attached (put the icon smalled and at the right top of the hoodie with "TBC" under the icon). Action: calm confident pose, looking forward with determination. Environment: floating holographic blockchain blocks and glowing transaction chains forming a digital halo around the character. Composition: centered avatar portrait, head and shoulders, square 1:1 format, designed for a profile picture. Lighting: cinematic neon lighting with soft purple and electric blue glow. Style: ultra-clean Web3 NFT aesthetic, sharp vector illustration, slightly cyberpunk, highly detailed, polished like a top NFT collection.Size: square 1:1 aspect ratio, 4k resolution, optimized for NFT profile pictures, sharp and high-detail rendering. Other: tight avatar crop, head and shoulders only.Replace the NFT avatar’s face to mimic the person (face, hair, etc.) from the reference photo, while keeping the NFT style and everything else unchanged.'
 
 const getLabel = (value: string | null | undefined, fallback: string) => {
   const trimmed = value?.trim()
@@ -70,7 +70,9 @@ const getRequestStatusCopy = (request: NftRequestRow | null, loadingExistingRequ
 export function NftStatusTab({ member }: { member: DashboardMember | null }) {
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [useDifferentWallet, setUseDifferentWallet] = useState(false)
-  const [displayName, setDisplayName] = useState(member?.Name ?? '')
+  const [displayName, setDisplayName] = useState('')
+  const [batch, setBatch] = useState('')
+  const [hasConsented, setHasConsented] = useState(false)
   const [displayNameManuallyEdited, setDisplayNameManuallyEdited] = useState(false)
   const [funFacts, setFunFacts] = useState('')
   const [walletAddress, setWalletAddress] = useState('')
@@ -90,6 +92,9 @@ export function NftStatusTab({ member }: { member: DashboardMember | null }) {
   const [resolvedMemberId, setResolvedMemberId] = useState<number | null>(null)
   const [loadingExistingRequest, setLoadingExistingRequest] = useState(true)
   const [summaryImageFailed, setSummaryImageFailed] = useState(false)
+
+
+
 
   const selectedFileName = selectedFile?.name ?? null
   const currentMemberName = currentMemberProfile?.name?.trim() || member?.Name?.trim() || null
@@ -176,12 +181,15 @@ export function NftStatusTab({ member }: { member: DashboardMember | null }) {
   }, [existingRequest?.id])
 
   const handleCopyPrompt = async () => {
+    const promptText = `Create a premium NFT profile avatar for a member of the TBC(tum blockchain club). Subject: a futuristic university hacker and blockchain builder wearing a purple hoodie with one symbol I attached (put the icon smalled and at the right top of the hoodie with "TBC" under the icon). Action: calm confident pose, looking forward with determination. Environment: floating holographic blockchain blocks and glowing transaction chains forming a digital halo around the character. Composition: centered avatar portrait, head and shoulders, square 1:1 format, designed for a profile picture. Lighting: cinematic neon lighting with soft purple and electric blue glow. Style: ultra-clean Web3 NFT aesthetic, sharp vector illustration, slightly cyberpunk, highly detailed, polished like a top NFT collection. Size: square 1:1 aspect ratio, 4k resolution, optimized for NFT profile pictures, sharp and high-detail rendering. Other: tight avatar crop, head and shoulders only. Replace the NFT avatar's face to mimic the person (face, hair, etc.) from the reference photo, while keeping the NFT style and everything else unchanged.`;
+
     try {
-      await navigator.clipboard.writeText(AI_PROMPT)
-      setCopiedPrompt(true)
-      window.setTimeout(() => setCopiedPrompt(false), 2000)
+      await navigator.clipboard.writeText(promptText);
+      setCopiedPrompt(true);
+      window.setTimeout(() => setCopiedPrompt(false), 2000);
     } catch {
-      setCopiedPrompt(false)
+      console.error("Failed to copy text to clipboard");
+      setCopiedPrompt(false);
     }
   }
 
@@ -306,8 +314,8 @@ export function NftStatusTab({ member }: { member: DashboardMember | null }) {
   return (
     <div className="max-w-5xl mx-auto">
       <div className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 via-blue-500/5 to-emerald-500/10 p-6 sm:p-8">
-      <div className="absolute -right-10 top-0 h-32 w-32 rounded-full bg-cyan-400/20 blur-3xl" />
-      <div className="absolute bottom-0 left-0 h-28 w-28 rounded-full bg-emerald-400/20 blur-3xl" />
+        <div className="absolute -right-10 top-0 h-32 w-32 rounded-full bg-cyan-400/20 blur-3xl" />
+        <div className="absolute bottom-0 left-0 h-28 w-28 rounded-full bg-emerald-400/20 blur-3xl" />
 
         <div className="relative grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px] lg:items-center">
           <div>
@@ -360,16 +368,34 @@ export function NftStatusTab({ member }: { member: DashboardMember | null }) {
             ) : (
               <div className="nft-preview-frame rounded-[30px] bg-black/20 p-3 shadow-2xl shadow-cyan-950/30 backdrop-blur-sm">
                 <div className="nft-preview-card relative aspect-[1587/2245] overflow-hidden rounded-[22px] border border-white/10 bg-black">
+                  {/* --- NEW LAYERED BACKGROUND --- */}
                   <Image
-                    src="/nft-base-no-questionmark.png"
-                    alt="Membership NFT base preview"
+                    src="/assets/base1.png"
+                    alt="NFT Base 1"
+                    fill
+                    priority
+                    sizes="280px"
+                    className="object-cover opacity-80"
+                  />
+                  <Image
+                    src="/assets/base2.png"
+                    alt="NFT Base 2"
                     fill
                     priority
                     sizes="280px"
                     className="object-cover"
                   />
+                  <Image
+                    src="/assets/overlay_it&dev.png" 
+                    alt="Department Overlay"
+                    fill
+                    priority
+                    sizes="280px"
+                    className="object-cover z-10"
+                  />
+                  {/* ------------------------------ */}
 
-                  <div className="nft-question-mark-stage" aria-hidden="true">
+                  <div className="nft-question-mark-stage z-20" aria-hidden="true">
                     <div className="nft-question-mark-rotator">
                       <div className="nft-question-mark-face">
                         <Image
@@ -392,7 +418,7 @@ export function NftStatusTab({ member }: { member: DashboardMember | null }) {
                     </div>
                   </div>
 
-                  <div className="absolute inset-x-5 bottom-5 rounded-[18px] border border-white/10 bg-black/45 px-4 py-3 text-center shadow-xl backdrop-blur-md">
+                  <div className="absolute inset-x-5 bottom-5 z-30 rounded-[18px] border border-white/10 bg-black/45 px-4 py-3 text-center shadow-xl backdrop-blur-md">
                     <div className="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-200/75">
                       {hasMintedNft ? 'Minted NFT' : 'Awaiting Mint'}
                     </div>
@@ -431,11 +457,10 @@ export function NftStatusTab({ member }: { member: DashboardMember | null }) {
 
         {submissionMessage && (
           <div
-            className={`mt-6 rounded-xl border px-4 py-3 text-sm ${
-              submissionMessage.type === 'success'
+            className={`mt-6 rounded-xl border px-4 py-3 text-sm ${submissionMessage.type === 'success'
                 ? 'border-green-500/30 bg-green-500/10 text-green-300'
                 : 'border-red-500/30 bg-red-500/10 text-red-300'
-            }`}
+              }`}
           >
             {submissionMessage.text}
           </div>
@@ -541,11 +566,10 @@ export function NftStatusTab({ member }: { member: DashboardMember | null }) {
                       type="button"
                       onClick={handleDeleteRequest}
                       disabled={deleting}
-                      className={`inline-flex items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed ${
-                        deleteConfirmationArmed
+                      className={`inline-flex items-center justify-center rounded-xl border px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed ${deleteConfirmationArmed
                           ? 'border-rose-500/35 bg-rose-950/40 text-rose-100 hover:bg-rose-950/55 disabled:border-rose-500/20 disabled:text-rose-200/60'
                           : 'border-rose-400/40 text-rose-200 hover:bg-rose-500/10 disabled:border-rose-400/20 disabled:text-rose-200/60'
-                      }`}
+                        }`}
                     >
                       {deleting ? 'Deleting...' : deleteConfirmationArmed ? 'Confirm?' : 'Delete request'}
                     </button>
@@ -570,7 +594,10 @@ export function NftStatusTab({ member }: { member: DashboardMember | null }) {
           </div>
         ) : (
           <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
-            <div className="grid items-start gap-5 md:grid-cols-2">
+            {/* LEFT COLUMN: Name and Batch */}
+            <div className="flex flex-col space-y-5">
+
+              {/* Display Name */}
               <label className="flex h-full flex-col">
                 <span className="text-sm font-medium text-white">Display Name</span>
                 <input
@@ -579,18 +606,85 @@ export function NftStatusTab({ member }: { member: DashboardMember | null }) {
                   value={displayName}
                   onChange={(event) => {
                     setDisplayName(event.target.value)
-                    setDisplayNameManuallyEdited(true)
+                    setDisplayNameManuallyEdited(true) 
                   }}
-                  placeholder="Enter the name you want on the NFT"
+                  placeholder="e.g. John D."
                   disabled={saving}
+                  autoComplete="off"
                   className="mt-2 h-14 w-full rounded-xl border border-white/10 bg-black/30 px-4 text-white outline-none transition focus:border-cyan-400/50 focus:bg-black/40"
                 />
-                <span aria-hidden="true" className="mt-2 min-h-[1.25rem] text-xs text-transparent">
-                  Alignment spacer
+                {/* 👇 The new warning text is right here 👇 */}
+                <span className="mt-2 text-xs text-amber-400/80 flex items-center">
+                  <svg className="w-3 h-3 mr-1 inline" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                  </svg>
+                  For privacy, please do not use your full name.
                 </span>
               </label>
 
+              {/* Batch Field */}
+              <label className="flex h-full flex-col">
+                <span className="text-sm font-medium text-white">Batch</span>
+                <input
+                  type="text"
+                  name="batch"
+                  value={batch}
+                  onChange={(event) => setBatch(event.target.value)}
+                  placeholder="e.g. 8"
+                  disabled={saving}
+                  autoComplete="off"
+                  className="mt-2 h-14 w-full rounded-xl border border-white/10 bg-black/30 px-4 text-white outline-none transition focus:border-cyan-400/50 focus:bg-black/40"
+                />
+              </label>
+
+
+
               <div className="flex h-full flex-col">
+                
+                {/* Nano Banana Generation Kit */}
+                <div className="mt-8 mb-6 p-5 bg-blue-900/10 border border-blue-800/40 rounded-xl">
+                  <h3 className="text-lg font-semibold text-blue-300 mb-2">
+                    🎨 Nano Banana Generation Kit
+                  </h3>
+                  <p className="text-sm text-gray-300 mb-4">
+                    Want your NFT to match the club's high-fashion aesthetic? Download these assets and upload them to the AI as style references!
+                  </p>
+
+                  <div className="flex flex-col sm:flex-row gap-3 mb-4">
+                    {/* PDF Download Button */}
+                    <a
+                      href="/assets/tbc-logo.png"
+                      download="TBC_Logo.png"
+                      className="flex flex-1 items-center justify-center px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm font-medium rounded-lg border border-gray-600 transition"
+                    >
+                      📄 Download TBC Logo (PNG)
+                    </a>
+
+                    {/* Style Reference Download Button */}
+                    <a
+                      href="/assets/style-reference.jpeg"
+                      download="style-reference.jpeg"
+                      className="flex flex-1 items-center justify-center px-4 py-2 bg-gray-800 hover:bg-gray-700 text-gray-200 text-sm font-medium rounded-lg border border-gray-600 transition"
+                    >
+                      🖼️ Download Style Reference
+                    </a>
+                  </div>
+
+                  <div
+                    onClick={handleCopyPrompt}
+                    className="bg-gray-900/50 p-3 rounded-lg border border-gray-700/50 cursor-pointer hover:bg-gray-800 transition relative group"
+                  >
+                    <p className="text-sm text-blue-200 mb-1">
+                      <strong>✨ Recommended Prompt:</strong>
+                      <span className="float-right text-xs bg-blue-600 text-white px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition">
+                        {copiedPrompt ? "Copied to clipboard!" : "Click to copy"}
+                      </span>
+                    </p>
+                    <p className="text-xs italic text-gray-400 line-clamp-4 group-hover:line-clamp-none transition-all">
+                      "Create a premium NFT profile avatar for a member of the TBC(tum blockchain club)... (Click to copy full prompt)"
+                    </p>
+                  </div>
+                </div>
                 <span className="text-sm font-medium text-white">Upload Picture</span>
                 <label
                   htmlFor="nft-picture-upload"
@@ -616,43 +710,20 @@ export function NftStatusTab({ member }: { member: DashboardMember | null }) {
               </div>
             </div>
 
-            <label className="block">
-              <span className="text-sm font-medium text-white">Fun Facts</span>
-              <textarea
-                name="funFacts"
-                rows={5}
-                maxLength={50}
-                value={funFacts}
-                onChange={(event) => setFunFacts(event.target.value)}
-                placeholder="Share a few short facts, interests, or traits you want associated with your NFT."
-                disabled={saving}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-white outline-none transition focus:border-cyan-400/50 focus:bg-black/40"
-              />
-              <p className="mt-2 text-xs text-white/45">Limited to 50 characters.</p>
-            </label>
-
-            <div className="rounded-2xl border border-cyan-400/20 bg-cyan-500/5 p-5">
-              <h4 className="text-sm font-semibold uppercase tracking-[0.18em] text-cyan-200">Image Guidance</h4>
-              <p className="mt-3 text-sm leading-6 text-white/75">
-                You may upload a real portrait, a stylized representation of yourself, or a tasteful AI-generated or illustrated image,
-                provided it is appropriate for use on your membership NFT and suitable for a professional community setting.
-              </p>
-
-              <div className="mt-4 rounded-xl border border-white/10 bg-black/25 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-medium text-white">Nanobanana prompt template</div>
-                  <div className="text-xs text-cyan-200">{copiedPrompt ? 'Copied' : 'Click to copy'}</div>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleCopyPrompt}
-                  className="mt-3 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-4 text-left text-sm leading-6 text-white/80 transition hover:border-cyan-400/40 hover:bg-cyan-400/10"
-                >
-                  {AI_PROMPT}
-                </button>
+            <div className="flex flex-col">
+                <span className="text-sm font-medium text-white">Member Flex</span>
+                <textarea
+                  name="funFacts"
+                  value={funFacts}
+                  onChange={(event) => setFunFacts(event.target.value)}
+                  maxLength={50}
+                  placeholder="Share your biggest flex or achievement, e.g. 'HackaTUM winner 2025', 'Deployed my own smart contract', 'Built a Web3 game', etc."
+                  disabled={saving}
+                  className="mt-2 min-h-[100px] w-full resize-none rounded-xl border border-white/10 bg-black/30 p-4 text-white outline-none transition focus:border-cyan-400/50 focus:bg-black/40"
+                />
+                <span className="mt-2 text-xs text-white/40">Limited to 50 characters.</span>
               </div>
-            </div>
+
 
             <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
               <label className="flex items-start gap-3">
@@ -693,13 +764,41 @@ export function NftStatusTab({ member }: { member: DashboardMember | null }) {
               )}
             </div>
 
+            {/* Blockchain Permanence Consent */}
+{/* Blockchain & Legal Consent */}
+<div className="mt-8 mb-6 flex items-start space-x-3 bg-red-900/10 p-4 border border-red-900/30 rounded-lg">
+  <div className="flex h-6 items-center">
+    <input
+      id="consent"
+      type="checkbox"
+      required
+      checked={hasConsented}
+      onChange={(e) => setHasConsented(e.target.checked)}
+      className="h-5 w-5 rounded border-gray-700 bg-gray-900 text-blue-600 focus:ring-blue-600 cursor-pointer"
+    />
+  </div>
+  <div className="text-sm leading-6">
+    <label htmlFor="consent" className="font-medium text-gray-200 cursor-pointer">
+      Data Permanence & Terms of Service Agreement
+    </label>
+    <p className="text-gray-400 text-xs mt-1">
+      I understand that a cryptographic record of this NFT will be permanently minted on the blockchain. 
+      While the club maintains the ability to delete off-chain hosted images upon request, the on-chain transaction history cannot be reversed, edited, or deleted.
+    </p>
+    <p className="text-gray-400 text-xs mt-2">
+      By checking this box, I also agree to the TUM Blockchain Club's <a href="/terms" target="_blank" className="text-blue-400 hover:underline">Terms of Service</a> and <a href="/privacy" target="_blank" className="text-blue-400 hover:underline">Privacy Policy</a>.
+    </p>
+  </div>
+</div>
+
+{/* Submit Button */}
             <div className="flex justify-center">
               <button
                 type="submit"
-                disabled={saving}
+                disabled={!hasConsented}
                 className="inline-flex items-center justify-center rounded-xl bg-cyan-500 px-6 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:bg-cyan-500/60 disabled:text-slate-900/70"
               >
-                {saving ? 'Saving...' : 'Apply'}
+                {saving ? 'Saving...' : 'Submit'}
               </button>
             </div>
           </form>
