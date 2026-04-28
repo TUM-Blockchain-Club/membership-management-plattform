@@ -3,6 +3,7 @@ import { NftRequestAdminError, requireNftRequestAdmin } from "@/lib/server/nftRe
 import { getSupabaseAdminClient } from "@/lib/server/supabaseAdmin"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
+
 type RequestRow = {
   id: string
   member_id: number | string
@@ -75,6 +76,7 @@ export async function GET(request: Request) {
       .order("created_at", { ascending: false })
 
     if (requestError) {
+      console.error("🚨 NFT REQUEST DB ERROR:", requestError.message, requestError.details, requestError.hint);
       return NextResponse.json({ error: requestError.message || "Could not load NFT requests." }, { status: 500 })
     }
 
@@ -93,6 +95,7 @@ export async function GET(request: Request) {
         .in("id", memberIds)
 
       if (memberError) {
+        console.error("🚨 MEMBER DB ERROR:", memberError.message, memberError.details, memberError.hint);
         return NextResponse.json(
           { error: memberError.message || "Could not load member details for NFT requests." },
           { status: 500 }
@@ -113,6 +116,7 @@ export async function GET(request: Request) {
       })),
     })
   } catch (error) {
+    console.error("🚨 GLOBAL QUEUE CRASH:", error);
     if (error instanceof NftRequestAdminError) {
       return NextResponse.json({ error: error.message }, { status: error.status })
     }
