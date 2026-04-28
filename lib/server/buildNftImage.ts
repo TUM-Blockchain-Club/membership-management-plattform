@@ -119,7 +119,10 @@ export async function buildNftImage(params: {
       <style>
         @font-face {
           font-family: 'Raleway';
-          src: url('data:font/truetype;charset=utf-8;base64,${fontBase64}');
+          /* Removed charset=utf-8, changed to font/ttf, and added format */
+          src: url('data:font/ttf;base64,${fontBase64}') format('truetype');
+          font-weight: normal;
+          font-style: normal;
         }
         .batch { 
           font-family: 'Raleway', sans-serif; 
@@ -133,7 +136,7 @@ export async function buildNftImage(params: {
           font-family: 'Raleway', sans-serif; 
           font-weight: normal; 
           font-size: 58px; 
-          fill: rgba(255, 255, 255, 0.9); /* Premium soft white */
+          fill: rgba(255, 255, 255, 0.9);
           dominant-baseline: middle; 
           letter-spacing: 1px; 
         }
