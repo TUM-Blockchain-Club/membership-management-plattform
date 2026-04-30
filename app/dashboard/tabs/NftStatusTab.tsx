@@ -813,13 +813,13 @@ export function NftStatusTab({member}: { member: DashboardMember | null }) {
                                     While the club maintains the ability to delete off-chain hosted images upon request,
                                     the on-chain transaction history cannot be reversed, edited, or deleted.
                                 </p>
-                                <p className="text-gray-400 text-xs mt-2">
+                                {false && <p className="text-gray-400 text-xs mt-2">
                                     By checking this box, I also agree to the TUM Blockchain Club's <a href="/terms"
                                                                                                        target="_blank"
                                                                                                        className="text-blue-400 hover:underline">Terms
                                     of Service</a> and <a href="/privacy" target="_blank"
                                                           className="text-blue-400 hover:underline">Privacy Policy</a>.
-                                </p>
+                                </p>}
                             </div>
                         </div>
 
