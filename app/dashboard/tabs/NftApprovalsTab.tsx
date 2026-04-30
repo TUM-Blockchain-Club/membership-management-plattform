@@ -7,7 +7,7 @@ import {
   type NftRequestStatus,
 } from "@/lib/nftRequests"
 import { NFTRequestCard, type NFTRequest } from "./nft-request-card"
-import { MintPreviewModal } from "./mint-preview-modal"
+import { MintPreviewModal } from "./MintPreviewModal"
 import { RejectModal } from "./reject-modal"
 import { ArrowUpDownIcon, HexagonIcon, SearchIcon } from "./icons"
 

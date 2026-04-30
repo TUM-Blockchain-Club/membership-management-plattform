@@ -40,7 +40,7 @@ const STATUS_STYLES: Record<NftRequestStatus, string> = {
 
 const shortenHash = (value: string) => `${value.slice(0, 10)}...${value.slice(-8)}`
 
-export function NFTRequestCard({
+export function NftRequestCard({
   request,
   onApprove,
   onReject,
