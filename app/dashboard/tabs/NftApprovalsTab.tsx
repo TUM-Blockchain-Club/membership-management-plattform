@@ -233,48 +233,45 @@ export function NftApprovalsTab() {
 
   const handleMint = useCallback(
     async (requestId: string) => {
-      setMintingId(requestId);
-      setError(null);
+      setMintingId(requestId)
+      setError(null)
 
       try {
-       
-        const response = await fetch('/api/mint-nft', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ requestId }),
-        });
+        const { data, error: mintError } = await nftRequestService.mintRequest(requestId)
 
-        const result = await response.json();
-
-        if (!response.ok || !result.success) {
-          throw new Error(result.error || "Fehler beim Generieren des NFTs.");
+        if (mintError || !data) {
+          throw new Error(mintError || "Minting failed.")
         }
 
-
-      setRequests((prev) =>
+        setRequests((prev) =>
           prev.map((request) =>
             request.id === requestId
-              ? ({
+              ? {
                   ...request,
-                  status: 'minted',
-                  reviewNote: null,
-                } as unknown as typeof request)
+                  status: data.request.status,
+                  reviewNote: data.request.review_note,
+                  walletAddress: data.request.wallet_address,
+                  mintTxHash: data.mintTxHash,
+                  requestImage:
+                    nftRequestService.getRequestImageProxyUrl(
+                      data.request.image_path,
+                      `${data.request.id}:${data.request.created_at}:${data.request.mint_tx_hash ?? data.mintTxHash}`
+                    ) || data.request.image_url,
+                }
               : request
           )
-        );
+        )
 
-        alert("NFT erfolgreich generiert und im Storage gespeichert!");
-        setPreviewingId(null);
-
+        setPreviewingId(null)
       } catch (error: unknown) {
-        console.error(error);
-        setError(error instanceof Error ? error.message : "Konnte das NFT nicht generieren.");
+        console.error(error)
+        setError(error instanceof Error ? error.message : "Could not mint the NFT.")
       } finally {
-        setMintingId(null);
+        setMintingId(null)
       }
     },
     []
-  );
+  )
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
