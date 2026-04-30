@@ -108,7 +108,7 @@ export const resolveCurrentNftRequestMember = async (
     const member = await findMemberByUser(dataClient, user.id, user.email ?? null)
     if (!member) {
       throw new NftRequestCurrentMemberError(
-        "Could not resolve the current user to a Members row.",
+        "Could not resolve the current user to a members_main row.",
         403
       )
     }

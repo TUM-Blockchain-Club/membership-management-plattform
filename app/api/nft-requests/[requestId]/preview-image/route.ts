@@ -2,7 +2,7 @@
 // app/api/nft-requests/[requestId]/preview-image/route.ts
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { buildNftImage, DEPT_MAP } from '@/lib/server/buildNftImage';
+import { buildNftImage } from '@/lib/server/buildNftImage';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,18 +34,18 @@ export async function GET(_req: Request, context: { params: Promise<{ requestId:
       imageUrl:   m.nft_avatar,
     });
 
-    return new NextResponse(buffer as any, {
+    return new NextResponse(buffer, {
       status: 200,
       headers: {
         'Content-Type': 'image/png',
         'Cache-Control': 'no-store, max-age=0',
       },
     });
-  } catch (e: any) {
-    return new NextResponse(e.message, { status: 500 });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Could not render NFT preview.';
+    return new NextResponse(message, { status: 500 });
   }
 }
-
 
 
 

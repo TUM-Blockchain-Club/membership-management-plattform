@@ -271,23 +271,6 @@ export const nftRequestService = {
     }
   },
 
-  getMembersForRequests: async (memberIds: Array<number | string>) => {
-    if (memberIds.length === 0) {
-      return { data: [] as NftRequestMemberRow[], error: null }
-    }
-
-    const normalizedMemberIds = memberIds
-      .map((value) => (typeof value === 'number' ? value : Number(value)))
-      .filter((value) => Number.isFinite(value))
-
-    const { data, error } = await supabase
-      .from('Members')
-      .select('ID, Name, Picture, Department, "TBC Email"')
-      .in('ID', normalizedMemberIds)
-
-    return { data: (data ?? []) as NftRequestMemberRow[], error }
-  },
-
   reviewRequest: async (requestId: string, status: Exclude<NftRequestStatus, 'pending'>, reviewNote: string | null) => {
     const response = await fetch(`/api/nft-requests/${requestId}/review`, {
       method: 'POST',

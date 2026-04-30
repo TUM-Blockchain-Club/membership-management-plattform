@@ -71,8 +71,9 @@ export async function POST(request: Request) {
       imagePath: `final/${filename}`,
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "Minting failed.";
     console.error("Minting Error:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }

@@ -300,7 +300,7 @@ if __name__ == "__main__":
 
     try:
         logger.info("Fetching members from Supabase...")
-        response = supabase.table("Members").select("*").eq("nft_consent", True).execute()
+        response = supabase.table("members_main").select("*").eq("nft_consent", True).execute()
         members = response.data
         
         logger.info(f"Found {len(members)} members with NFT consent.")

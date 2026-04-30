@@ -5,9 +5,6 @@ import {useCallback, useEffect, useMemo, useState} from 'react'
 import type {DashboardMember} from '@/app/components/dashboard/types'
 import {nftRequestService, type NftRequestRow} from '@/lib/nftRequests'
 
-const AI_PROMPT =
-    'Create a premium NFT profile avatar for a member of the TBC(tum blockchain club). Subject: a futuristic university hacker and blockchain builder wearing a purple hoodie with one symbol I attached (put the icon smalled and at the right top of the hoodie with "TBC" under the icon). Action: calm confident pose, looking forward with determination. Environment: floating holographic blockchain blocks and glowing transaction chains forming a digital halo around the character. Composition: centered avatar portrait, head and shoulders, square 1:1 format, designed for a profile picture. Lighting: cinematic neon lighting with soft purple and electric blue glow. Style: ultra-clean Web3 NFT aesthetic, sharp vector illustration, slightly cyberpunk, highly detailed, polished like a top NFT collection.Size: square 1:1 aspect ratio, 4k resolution, optimized for NFT profile pictures, sharp and high-detail rendering. Other: tight avatar crop, head and shoulders only.Replace the NFT avatar’s face to mimic the person (face, hair, etc.) from the reference photo, while keeping the NFT style and everything else unchanged.'
-
 const getLabel = (value: string | null | undefined, fallback: string) => {
     const trimmed = value?.trim()
     return trimmed || fallback
@@ -667,7 +664,7 @@ export function NftStatusTab({member}: { member: DashboardMember | null }) {
                                         🎨 Nano Banana Generation Kit
                                     </h3>
                                     <p className="text-sm text-gray-300 mb-4">
-                                        Want your NFT to match the club's high-fashion aesthetic? Download these assets
+                                        Want your NFT to match the club&apos;s high-fashion aesthetic? Download these assets
                                         and upload them to the AI as style references!
                                     </p>
 
@@ -703,8 +700,8 @@ export function NftStatusTab({member}: { member: DashboardMember | null }) {
                       </span>
                                         </p>
                                         <p className="text-xs italic text-gray-400 line-clamp-4 group-hover:line-clamp-none transition-all">
-                                            "Create a premium NFT profile avatar for a member of the TBC(tum blockchain
-                                            club)... (Click to copy full prompt)"
+                                            &quot;Create a premium NFT profile avatar for a member of the TBC(tum blockchain
+                                            club)... (Click to copy full prompt)&quot;
                                         </p>
                                     </div>
                                 </div>
@@ -814,7 +811,7 @@ export function NftStatusTab({member}: { member: DashboardMember | null }) {
                                     the on-chain transaction history cannot be reversed, edited, or deleted.
                                 </p>
                                 <p className="text-gray-400 text-xs mt-2">
-                                    By checking this box, I also agree to the TUM Blockchain Club's <a href="/terms"
+                                    By checking this box, I also agree to the TUM Blockchain Club&apos;s <a href="/terms"
                                                                                                        target="_blank"
                                                                                                        className="text-blue-400 hover:underline">Terms
                                     of Service</a> and <a href="/privacy" target="_blank"
