@@ -59,6 +59,7 @@ const INFO_PANEL = {
 }
 
 let baseTemplatePromise: Promise<string> | null = null
+let nftFontPromise: Promise<string> | null = null
 
 const escapeXml = (value: string) =>
   value
@@ -133,6 +134,16 @@ const getBaseTemplateDataUrl = async () => {
   return baseTemplatePromise
 }
 
+const getNftFontDataUrl = async () => {
+  if (!nftFontPromise) {
+    nftFontPromise = readFile(path.join(process.cwd(), "public", "assets", "Raleway-Regular.ttf")).then(
+      (file) => `data:font/ttf;base64,${file.toString("base64")}`
+    )
+  }
+
+  return nftFontPromise
+}
+
 const renderTextBlock = (lines: string[], x: number, y: number, lineHeight: number) =>
   lines
     .map((line, index) => {
@@ -198,8 +209,9 @@ export const loadNftCompositeRecord = async (
 }
 
 export const renderNftCompositeSvg = async (supabase: SupabaseServerClient, record: NftCompositeRecord) => {
-  const [baseImageDataUrl, uploadedImageBlob] = await Promise.all([
+  const [baseImageDataUrl, nftFontDataUrl, uploadedImageBlob] = await Promise.all([
     getBaseTemplateDataUrl(),
+    getNftFontDataUrl(),
     supabase.storage.from(NFT_REQUEST_IMAGE_BUCKET).download(record.request.image_path),
   ])
 
@@ -228,6 +240,41 @@ export const renderNftCompositeSvg = async (supabase: SupabaseServerClient, reco
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${CANVAS_WIDTH}" height="${CANVAS_HEIGHT}" viewBox="0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}" fill="none">
   <defs>
+    <style>
+      @font-face {
+        font-family: "TBCNft";
+        src: url("${nftFontDataUrl}") format("truetype");
+        font-weight: 400;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "TBCNft";
+        src: url("${nftFontDataUrl}") format("truetype");
+        font-weight: 500;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "TBCNft";
+        src: url("${nftFontDataUrl}") format("truetype");
+        font-weight: 600;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "TBCNft";
+        src: url("${nftFontDataUrl}") format("truetype");
+        font-weight: 700;
+        font-style: normal;
+      }
+      @font-face {
+        font-family: "TBCNft";
+        src: url("${nftFontDataUrl}") format("truetype");
+        font-weight: 800;
+        font-style: normal;
+      }
+      .nftText {
+        font-family: "TBCNft", "Segoe UI", Arial, sans-serif;
+      }
+    </style>
     <clipPath id="portraitClip">
       <rect x="${PORTRAIT_FRAME.x}" y="${PORTRAIT_FRAME.y}" width="${PORTRAIT_FRAME.width}" height="${PORTRAIT_FRAME.height}" rx="${PORTRAIT_FRAME.radius}" ry="${PORTRAIT_FRAME.radius}" />
     </clipPath>
@@ -272,17 +319,17 @@ export const renderNftCompositeSvg = async (supabase: SupabaseServerClient, reco
     <rect x="${INFO_PANEL.x}" y="${INFO_PANEL.y}" width="${INFO_PANEL.width}" height="${INFO_PANEL.height}" rx="${INFO_PANEL.radius}" fill="url(#panelFill)" />
     <rect x="${INFO_PANEL.x}" y="${INFO_PANEL.y}" width="${INFO_PANEL.width}" height="${INFO_PANEL.height}" rx="${INFO_PANEL.radius}" stroke="url(#panelStroke)" stroke-width="3" />
 
-    <text x="180" y="${panelLabelY}" fill="rgba(186, 230, 253, 0.82)" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="28" font-weight="600" letter-spacing="7">MEMBERSHIP NFT</text>
+    <text class="nftText" x="180" y="${panelLabelY}" fill="rgba(186, 230, 253, 0.82)" font-size="28" font-weight="600" letter-spacing="7">MEMBERSHIP NFT</text>
 
-    <text x="180" y="${nameStartY}" fill="#ffffff" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="94" font-weight="800">
+    <text class="nftText" x="180" y="${nameStartY}" fill="#ffffff" font-size="94" font-weight="800">
       ${renderTextBlock(displayNameLines, 180, nameStartY, nameLineHeight)}
     </text>
 
-    <text x="180" y="${departmentStartY}" fill="#d9a8ff" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="40" font-weight="700" letter-spacing="3">
+    <text class="nftText" x="180" y="${departmentStartY}" fill="#d9a8ff" font-size="40" font-weight="700" letter-spacing="3">
       ${renderTextBlock(departmentLines, 180, departmentStartY, departmentLineHeight)}
     </text>
 
-    <text x="180" y="${funFactsStartY}" fill="rgba(255,255,255,0.92)" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="40" font-weight="500">
+    <text class="nftText" x="180" y="${funFactsStartY}" fill="rgba(255,255,255,0.92)" font-size="40" font-weight="500">
       ${renderTextBlock(funFactsLines, 180, funFactsStartY, funFactsLineHeight)}
     </text>
   </g>
