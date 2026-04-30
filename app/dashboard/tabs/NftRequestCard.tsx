@@ -3,7 +3,7 @@
 
 import { useState } from "react"
 import type { NftRequestStatus } from "@/lib/nftRequests"
-import { CheckIcon, ClockIcon, XIcon } from "./icons"
+import { CheckIcon, ClockIcon, XIcon } from "./Icons"
 
 export interface NFTRequest {
   id: string

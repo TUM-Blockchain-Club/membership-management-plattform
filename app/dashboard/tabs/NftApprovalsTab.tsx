@@ -6,10 +6,10 @@ import {
   type AdminQueueRequestRow,
   type NftRequestStatus,
 } from "@/lib/nftRequests"
-import { NFTRequestCard, type NFTRequest } from "./nft-request-card"
+import { NftRequestCard, type NFTRequest } from "./NftRequestCard"
 import { MintPreviewModal } from "./MintPreviewModal"
-import { RejectModal } from "./reject-modal"
-import { ArrowUpDownIcon, HexagonIcon, SearchIcon } from "./icons"
+import { RejectModal } from "./RejectModal"
+import { ArrowUpDownIcon, HexagonIcon, SearchIcon } from "./Icons"
 
 type SortOrder = "newest" | "oldest"
 
@@ -380,7 +380,7 @@ export function NftApprovalsTab() {
       ) : (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((request) => (
-            <NFTRequestCard
+            <NftRequestCard
               key={request.id}
               request={request}
               onApprove={handleApprove}

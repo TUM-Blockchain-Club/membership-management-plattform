@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { AlertTriangleIcon, XIcon } from "./icons"
+import { AlertTriangleIcon, XIcon } from "./Icons"
 
 interface RejectModalProps {
   memberName: string

@@ -3,8 +3,8 @@
 
 import { useMemo, useState } from "react"
 import { nftRequestService } from "@/lib/nftRequests"
-import type { NFTRequest } from "./nft-request-card"
-import { HexagonIcon, XIcon } from "./icons"
+import type { NFTRequest } from "./NftRequestCard"
+import { HexagonIcon, XIcon } from "./Icons"
 
 interface MintPreviewModalProps {
   request: NFTRequest
