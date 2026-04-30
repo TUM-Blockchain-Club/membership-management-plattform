@@ -4,13 +4,6 @@ import fs from 'fs';
 
 const ASSETS_DIR = path.join(process.cwd(), 'public', 'assets');
 
-// 1. Read the font file directly from your local assets
-const fontPath = path.join(ASSETS_DIR, 'Raleway-Regular.ttf'); 
-const fontBuffer = fs.readFileSync(fontPath);
-
-// 2. Convert it to a base64 string so the SVG can read it
-const fontBase64 = fontBuffer.toString('base64');
-
 // ─── SINGLE SOURCE OF TRUTH FOR CANVAS LAYOUT ───────────────────────────────
 // All coordinates are relative to this fixed canvas.
 export const CANVAS_W = 1190;
@@ -111,7 +104,7 @@ export async function buildNftImage(params: {
   const fontPath = path.join(ASSETS_DIR, 'Raleway-Regular.ttf'); 
   const fontBase64 = fs.readFileSync(fontPath).toString('base64');
 
-  let programLines = programs; 
+  const programLines = programs; 
   
   // 2. Inject the Base64 font directly into the SVG
   const svgText = `

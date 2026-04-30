@@ -266,9 +266,9 @@ export function NftApprovalsTab() {
         alert("NFT erfolgreich generiert und im Storage gespeichert!");
         setPreviewingId(null);
 
-      } catch (err: any) {
-        console.error(err);
-        setError(err.message || "Konnte das NFT nicht generieren.");
+      } catch (error: unknown) {
+        console.error(error);
+        setError(error instanceof Error ? error.message : "Konnte das NFT nicht generieren.");
       } finally {
         setMintingId(null);
       }

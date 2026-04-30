@@ -55,7 +55,7 @@ export function NftRequestCard({
       <div className="relative aspect-[4/5] overflow-hidden bg-black">
         {!imageFailed ? (
           <img
-            src={`/api/nft-requests/${request.id}/preview-image?v=${new Date().getTime()}`}
+            src={request.requestImage}
             alt={`NFT request image for ${request.displayName}`}
             className="h-full w-full object-cover"
             onError={() => setImageFailed(true)}
