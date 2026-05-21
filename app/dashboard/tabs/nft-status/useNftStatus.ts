@@ -75,7 +75,7 @@ export function useNftStatus(member: DashboardMember | null) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
-  const [deleteConfirmationArmed, setDeleteConfirmationArmed] = useState(false)
+  const [deleteConfirmationRequestId, setDeleteConfirmationRequestId] = useState<string | null>(null)
   const [submissionMessage, setSubmissionMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
   const [requestLookupError, setRequestLookupError] = useState<string | null>(null)
   const [existingRequest, setExistingRequest] = useState<NftRequestRow | null>(null)
@@ -87,7 +87,7 @@ export function useNftStatus(member: DashboardMember | null) {
   } | null>(null)
   const [resolvedMemberId, setResolvedMemberId] = useState<number | null>(null)
   const [loadingExistingRequest, setLoadingExistingRequest] = useState(true)
-  const [summaryImageFailed, setSummaryImageFailed] = useState(false)
+  const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
 
   const selectedFileName = selectedFile?.name ?? null
   const currentMemberName = currentMemberProfile?.name?.trim() || member?.Name?.trim() || null
@@ -103,6 +103,8 @@ export function useNftStatus(member: DashboardMember | null) {
       existingRequest.image_url
     )
   }, [existingRequest])
+  const deleteConfirmationArmed = deleteConfirmationRequestId === existingRequest?.id
+  const summaryImageFailed = Boolean(existingRequestImageUrl && failedImageUrl === existingRequestImageUrl)
 
   const loadExistingRequest = useCallback(async (options?: { cancelled?: boolean; showLoading?: boolean }) => {
     const cancelled = options?.cancelled ?? false
@@ -128,18 +130,13 @@ export function useNftStatus(member: DashboardMember | null) {
     setCurrentMemberProfile(data.member)
     setResolvedMemberId(data.memberId)
     setExistingRequest(data.request)
+    if (!displayNameManuallyEdited && data.member.name?.trim()) {
+      setDisplayName(data.member.name.trim())
+    }
     if (showLoading) {
       setLoadingExistingRequest(false)
     }
-  }, [])
-
-  useEffect(() => {
-    if (displayNameManuallyEdited || !currentMemberName) {
-      return
-    }
-
-    setDisplayName(currentMemberName)
-  }, [currentMemberName, displayNameManuallyEdited])
+  }, [displayNameManuallyEdited])
 
   useEffect(() => {
     let cancelled = false
@@ -164,14 +161,6 @@ export function useNftStatus(member: DashboardMember | null) {
       window.removeEventListener("focus", handleFocus)
     }
   }, [loadExistingRequest])
-
-  useEffect(() => {
-    setSummaryImageFailed(false)
-  }, [existingRequestImageUrl])
-
-  useEffect(() => {
-    setDeleteConfirmationArmed(false)
-  }, [existingRequest?.id])
 
   const handleCopyPrompt = async () => {
     const promptText = `Create a premium NFT profile avatar for a member of the TBC(tum blockchain club). Subject: a futuristic university hacker and blockchain builder wearing a purple hoodie with one symbol I attached (put the icon smalled and at the right top of the hoodie with "TBC" under the icon). Action: calm confident pose, looking forward with determination. Environment: floating holographic blockchain blocks and glowing transaction chains forming a digital halo around the character. Composition: centered avatar portrait, head and shoulders, square 1:1 format, designed for a profile picture. Lighting: cinematic neon lighting with soft purple and electric blue glow. Style: ultra-clean Web3 NFT aesthetic, sharp vector illustration, slightly cyberpunk, highly detailed, polished like a top NFT collection. Size: square 1:1 aspect ratio, 4k resolution, optimized for NFT profile pictures, sharp and high-detail rendering. Other: tight avatar crop, head and shoulders only. Replace the NFT avatar's face to mimic the person (face, hair, etc.) from the reference photo, while keeping the NFT style and everything else unchanged.`
@@ -267,7 +256,7 @@ export function useNftStatus(member: DashboardMember | null) {
     }
 
     if (!deleteConfirmationArmed) {
-      setDeleteConfirmationArmed(true)
+      setDeleteConfirmationRequestId(existingRequest.id)
       return
     }
 
@@ -287,8 +276,8 @@ export function useNftStatus(member: DashboardMember | null) {
       setWalletAddress("")
       setUseDifferentWallet(false)
       setSelectedFile(null)
-      setSummaryImageFailed(false)
-      setDeleteConfirmationArmed(false)
+      setFailedImageUrl(null)
+      setDeleteConfirmationRequestId(null)
       setRequestLookupError(null)
       setSubmissionMessage({
         type: "success",
@@ -324,13 +313,17 @@ export function useNftStatus(member: DashboardMember | null) {
     saving,
     selectedFileName,
     setBatch,
-    setDeleteConfirmationArmed,
+    setDeleteConfirmationArmed: (armed: boolean) => {
+      setDeleteConfirmationRequestId(armed ? existingRequest?.id ?? null : null)
+    },
     setDisplayName,
     setDisplayNameManuallyEdited,
     setFunFacts,
     setHasConsented,
     setSelectedFile,
-    setSummaryImageFailed,
+    setSummaryImageFailed: (failed: boolean) => {
+      setFailedImageUrl(failed ? existingRequestImageUrl || null : null)
+    },
     setUseDifferentWallet,
     setWalletAddress,
     statusCopy,

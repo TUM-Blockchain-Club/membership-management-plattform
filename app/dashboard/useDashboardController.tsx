@@ -24,6 +24,15 @@ type AccessResponse = boolean | null
 
 const ADMIN_FIELDS = ['Role', 'Status', 'Department', 'Semester Joined', 'Active Semesters'] as const
 
+const TAB_ROUTES: Record<DashboardTab, string> = {
+  profile: '/profile',
+  members: '/members',
+  stats: '/statistics',
+  events: '/events',
+  'nft-approvals': '/nft-approvals',
+  'nft-status': '/nft-status',
+}
+
 const makeEmptyMember = (): EditableMember => ({
   Name: null,
   Degree: null,
@@ -141,7 +150,7 @@ const formatEventTime = (startAt: string, endAt: string) => {
   return `${startTime} - ${endTime}`
 }
 
-export function useDashboardController() {
+export function useDashboardController(routeTab: DashboardTab = 'profile') {
   const router = useRouter()
 
   const devBypass =
@@ -164,8 +173,6 @@ export function useDashboardController() {
   const [uploadingImage, setUploadingImage] = useState(false)
 
   const [message, setMessage] = useState<DashboardMessage | null>(null)
-  const [activeTab, setActiveTab] = useState<DashboardTab>('profile')
-
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [departmentFilter, setDepartmentFilter] = useState('all')
@@ -185,6 +192,8 @@ export function useDashboardController() {
   const effectiveHasSpecialAccess = hasSpecialAccess && !forceMemberView
   const effectiveIsBoardMember = member?.Role === 'Board Member' && !forceMemberView
   const showNftApprovalsTab = canManageNftRequests && !forceMemberView
+
+  const activeTab = routeTab
 
   const loadEvents = useCallback(async (memberId?: number) => {
     const { data: eventsData, error: eventsError } = await eventService.getUpcomingEvents(memberId)
@@ -263,16 +272,10 @@ export function useDashboardController() {
   }, [router, loadEvents, loadViewedMemberAccess, devBypass])
 
   useEffect(() => {
-    if (activeTab !== 'events') {
-      setShowParticipantsModal(false)
-    }
-  }, [activeTab])
-
-  useEffect(() => {
     if (activeTab === 'nft-approvals' && !showNftApprovalsTab) {
-      setActiveTab('nft-status')
+      router.replace(TAB_ROUTES['nft-status'])
     }
-  }, [activeTab, showNftApprovalsTab])
+  }, [activeTab, router, showNftApprovalsTab])
 
   const handleSignOut = useCallback(async () => {
     await auth.signOut()
@@ -467,8 +470,8 @@ export function useDashboardController() {
     setSelectedImageFile(null)
     setViewedMemberHasSpecialAccess(false)
     setShowMemberEditorModal(false)
-    setActiveTab('profile')
-  }, [member])
+    router.push(TAB_ROUTES.profile)
+  }, [member, router])
 
   const handleCancel = useCallback(() => {
     setEditing(false)
@@ -551,13 +554,13 @@ export function useDashboardController() {
   }, [creatingMember, editedMember, member, selectedImageFile, viewedMember])
 
   const handleProfileTabSelected = useCallback(() => {
-    setActiveTab('profile')
     setViewedMember(member)
     setEditing(false)
     setShowMemberEditorModal(false)
     setEditedMember(null)
     setCreatingMember(false)
-  }, [member])
+    router.push(TAB_ROUTES.profile)
+  }, [member, router])
 
   const handleTabChange = useCallback((tab: DashboardTab) => {
     if (tab === 'profile') {
@@ -566,12 +569,12 @@ export function useDashboardController() {
     }
 
     if (tab === 'nft-approvals' && !showNftApprovalsTab) {
-      setActiveTab('nft-status')
+      router.push(TAB_ROUTES['nft-status'])
       return
     }
 
-    setActiveTab(tab)
-  }, [showNftApprovalsTab, handleProfileTabSelected])
+    router.push(TAB_ROUTES[tab])
+  }, [router, showNftApprovalsTab, handleProfileTabSelected])
 
   const canViewRemovedMembers = effectiveIsBoardMember || effectiveHasSpecialAccess
 
