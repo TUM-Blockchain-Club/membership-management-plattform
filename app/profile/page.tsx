@@ -1,5 +1,5 @@
-import { DashboardShell } from '@/app/dashboard/DashboardShell'
+import { ProfileDashboardRoute } from '@/app/dashboard/routes/ProfileDashboardRoute'
 
 export default function ProfilePage() {
-  return <DashboardShell activeTab="profile" />
+  return <ProfileDashboardRoute />
 }

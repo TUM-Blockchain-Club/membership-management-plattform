@@ -1,5 +1,5 @@
-import { DashboardShell } from '@/app/dashboard/DashboardShell'
+import { StatisticsDashboardRoute } from '@/app/dashboard/routes/StatisticsDashboardRoute'
 
 export default function StatisticsPage() {
-  return <DashboardShell activeTab="stats" />
+  return <StatisticsDashboardRoute />
 }

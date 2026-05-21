@@ -1,5 +1,5 @@
-import { DashboardShell } from '@/app/dashboard/DashboardShell'
+import { MembersDashboardRoute } from '@/app/dashboard/routes/MembersDashboardRoute'
 
 export default function MembersPage() {
-  return <DashboardShell activeTab="members" />
+  return <MembersDashboardRoute />
 }

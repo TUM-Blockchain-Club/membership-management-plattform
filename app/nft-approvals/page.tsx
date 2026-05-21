@@ -1,5 +1,5 @@
-import { DashboardShell } from '@/app/dashboard/DashboardShell'
+import { NftApprovalsDashboardRoute } from '@/app/dashboard/routes/NftApprovalsDashboardRoute'
 
 export default function NftApprovalsPage() {
-  return <DashboardShell activeTab="nft-approvals" />
+  return <NftApprovalsDashboardRoute />
 }

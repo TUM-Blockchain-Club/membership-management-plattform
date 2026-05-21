@@ -1,5 +1,5 @@
-import { DashboardShell } from '@/app/dashboard/DashboardShell'
+import { NftStatusDashboardRoute } from '@/app/dashboard/routes/NftStatusDashboardRoute'
 
 export default function NftStatusPage() {
-  return <DashboardShell activeTab="nft-status" />
+  return <NftStatusDashboardRoute />
 }
