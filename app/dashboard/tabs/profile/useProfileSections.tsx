@@ -32,7 +32,6 @@ export function useProfileSections(viewedMember: DashboardMember | null): Profil
           { label: 'Role', value: toDisplayString(current?.Role, 'Member') },
           { label: 'Status', value: toDisplayString(current?.Status, 'Unknown') },
           { label: 'Semester Joined', value: toDisplayString(current?.['Semester Joined']) },
-          { label: 'Active Semesters', value: current?.['Active Semesters'] ?? 0 },
         ],
       },
       {

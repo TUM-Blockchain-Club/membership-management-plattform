@@ -31,7 +31,6 @@ export interface Member {
   'Project/Task': string | null;
   'Area of Expertise': string | null;
   Picture: MemberPicture;
-  'Active Semesters': number | null;
   Uni: string | null;
   'Semester Joined': string | null;
   Degree: string | null;
@@ -44,6 +43,14 @@ export interface Member {
   Instagram: string | null;
   Twitter: string | null;
   'Size Merch': MerchSize | string | null;
+  Batch?: string | number | null;
+  'Bachelor/Master'?: string | null;
+  UUID?: string | null;
+  degree_at_uni?: string | null;
+  highlight?: string | null;
+  nft_avatar?: string | null;
+  nft_consent?: boolean | null;
+  nickname?: string | null;
 }
 
 export interface Database {

@@ -57,8 +57,7 @@ export function EditableProfileForm({
         { key: 'Department', label: 'Department', type: 'select', placeholder: 'Your department', options: ['Industry', 'Web3 Talents', 'Legal & Finance', 'External Relations', 'Education', 'Marketing', 'IT & Development', 'Research'] },
         { key: 'Role', label: 'Role', type: 'select', placeholder: 'Your role', options: ['Core Member', 'Board Member', 'Ex-Core Member', 'Guest'] },
         { key: 'Status', label: 'Status', type: 'select', placeholder: 'Active, Alumni, etc.', options: ['Active', 'Alumni', 'Honorary', 'Advisor', 'Passive', 'Kicked out', 'Left'] },
-        { key: 'Semester Joined', label: 'Semester Joined', type: 'text', placeholder: 'e.g., WS2024' },
-        { key: 'Active Semesters', label: 'Active Semesters', type: 'number', placeholder: '0' }
+        { key: 'Semester Joined', label: 'Semester Joined', type: 'text', placeholder: 'e.g., WS2024' }
       ]
     },
     {

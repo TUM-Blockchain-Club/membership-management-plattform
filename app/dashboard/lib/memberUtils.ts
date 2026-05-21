@@ -1,6 +1,6 @@
 import type { DashboardMember, EditableMember } from '@/app/components/dashboard/types'
 
-export const ADMIN_FIELDS = ['Role', 'Status', 'Department', 'Semester Joined', 'Active Semesters'] as const
+export const ADMIN_FIELDS = ['Role', 'Status', 'Department', 'Semester Joined'] as const
 
 export const makeEmptyMember = (): EditableMember => ({
   Name: null,
@@ -10,7 +10,6 @@ export const makeEmptyMember = (): EditableMember => ({
   Role: null,
   Status: null,
   'Semester Joined': null,
-  'Active Semesters': null,
   'TBC Email': null,
   'Private Email': null,
   Phone: null,

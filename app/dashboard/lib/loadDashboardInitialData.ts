@@ -28,7 +28,7 @@ type EventRegistrationRow = {
 
 const NFT_ADMIN_MEMBER_IDS = new Set([0, 99, 107, 26, 126])
 const MEMBER_COLUMNS =
-  'id, created_at, Name, Role, Status, Department, "Project/Task", "Area of Expertise", Picture, "Active Semesters", Uni, "Semester Joined", Degree, Phone, "Private Email", "TBC Email", Linkedin, Telegram, Discord, Instagram, Twitter, "Size Merch"'
+  'id, created_at, Name, Role, Status, Department, "Project/Task", "Area of Expertise", Picture, Uni, "Semester Joined", Degree, Phone, "Private Email", "TBC Email", Linkedin, Telegram, Discord, Instagram, Twitter, "Size Merch"'
 const EVENT_COLUMNS = 'id, title, description, start_at, end_at, location, organizer_department, capacity_total'
 
 const emptyInitialData = (): DashboardInitialData => ({
