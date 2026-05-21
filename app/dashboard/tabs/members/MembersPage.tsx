@@ -1,4 +1,6 @@
-import { MemberCard, QuickNavigation, SeparatorLine, SubSeparatorLine } from '@/app/components/dashboard'
+import { MemberCard } from '@/app/components/dashboard/MemberCard'
+import { QuickNavigation } from '@/app/components/dashboard/QuickNavigation'
+import { SeparatorLine, SubSeparatorLine } from '@/app/components/dashboard/Separators'
 import type { DashboardMember } from '@/app/components/dashboard/types'
 
 export function MembersPage({

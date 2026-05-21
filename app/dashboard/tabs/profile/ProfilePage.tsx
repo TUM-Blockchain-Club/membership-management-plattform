@@ -1,7 +1,8 @@
  'use client'
 
 import Image from 'next/image'
-import { EditableProfileForm, ProfileDisplay } from '@/app/components/dashboard'
+import { EditableProfileForm } from '@/app/components/dashboard/EditableProfileForm'
+import { ProfileDisplay } from '@/app/components/dashboard/ProfileDisplay'
 import type { Dispatch, SetStateAction } from 'react'
 import type { DashboardMember, EditableMember, ProfileSection } from '@/app/components/dashboard/types'
 

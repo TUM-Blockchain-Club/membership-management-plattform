@@ -3,9 +3,10 @@
 import { DashboardFrame } from '@/app/dashboard/DashboardFrame'
 import { MembersTab } from '@/app/dashboard/tabs/MembersTab'
 import { useDashboardController } from '@/app/dashboard/useDashboardController'
+import type { DashboardInitialData } from '@/app/dashboard/lib/initialDataTypes'
 
-export function MembersDashboardRoute() {
-  const dashboard = useDashboardController('members')
+export function MembersDashboardRoute({ initialData }: { initialData: DashboardInitialData }) {
+  const dashboard = useDashboardController('members', { initialData })
 
   return (
     <DashboardFrame dashboard={dashboard}>

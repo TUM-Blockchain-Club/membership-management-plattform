@@ -1,4 +1,5 @@
-import { DepartmentBreakdown, StatCard, StatusBreakdown } from '@/app/components/dashboard'
+import { DepartmentBreakdown, StatusBreakdown } from '@/app/components/dashboard/Breakdowns'
+import { StatCard } from '@/app/components/dashboard/StatCard'
 import type { DashboardMember, DashboardStats } from '@/app/components/dashboard/types'
 
 export function StatsPage({ stats, membersVisibleByRole }: { stats: DashboardStats; membersVisibleByRole: DashboardMember[] }) {

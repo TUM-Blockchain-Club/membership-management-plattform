@@ -1,8 +1,9 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react"
+import { useMemo, useState, type FormEvent } from "react"
+import useSWR from "swr"
 import type { DashboardMember } from "@/app/components/dashboard/types"
-import { nftRequestService, type NftRequestRow } from "@/lib/nftRequests"
+import { nftRequestService, type CurrentNftRequestResponse, type NftRequestRow } from "@/lib/nftRequests"
 
 export const getLabel = (value: string | null | undefined, fallback: string) => {
   const trimmed = value?.trim()
@@ -63,6 +64,16 @@ const getRequestStatusCopy = (request: NftRequestRow | null, loadingExistingRequ
   }
 }
 
+const loadCurrentNftRequest = async (): Promise<CurrentNftRequestResponse> => {
+  const { data, error } = await nftRequestService.getCurrentRequest()
+
+  if (error || !data) {
+    throw new Error(error || "Could not load your NFT request status.")
+  }
+
+  return data
+}
+
 export function useNftStatus(member: DashboardMember | null) {
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [useDifferentWallet, setUseDifferentWallet] = useState(false)
@@ -86,11 +97,34 @@ export function useNftStatus(member: DashboardMember | null) {
     department: string | null
   } | null>(null)
   const [resolvedMemberId, setResolvedMemberId] = useState<number | null>(null)
-  const [loadingExistingRequest, setLoadingExistingRequest] = useState(true)
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
+  const { isLoading, mutate: revalidateExistingRequest } = useSWR(
+    "nft-current-request",
+    loadCurrentNftRequest,
+    {
+      refreshInterval: 15000,
+      revalidateOnFocus: true,
+      onSuccess(data) {
+        setRequestLookupError(null)
+        setCurrentMemberProfile(data.member)
+        setResolvedMemberId(data.memberId)
+        setExistingRequest(data.request)
+        if (!displayNameManuallyEdited && data.member.name?.trim()) {
+          setDisplayName(data.member.name.trim())
+        }
+      },
+      onError(error: unknown) {
+        setCurrentMemberProfile(null)
+        setResolvedMemberId(null)
+        setExistingRequest(null)
+        setRequestLookupError(error instanceof Error ? error.message : "Could not load your NFT request status.")
+      },
+    }
+  )
 
   const selectedFileName = selectedFile?.name ?? null
   const currentMemberName = currentMemberProfile?.name?.trim() || member?.Name?.trim() || null
+  const loadingExistingRequest = isLoading && !existingRequest && !requestLookupError
   const statusCopy = getRequestStatusCopy(existingRequest, loadingExistingRequest)
   const hasMintedNft = Boolean(existingRequest?.mint_tx_hash)
   const canDeleteExistingRequest =
@@ -105,62 +139,6 @@ export function useNftStatus(member: DashboardMember | null) {
   }, [existingRequest])
   const deleteConfirmationArmed = deleteConfirmationRequestId === existingRequest?.id
   const summaryImageFailed = Boolean(existingRequestImageUrl && failedImageUrl === existingRequestImageUrl)
-
-  const loadExistingRequest = useCallback(async (options?: { cancelled?: boolean; showLoading?: boolean }) => {
-    const cancelled = options?.cancelled ?? false
-    const showLoading = options?.showLoading ?? true
-
-    if (showLoading) {
-      setLoadingExistingRequest(true)
-    }
-    setRequestLookupError(null)
-
-    const { data, error } = await nftRequestService.getCurrentRequest()
-    if (cancelled) return
-
-    if (error || !data) {
-      setCurrentMemberProfile(null)
-      setResolvedMemberId(null)
-      setExistingRequest(null)
-      setRequestLookupError(error || "Could not load your NFT request status.")
-      setLoadingExistingRequest(false)
-      return
-    }
-
-    setCurrentMemberProfile(data.member)
-    setResolvedMemberId(data.memberId)
-    setExistingRequest(data.request)
-    if (!displayNameManuallyEdited && data.member.name?.trim()) {
-      setDisplayName(data.member.name.trim())
-    }
-    if (showLoading) {
-      setLoadingExistingRequest(false)
-    }
-  }, [displayNameManuallyEdited])
-
-  useEffect(() => {
-    let cancelled = false
-
-    queueMicrotask(() => {
-      void loadExistingRequest({ cancelled, showLoading: true })
-    })
-
-    const handleFocus = () => {
-      void loadExistingRequest({ showLoading: false })
-    }
-
-    const intervalId = window.setInterval(() => {
-      void loadExistingRequest({ showLoading: false })
-    }, 15000)
-
-    window.addEventListener("focus", handleFocus)
-
-    return () => {
-      cancelled = true
-      window.clearInterval(intervalId)
-      window.removeEventListener("focus", handleFocus)
-    }
-  }, [loadExistingRequest])
 
   const handleCopyPrompt = async () => {
     const promptText = `Create a premium NFT profile avatar for a member of the TBC(tum blockchain club). Subject: a futuristic university hacker and blockchain builder wearing a purple hoodie with one symbol I attached (put the icon smalled and at the right top of the hoodie with "TBC" under the icon). Action: calm confident pose, looking forward with determination. Environment: floating holographic blockchain blocks and glowing transaction chains forming a digital halo around the character. Composition: centered avatar portrait, head and shoulders, square 1:1 format, designed for a profile picture. Lighting: cinematic neon lighting with soft purple and electric blue glow. Style: ultra-clean Web3 NFT aesthetic, sharp vector illustration, slightly cyberpunk, highly detailed, polished like a top NFT collection. Size: square 1:1 aspect ratio, 4k resolution, optimized for NFT profile pictures, sharp and high-detail rendering. Other: tight avatar crop, head and shoulders only. Replace the NFT avatar's face to mimic the person (face, hair, etc.) from the reference photo, while keeping the NFT style and everything else unchanged.`
@@ -242,6 +220,7 @@ export function useNftStatus(member: DashboardMember | null) {
       setExistingRequest(requestData.request)
       setSelectedFile(null)
       setSubmissionMessage({ type: "success", text: "NFT request saved successfully." })
+      void revalidateExistingRequest()
     } catch (error) {
       const text = error instanceof Error ? error.message : "Something went wrong while saving your request."
       setSubmissionMessage({ type: "error", text })
@@ -283,6 +262,7 @@ export function useNftStatus(member: DashboardMember | null) {
         type: "success",
         text: data?.storageWarning ? `NFT request deleted. ${data.storageWarning}` : "NFT request deleted successfully.",
       })
+      void revalidateExistingRequest()
     } catch (error) {
       const text = error instanceof Error ? error.message : "Could not delete the NFT request."
       setSubmissionMessage({ type: "error", text })

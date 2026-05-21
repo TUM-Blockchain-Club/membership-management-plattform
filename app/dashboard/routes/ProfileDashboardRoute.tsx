@@ -3,9 +3,10 @@
 import { DashboardFrame } from '@/app/dashboard/DashboardFrame'
 import { ProfileTab } from '@/app/dashboard/tabs/ProfileTab'
 import { useDashboardController } from '@/app/dashboard/useDashboardController'
+import type { DashboardInitialData } from '@/app/dashboard/lib/initialDataTypes'
 
-export function ProfileDashboardRoute() {
-  const dashboard = useDashboardController('profile')
+export function ProfileDashboardRoute({ initialData }: { initialData: DashboardInitialData }) {
+  const dashboard = useDashboardController('profile', { initialData })
 
   return (
     <DashboardFrame dashboard={dashboard}>

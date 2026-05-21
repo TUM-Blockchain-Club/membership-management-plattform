@@ -15,10 +15,7 @@ import { useMembersDirectory } from '@/app/dashboard/tabs/members/useMembersDire
 import { useProfileSections } from '@/app/dashboard/tabs/profile/useProfileSections'
 import { useDashboardStats } from '@/app/dashboard/tabs/stats/useDashboardStats'
 import { auth } from '@/lib/auth'
-import { isLocalDevBypassEnabled } from '@/lib/devBypass'
-import { eventService } from '@/lib/events'
 import { memberService } from '@/lib/members'
-import { nftRequestService } from '@/lib/nftRequests'
 import { supabase } from '@/lib/supabase'
 import type {
   DashboardMember,
@@ -26,36 +23,29 @@ import type {
   DashboardTab,
   EditableMember,
 } from '@/app/components/dashboard/types'
+import type { DashboardInitialData } from '@/app/dashboard/lib/initialDataTypes'
 
 type AccessResponse = boolean | null
 
 type DashboardControllerOptions = {
-  loadEvents?: boolean
-  loadMembers?: boolean
+  initialData: DashboardInitialData
 }
 
-const routeNeedsEvents = (tab: DashboardTab) => tab === 'events'
-const routeNeedsMembers = (tab: DashboardTab) => tab === 'members' || tab === 'stats'
-
-export function useDashboardController(routeTab: DashboardTab = 'profile', options: DashboardControllerOptions = {}) {
+export function useDashboardController(routeTab: DashboardTab = 'profile', options: DashboardControllerOptions) {
   const router = useRouter()
-  const shouldLoadEvents = options.loadEvents ?? routeNeedsEvents(routeTab)
-  const shouldLoadMembers = options.loadMembers ?? routeNeedsMembers(routeTab)
+  const { initialData } = options
 
-  const devBypass =
-    typeof window !== 'undefined' ? isLocalDevBypassEnabled(window.location.hostname) : false
+  const [member, setMember] = useState<DashboardMember | null>(initialData.member)
+  const [viewedMember, setViewedMember] = useState<DashboardMember | null>(initialData.member)
+  const [allMembers, setAllMembers] = useState<DashboardMember[]>(initialData.allMembers)
 
-  const [member, setMember] = useState<DashboardMember | null>(null)
-  const [viewedMember, setViewedMember] = useState<DashboardMember | null>(null)
-  const [allMembers, setAllMembers] = useState<DashboardMember[]>([])
-
-  const [loading, setLoading] = useState(true)
+  const [loading] = useState(false)
   const [editing, setEditing] = useState(false)
   const [editedMember, setEditedMember] = useState<EditableMember | null>(null)
   const [saving, setSaving] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
 
-  const [message, setMessage] = useState<DashboardMessage | null>(null)
+  const [message, setMessage] = useState<DashboardMessage | null>(initialData.message)
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [departmentFilter, setDepartmentFilter] = useState('all')
@@ -65,9 +55,11 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
   const [lastClickTime, setLastClickTime] = useState(0)
 
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null)
-  const [hasSpecialAccess, setHasSpecialAccess] = useState(false)
-  const [viewedMemberHasSpecialAccess, setViewedMemberHasSpecialAccess] = useState(false)
-  const [canManageNftRequests, setCanManageNftRequests] = useState(false)
+  const [hasSpecialAccess] = useState(initialData.hasSpecialAccess)
+  const [viewedMemberHasSpecialAccess, setViewedMemberHasSpecialAccess] = useState(
+    initialData.viewedMemberHasSpecialAccess
+  )
+  const [canManageNftRequests] = useState(initialData.canManageNftRequests)
   const [creatingMember, setCreatingMember] = useState(false)
   const [showMemberEditorModal, setShowMemberEditorModal] = useState(false)
   const [forceMemberView, setForceMemberView] = useState(false)
@@ -78,11 +70,9 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     modalEventTitle,
     participants,
     participantsLoading,
-    setEvents,
-    setParticipants,
     setShowParticipantsModal,
     showParticipantsModal,
-  } = useDashboardEvents(member, setMessage)
+  } = useDashboardEvents(member, setMessage, initialData.events)
 
   const effectiveHasSpecialAccess = hasSpecialAccess && !forceMemberView
   const effectiveIsBoardMember = member?.Role === 'Board Member' && !forceMemberView
@@ -101,77 +91,6 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     })
     setViewedMemberHasSpecialAccess((data as AccessResponse) === true)
   }, [])
-
-  useEffect(() => {
-    const loadUserData = async () => {
-      const { user: currentUser } = await auth.getCurrentUser()
-
-      if (!currentUser && devBypass) {
-        const { data: nftAdminAccess } = await nftRequestService.getAdminAccess()
-        setMember(null)
-        setViewedMember(null)
-        setAllMembers([])
-        setEvents([])
-        setParticipants([])
-        setCanManageNftRequests(nftAdminAccess === true)
-        setLoading(false)
-        return
-      }
-
-      if (!currentUser) {
-        router.push('/signin')
-        return
-      }
-
-      const { data: specialAccessResult } = await supabase.rpc('has_special_access')
-      const hasLoadedSpecialAccess = (specialAccessResult as AccessResponse) === true
-      setHasSpecialAccess(hasLoadedSpecialAccess)
-
-      const { data: memberData, error: memberError } = await memberService.getMemberByEmail(currentUser.email ?? '')
-      if (memberError) {
-        setMessage({ type: 'error', text: `Could not load your member data: ${memberError.message || 'Please contact support.'}` })
-        setLoading(false)
-        return
-      }
-
-      if (!memberData) {
-        setMessage({ type: 'error', text: 'No member profile found for your account.' })
-        setLoading(false)
-        return
-      }
-
-      setMember(memberData)
-      setViewedMember(memberData)
-      setCanManageNftRequests(false)
-
-      const viewedMemberAccessPromise = loadViewedMemberAccess(memberData['TBC Email'])
-      const nftAdminAccessPromise = nftRequestService.getAdminAccess()
-      const allMembersPromise = shouldLoadMembers ? memberService.getAllMembers() : Promise.resolve({ data: null })
-      const eventsPromise = shouldLoadEvents ? eventService.getUpcomingEvents(memberData.id) : Promise.resolve({ data: null })
-
-      const [, { data: nftAdminAccess }, { data: allMembersData }, { data: eventsData }] = await Promise.all([
-        viewedMemberAccessPromise,
-        nftAdminAccessPromise,
-        allMembersPromise,
-        eventsPromise,
-      ])
-
-      setCanManageNftRequests(nftAdminAccess === true)
-      setAllMembers(allMembersData ?? [])
-      setEvents(eventsData ?? [])
-      setLoading(false)
-    }
-
-    void loadUserData()
-  }, [
-    router,
-    loadViewedMemberAccess,
-    devBypass,
-    shouldLoadEvents,
-    shouldLoadMembers,
-    setEvents,
-    setParticipants,
-  ])
 
   useEffect(() => {
     if (!loading && activeTab === 'nft-approvals' && !showNftApprovalsTab) {

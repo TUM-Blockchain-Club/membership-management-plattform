@@ -1,7 +1,9 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { DashboardFooter, DashboardHeader, MemberEditorModal } from '@/app/components/dashboard'
+import { DashboardFooter } from '@/app/components/dashboard/DashboardFooter'
+import { DashboardHeader } from '@/app/components/dashboard/DashboardHeader'
+import { MemberEditorModal } from '@/app/components/dashboard/MemberEditorModal'
 import type { useDashboardController } from './useDashboardController'
 
 type DashboardController = ReturnType<typeof useDashboardController>

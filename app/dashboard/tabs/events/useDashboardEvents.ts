@@ -10,8 +10,12 @@ import { supabase } from '@/lib/supabase'
 
 type SetDashboardMessage = (message: DashboardMessage | null) => void
 
-export function useDashboardEvents(member: DashboardMember | null, setMessage: SetDashboardMessage) {
-  const [events, setEvents] = useState<DashboardEvent[]>([])
+export function useDashboardEvents(
+  member: DashboardMember | null,
+  setMessage: SetDashboardMessage,
+  initialEvents: DashboardEvent[] = []
+) {
+  const [events, setEvents] = useState<DashboardEvent[]>(initialEvents)
   const [participants, setParticipants] = useState<DashboardParticipant[]>([])
   const [participantsLoading, setParticipantsLoading] = useState(false)
   const [showParticipantsModal, setShowParticipantsModal] = useState(false)

@@ -1,6 +1,7 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useMemo, useState } from "react"
+import useSWR from "swr"
 import {
   nftRequestService,
   type AdminQueueRequestRow,
@@ -107,74 +108,50 @@ const toUiRequest = (request: AdminQueueRequestRow, requestImage: string): NFTRe
   }
 }
 
+const loadAdminQueue = async () => {
+  const { data: requestRows, error } = await nftRequestService.getAdminQueue()
+
+  if (error) {
+    throw new Error(error)
+  }
+
+  return requestRows.map((request) =>
+    toUiRequest(
+      request,
+      nftRequestService.getRequestImageProxyUrl(request.image_path, `${request.id}:${request.created_at}`) || request.image_url
+    )
+  )
+}
+
 export function useNftApprovals() {
   const [requests, setRequests] = useState<NFTRequest[]>([])
   const [search, setSearch] = useState("")
   const [sortOrder, setSortOrder] = useState<SortOrder>("newest")
   const [rejectingId, setRejectingId] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [mintingId, setMintingId] = useState<string | null>(null)
   const [previewingId, setPreviewingId] = useState<string | null>(null)
-
-  const loadRequests = useCallback(async (options?: { cancelled?: boolean; showLoading?: boolean }) => {
-    const cancelled = options?.cancelled ?? false
-    const showLoading = options?.showLoading ?? true
-
-    if (showLoading) {
-      setLoading(true)
+  const { error: loadingError, isLoading, mutate: revalidateRequests } = useSWR(
+    "nft-admin-queue",
+    loadAdminQueue,
+    {
+      refreshInterval: 15000,
+      revalidateOnFocus: true,
+      onSuccess(data) {
+        setError(null)
+        setRequests(data)
+      },
+      onError(error: unknown) {
+        setError(error instanceof Error ? error.message : "Could not load NFT requests.")
+      },
     }
-    setError(null)
-
-    const { data: requestRows, error: requestsError } = await nftRequestService.getAdminQueue()
-    if (cancelled) return
-
-    if (requestsError) {
-      setError(requestsError || "Could not load NFT requests.")
-      setLoading(false)
-      return
-    }
-
-    setRequests(
-      requestRows.map((request) =>
-        toUiRequest(
-          request,
-          nftRequestService.getRequestImageProxyUrl(request.image_path, `${request.id}:${request.created_at}`) || request.image_url
-        )
-      )
-    )
-    if (showLoading) {
-      setLoading(false)
-    }
-  }, [])
-
-  useEffect(() => {
-    let cancelled = false
-
-    queueMicrotask(() => {
-      void loadRequests({ cancelled, showLoading: true })
-    })
-
-    const handleFocus = () => {
-      void loadRequests({ showLoading: false })
-    }
-
-    const intervalId = window.setInterval(() => {
-      void loadRequests({ showLoading: false })
-    }, 15000)
-
-    window.addEventListener("focus", handleFocus)
-
-    return () => {
-      cancelled = true
-      window.clearInterval(intervalId)
-      window.removeEventListener("focus", handleFocus)
-    }
-  }, [loadRequests])
+  )
 
   const rejectingRequest = rejectingId ? requests.find((request) => request.id === rejectingId) ?? null : null
   const previewingRequest = previewingId ? requests.find((request) => request.id === previewingId) ?? null : null
+  const loading = isLoading && requests.length === 0
+  const displayError = error ?? (loadingError instanceof Error ? loadingError.message : null)
 
   const applyStatusUpdate = useCallback(
     async (requestId: string, status: Exclude<NftRequestStatus, "pending">, reviewNote: string | null) => {
@@ -200,8 +177,9 @@ export function useNftApprovals() {
         )
       )
       setUpdatingId(null)
+      void revalidateRequests()
     },
-    []
+    [revalidateRequests]
   )
 
   const handleApprove = useCallback((requestId: string) => {
@@ -249,13 +227,14 @@ export function useNftApprovals() {
       )
 
       setPreviewingId(null)
+      void revalidateRequests()
     } catch (error: unknown) {
       console.error(error)
       setError(error instanceof Error ? error.message : "Could not mint the NFT.")
     } finally {
       setMintingId(null)
     }
-  }, [])
+  }, [revalidateRequests])
 
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -280,7 +259,7 @@ export function useNftApprovals() {
 
   return {
     approvedCount: requests.filter((request) => request.status === "approved").length,
-    error,
+    error: displayError,
     filtered,
     handleApprove,
     handleMint,

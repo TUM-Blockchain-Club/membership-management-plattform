@@ -1,4 +1,4 @@
-import { EventCard } from '@/app/components/dashboard'
+import { EventCard } from '@/app/components/dashboard/EventCard'
 import type { DashboardEvent, DashboardMember, DashboardParticipant } from '@/app/components/dashboard/types'
 
 export function EventsPage({
