@@ -34,7 +34,7 @@ export async function GET(_req: Request, context: { params: Promise<{ requestId:
       imageUrl:   m.nft_avatar,
     });
 
-    return new NextResponse(buffer, {
+    return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         'Content-Type': 'image/png',
@@ -46,6 +46,5 @@ export async function GET(_req: Request, context: { params: Promise<{ requestId:
     return new NextResponse(message, { status: 500 });
   }
 }
-
 
 

@@ -8,8 +8,11 @@ export async function proxy(request: NextRequest) {
   const devBypass = isLocalDevBypassEnabled(request.nextUrl.hostname)
 
   const { pathname, search } = request.nextUrl
-  const isDashboardRoute = pathname.startsWith('/dashboard')
   const isSigninRoute = pathname === '/signin'
+  const isAuthCallbackRoute = pathname.startsWith('/auth/callback')
+  const isApiRoute = pathname.startsWith('/api')
+  const isPublicRoute = isSigninRoute || isAuthCallbackRoute
+  const isProtectedPageRoute = !isPublicRoute && !isApiRoute
 
   if (devBypass) {
     if (isSigninRoute) {
@@ -26,6 +29,13 @@ export async function proxy(request: NextRequest) {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseKey) {
+    if (isProtectedPageRoute) {
+      const signInUrl = request.nextUrl.clone()
+      signInUrl.pathname = '/signin'
+      signInUrl.searchParams.set('next', `${pathname}${search}`)
+      return NextResponse.redirect(signInUrl)
+    }
+
     return response
   }
 
@@ -48,7 +58,7 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser()
 
-  if (!user && isDashboardRoute) {
+  if (!user && isProtectedPageRoute) {
     const signInUrl = request.nextUrl.clone()
     signInUrl.pathname = '/signin'
     signInUrl.searchParams.set('next', `${pathname}${search}`)
@@ -68,5 +78,7 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*', '/signin'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js|map|txt|xml|webmanifest)$).*)',
+  ],
 }
