@@ -17,7 +17,6 @@ type EventUpdatePayload = {
   external_status?: string | null
   city?: string | null
   formats?: string[]
-  image_url?: string | null
   image_link_url?: string | null
 }
 
@@ -83,7 +82,6 @@ export async function PATCH(request: Request, context: RouteContext) {
       external_status: nullableString(payload.external_status),
       city,
       format,
-      image_url: nullableString(payload.image_url),
       image_link_url: nullableString(payload.image_link_url),
       location: city,
       organizer_department: eventType,

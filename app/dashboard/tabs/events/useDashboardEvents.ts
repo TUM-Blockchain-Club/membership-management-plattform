@@ -104,7 +104,6 @@ export function useDashboardEvents(
           external_status: draft.external_status === 'none' ? null : draft.external_status,
           city: draft.city,
           formats: draft.formats,
-          image_url: draft.image_url,
           image_link_url: draft.image_link_url,
         }),
       })
@@ -145,7 +144,6 @@ export function useDashboardEvents(
           external_status: draft.external_status === 'none' ? null : draft.external_status,
           city: draft.city,
           formats: draft.formats,
-          image_url: draft.image_url,
           image_link_url: draft.image_link_url,
         }),
       })

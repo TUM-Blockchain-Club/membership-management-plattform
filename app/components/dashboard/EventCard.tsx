@@ -181,13 +181,13 @@ export function ExternalEventCard({
 }: ExternalEventCardProps) {
   const frameClass = priorityFrameClass(priority)
   const image = imageUrl ? (
-    <div className="relative aspect-[16/9] w-full overflow-hidden">
+    <div className="relative aspect-square w-full overflow-hidden bg-muted">
       <Image
         src={imageUrl}
         alt=""
         fill
         sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
-        className="object-cover"
+        className="object-contain p-2"
         unoptimized
       />
     </div>

@@ -2,7 +2,7 @@
 
 import { useRef, useState } from 'react'
 import Image from 'next/image'
-import { CameraIcon, SaveIcon } from 'lucide-react'
+import { CameraIcon, ImageIcon, SaveIcon } from 'lucide-react'
 import type { DashboardEvent } from '@/app/components/dashboard/types'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -190,18 +190,23 @@ export function EventEditorDialog({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           <FieldGroup>
-            {draft.image_url && (
-              <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-muted">
+            <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl border bg-muted">
+              {draft.image_url ? (
                 <Image
                   src={draft.image_url}
                   alt=""
                   fill
                   sizes="(min-width: 768px) 640px, 100vw"
-                  className="object-cover"
+                  className="object-contain p-3"
                   unoptimized
                 />
-              </div>
-            )}
+              ) : (
+                <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                  <ImageIcon />
+                  <span className="text-sm">No image selected</span>
+                </div>
+              )}
+            </div>
 
             <div className="flex flex-wrap gap-2">
               <Button
@@ -299,11 +304,6 @@ export function EventEditorDialog({
               value={draft.formats}
               onChange={(next) => updateDraft('formats', next)}
             />
-
-            <Field>
-              <FieldLabel htmlFor="event-image-url">Image URL</FieldLabel>
-              <Input id="event-image-url" value={draft.image_url} onChange={(event) => updateDraft('image_url', event.target.value)} />
-            </Field>
 
             <Field>
               <FieldLabel htmlFor="event-image-link">Image link</FieldLabel>
