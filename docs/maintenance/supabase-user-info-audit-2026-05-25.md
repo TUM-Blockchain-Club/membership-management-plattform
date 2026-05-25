@@ -96,3 +96,31 @@ Out of 139 rows:
 The repo still contains an older `supabase/README.md` that refers to
 `supabase/schema.sql` and `mmp.members`, but the checked-out repo does not
 contain `supabase/schema.sql`, and the app code uses `public.members_main`.
+
+## Missing `TBC Email` CSV Match Check
+
+A follow-up read-only check looked at the 38 `members_main` rows with blank
+`TBC Email` values and matched them against the CSV by normalized name.
+
+High-confidence matches found in the CSV:
+
+| `members_main.id` | Supabase name | CSV name | CSV primary email |
+|---:|---|---|---|
+| 71 | Indrakshee Mukherjee | indrakshee mukherjee | indrakshee.mukherjee@tum-blockchain.com |
+| 34 | Berke Bora | Ahmet Berke Bora | ahmet.bora@tum-blockchain.com |
+| 74 | Jakob Hofmann | Jakob Leonhard Hofmann | jakob.hofmann@tum-blockchain.com |
+| 79 | Joshua Großkelwing | Joshua Grosskelwing | joshua.grosskelwing@tum-blockchain.com |
+| 64 | Fynn Endreß | Fynn Endress | fynn.endress@tum-blockchain.com |
+
+Likely but needs manual confirmation:
+
+| `members_main.id` | Supabase name | CSV candidate | CSV primary email | Note |
+|---:|---|---|---|---|
+| 16 | Adrian Kögl | Adrian Koegl | adrian.koegl@tum-blockchain.com | Umlaut transliteration / spelling variant. |
+| 43 | Daniel Wollschläger | Daniel Wollschlaeger | daniel.wollschlaeger@tum-blockchain.com | Umlaut transliteration / spelling variant. |
+| 55 | Elisa Lübben | Elisa Luebben | elisa.luebben@tum-blockchain.com | Umlaut transliteration / spelling variant. |
+| 112 | Saifulla Tanikulov | Saifullozhon Tanikulov | saifullozhon.tanikulov@tum-blockchain.com | Different first-name form. |
+
+The remaining missing-email rows did not have a reliable CSV match by name.
+Several low-score fuzzy suggestions were ignored because they only shared a
+first name or a few letters.
