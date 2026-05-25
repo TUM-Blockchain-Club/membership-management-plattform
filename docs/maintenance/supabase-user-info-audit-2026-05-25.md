@@ -124,3 +124,14 @@ Likely but needs manual confirmation:
 The remaining missing-email rows did not have a reliable CSV match by name.
 Several low-score fuzzy suggestions were ignored because they only shared a
 first name or a few letters.
+
+## Applied Email Updates
+
+After user confirmation, the nine matched `TBC Email` values above were written
+to `public.members_main` on 2026-05-25.
+
+Post-update verification:
+
+- `members_main` rows: 139
+- Rows with non-empty `TBC Email`: 110
+- Rows still missing `TBC Email`: 29
