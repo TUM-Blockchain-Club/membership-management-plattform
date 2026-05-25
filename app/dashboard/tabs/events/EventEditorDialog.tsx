@@ -190,13 +190,13 @@ export function EventEditorDialog({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           <FieldGroup>
-            <div className="relative flex aspect-square w-full items-center justify-center overflow-hidden rounded-xl border bg-muted">
+            <div className="relative mx-auto flex aspect-square w-full max-w-72 items-center justify-center overflow-hidden rounded-xl border bg-muted sm:max-w-80">
               {draft.image_url ? (
                 <Image
                   src={draft.image_url}
                   alt=""
                   fill
-                  sizes="(min-width: 768px) 640px, 100vw"
+                  sizes="(min-width: 640px) 320px, 288px"
                   className="object-contain p-3"
                   unoptimized
                 />
@@ -208,7 +208,7 @@ export function EventEditorDialog({
               )}
             </div>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap justify-center gap-2">
               <Button
                 type="button"
                 variant="outline"
