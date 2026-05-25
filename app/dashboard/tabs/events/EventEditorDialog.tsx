@@ -10,7 +10,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -313,7 +312,7 @@ export function EventEditorDialog({
           </FieldGroup>
         </div>
 
-        <DialogFooter>
+        <div className="shrink-0 flex items-center justify-end gap-2 px-6 py-4 border-t border-border bg-muted/30">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving || uploading}>
             Cancel
           </Button>
@@ -321,7 +320,7 @@ export function EventEditorDialog({
             {saving ? <Spinner data-icon="inline-start" /> : <SaveIcon data-icon="inline-start" />}
             {saving ? 'Saving...' : isCreate ? 'Create event' : 'Save changes'}
           </Button>
-        </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   )
