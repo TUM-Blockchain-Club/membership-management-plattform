@@ -12,6 +12,8 @@ export default function EventsPageRoute() {
       formatEventDate={d.formatEventDate}
       formatEventTime={d.formatEventTime}
       handleEventRegistration={d.handleEventRegistration}
+      handleUpdateExternalEvent={d.handleUpdateExternalEvent}
+      handleUploadExternalEventImage={d.handleUploadExternalEventImage}
       member={d.member}
       hasSpecialAccess={d.effectiveHasSpecialAccess}
       handleViewParticipants={d.handleViewParticipants}
@@ -19,6 +21,8 @@ export default function EventsPageRoute() {
       modalEventTitle={d.modalEventTitle}
       participants={d.participants}
       participantsLoading={d.participantsLoading}
+      savingEvent={d.savingEvent}
+      uploadingEventImage={d.uploadingEventImage}
       setShowParticipantsModal={d.setShowParticipantsModal}
     />
   )

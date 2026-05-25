@@ -1,3 +1,5 @@
+'use client'
+
 import { ExternalEventCard, InternalEventCard } from '@/app/components/dashboard/EventCard'
 import type { DashboardEvent, DashboardMember, DashboardParticipant } from '@/app/components/dashboard/types'
 import { Badge } from '@/components/ui/badge'
@@ -12,12 +14,16 @@ import {
 } from '@/components/ui/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { Separator } from '@/components/ui/separator'
+import { useState } from 'react'
+import { EventEditorDialog, type EventEditorDraft } from './EventEditorDialog'
 
 export function EventsPage({
   events,
   formatEventDate,
   formatEventTime,
   handleEventRegistration,
+  handleUpdateExternalEvent,
+  handleUploadExternalEventImage,
   member,
   hasSpecialAccess,
   handleViewParticipants,
@@ -25,12 +31,16 @@ export function EventsPage({
   modalEventTitle,
   participants,
   participantsLoading,
+  savingEvent,
+  uploadingEventImage,
   setShowParticipantsModal,
 }: {
   events: DashboardEvent[]
   formatEventDate: (startAt: string, endAt: string) => string
   formatEventTime: (startAt: string, endAt: string) => string
   handleEventRegistration: (eventId: string | number, isCurrentlyRegistered: boolean) => void
+  handleUpdateExternalEvent: (eventId: string | number, draft: EventEditorDraft) => Promise<DashboardEvent | null>
+  handleUploadExternalEventImage: (eventId: string | number, file: File) => Promise<string | null>
   member: DashboardMember | null
   hasSpecialAccess: boolean
   handleViewParticipants: (eventId: string | number, title: string) => void
@@ -38,11 +48,22 @@ export function EventsPage({
   modalEventTitle: string
   participants: DashboardParticipant[]
   participantsLoading: boolean
+  savingEvent: boolean
+  uploadingEventImage: boolean
   setShowParticipantsModal: (show: boolean) => void
 }) {
+  const [editingEvent, setEditingEvent] = useState<DashboardEvent | null>(null)
   const internalEvents = events.filter((event) => event.event_kind === 'internal')
   const externalEvents = events.filter((event) => event.event_kind === 'external')
   const showInternalEvents = false
+  const canManageEvents = member?.Role === 'Board Member' || hasSpecialAccess
+
+  const handleSaveEvent = async (eventId: string | number, draft: EventEditorDraft) => {
+    const updatedEvent = await handleUpdateExternalEvent(eventId, draft)
+    if (updatedEvent) {
+      setEditingEvent(null)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-10">
@@ -126,8 +147,11 @@ export function EventsPage({
                 status={event.external_status}
                 format={event.format}
                 imageUrl={event.image_url}
+                imageLinkUrl={event.image_link_url}
                 interestedNames={event.interested_names}
                 attendingNames={event.attending_names}
+                canEdit={canManageEvents}
+                onEdit={() => setEditingEvent(event)}
               />
             ))}
           </div>
@@ -162,6 +186,17 @@ export function EventsPage({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <EventEditorDialog
+        key={editingEvent?.id ?? 'event-editor'}
+        event={editingEvent}
+        open={!!editingEvent}
+        saving={savingEvent}
+        uploading={uploadingEventImage}
+        onOpenChange={(open) => { if (!open) setEditingEvent(null) }}
+        onSave={handleSaveEvent}
+        onUploadImage={handleUploadExternalEventImage}
+      />
     </div>
   )
 }

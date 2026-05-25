@@ -9,6 +9,7 @@ alter table public.events
   add column if not exists city text,
   add column if not exists format text,
   add column if not exists image_url text,
+  add column if not exists image_link_url text,
   add column if not exists is_hackathon boolean not null default false,
   add column if not exists interested_names text[] not null default '{}',
   add column if not exists attending_names text[] not null default '{}',
@@ -81,3 +82,15 @@ where events.title = external_events.title;
 update public.events
 set event_kind = 'internal'
 where event_kind is null;
+
+insert into storage.buckets (id, name, public)
+values ('event-images', 'event-images', true)
+on conflict (id) do update
+set public = excluded.public;
+
+drop policy if exists "event images are public" on storage.objects;
+create policy "event images are public"
+on storage.objects
+for select
+to public
+using (bucket_id = 'event-images');

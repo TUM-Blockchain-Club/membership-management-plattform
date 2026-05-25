@@ -66,12 +66,16 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
   const {
     events,
     handleEventRegistration,
+    handleUpdateExternalEvent,
+    handleUploadExternalEventImage,
     handleViewParticipants,
     modalEventTitle,
     participants,
     participantsLoading,
+    savingEvent,
     setShowParticipantsModal,
     showParticipantsModal,
+    uploadingEventImage,
   } = useDashboardEvents(member, setMessage, initialData.events)
 
   const effectiveHasSpecialAccess = hasSpecialAccess && !forceMemberView
@@ -407,6 +411,8 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     handleEditClick,
     handleEditOtherMember,
     handleEventRegistration,
+    handleUpdateExternalEvent,
+    handleUploadExternalEventImage,
     handleInputChange,
     handleProfileTabSelected,
     handleSave,
@@ -426,6 +432,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     participantsLoading,
     roleFilter,
     saving,
+    savingEvent,
     searchQuery,
     sections,
     setDepartmentFilter,
@@ -446,6 +453,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     uniqueRoles,
     uniqueStatuses,
     uploadingImage,
+    uploadingEventImage,
     viewedMember,
   }
 }

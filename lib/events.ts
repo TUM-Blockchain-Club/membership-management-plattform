@@ -16,6 +16,7 @@ export interface Event {
   city: string | null
   format: string | null
   image_url: string | null
+  image_link_url: string | null
   is_hackathon: boolean
   interested_names: string[]
   attending_names: string[]
@@ -48,6 +49,7 @@ type EventRow = {
   city: string | null
   format: string | null
   image_url: string | null
+  image_link_url: string | null
   is_hackathon: boolean
   interested_names: string[]
   attending_names: string[]

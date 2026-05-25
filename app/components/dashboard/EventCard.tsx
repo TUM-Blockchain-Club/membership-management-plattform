@@ -1,6 +1,7 @@
 import {
   CalendarDaysIcon,
   EyeIcon,
+  PencilIcon,
   type LucideIcon,
   MapPinIcon,
   TicketIcon,
@@ -48,8 +49,11 @@ type ExternalEventCardProps = {
   status: string | null
   format: string | null
   imageUrl: string | null
+  imageLinkUrl: string | null
   interestedNames: string[]
   attendingNames: string[]
+  canEdit?: boolean
+  onEdit?: () => void
 }
 
 function DetailRow({
@@ -169,37 +173,52 @@ export function ExternalEventCard({
   status,
   format,
   imageUrl,
+  imageLinkUrl,
   interestedNames,
   attendingNames,
+  canEdit,
+  onEdit,
 }: ExternalEventCardProps) {
   const frameClass = priorityFrameClass(priority)
+  const image = imageUrl ? (
+    <div className="relative aspect-[16/9] w-full overflow-hidden">
+      <Image
+        src={imageUrl}
+        alt=""
+        fill
+        sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
+        className="object-cover"
+        unoptimized
+      />
+    </div>
+  ) : null
 
   return (
     <div className={cn('h-full rounded-xl', frameClass)}>
       <Card className={cn('h-full', frameClass && 'ring-0')} size="sm">
-        {imageUrl && (
-          <div className="relative aspect-[16/9] w-full overflow-hidden">
-            <Image
-              src={imageUrl}
-              alt=""
-              fill
-              sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
-              className="object-cover"
-              unoptimized
-            />
-          </div>
+        {imageLinkUrl && image ? (
+          <a href={imageLinkUrl} target="_blank" rel="noreferrer" className="block">
+            {image}
+          </a>
+        ) : (
+          image
         )}
 
         <CardHeader>
           <div className="flex min-w-0 items-start gap-3">
-            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
-              <TicketIcon />
-            </div>
             <div className="min-w-0 flex-1">
               <CardTitle className="truncate">{title}</CardTitle>
               <CardDescription className="truncate">{location}</CardDescription>
             </div>
           </div>
+          {canEdit && onEdit && (
+            <CardAction>
+              <Button variant="ghost" size="icon-sm" onClick={onEdit} title="Edit event">
+                <PencilIcon />
+                <span className="sr-only">Edit event</span>
+              </Button>
+            </CardAction>
+          )}
         </CardHeader>
 
         <CardContent className="flex flex-1 flex-col gap-4">
