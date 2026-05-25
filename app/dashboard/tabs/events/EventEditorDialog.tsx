@@ -52,6 +52,12 @@ type EventEditorDialogProps = {
 const STATUS_OPTIONS = ['Uncertain', 'Announced', 'Registration Open', 'Registration Closed', 'Canceled', 'Past']
 const TYPE_OPTIONS = ['Conference', 'Hackathon']
 const FORMAT_OPTIONS = ['Co-Working', 'Virtual', 'In-Person', 'Hybrid']
+const PRIORITY_OPTIONS = [
+  { value: 'P1', label: 'P1 🚀' },
+  { value: 'P2', label: 'P2 🔥' },
+  { value: 'P3', label: 'P3 😁' },
+  { value: 'P4', label: 'P4 🧐' },
+]
 
 const dateInputValue = (value: string) => {
   if (!value) return ''
@@ -287,10 +293,9 @@ export function EventEditorDialog({
                   <SelectContent>
                     <SelectGroup>
                       <SelectItem value="none">None</SelectItem>
-                      <SelectItem value="P1">P1</SelectItem>
-                      <SelectItem value="P2">P2</SelectItem>
-                      <SelectItem value="P3">P3</SelectItem>
-                      <SelectItem value="P4">P4</SelectItem>
+                      {PRIORITY_OPTIONS.map((priority) => (
+                        <SelectItem key={priority.value} value={priority.value}>{priority.label}</SelectItem>
+                      ))}
                     </SelectGroup>
                   </SelectContent>
                 </Select>

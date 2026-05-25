@@ -2,7 +2,7 @@
 
 import { ExternalEventCard, InternalEventCard } from '@/app/components/dashboard/EventCard'
 import type { DashboardEvent, DashboardMember, DashboardParticipant } from '@/app/components/dashboard/types'
-import { PlusIcon, SearchIcon, XIcon } from 'lucide-react'
+import { ChevronDownIcon, PlusIcon, SearchIcon, XIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,6 +13,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Separator } from '@/components/ui/separator'
@@ -26,6 +33,13 @@ import {
 } from '@/components/ui/select'
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { EventEditorDialog, type EventEditorDraft } from './EventEditorDialog'
+
+const PRIORITY_OPTIONS = [
+  { value: 'P1', label: 'P1 🚀' },
+  { value: 'P2', label: 'P2 🔥' },
+  { value: 'P3', label: 'P3 😁' },
+  { value: 'P4', label: 'P4 🧐' },
+]
 
 export function EventsPage({
   events,
@@ -69,7 +83,7 @@ export function EventsPage({
   const [inputValue, setInputValue] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
-  const [priorityFilter, setPriorityFilter] = useState('all')
+  const [priorityFilter, setPriorityFilter] = useState<string[]>([])
   const [, startTransition] = useTransition()
   const internalEvents = events.filter((event) => event.event_kind === 'internal')
   const externalEvents = events.filter((event) => event.event_kind === 'external')
@@ -85,18 +99,23 @@ export function EventsPage({
     startTransition(() => setTypeFilter(value))
   }, [])
 
-  const updatePriorityFilter = useCallback((value: string) => {
-    startTransition(() => setPriorityFilter(value))
+  const updatePriorityFilter = useCallback((value: string, checked: boolean) => {
+    startTransition(() => {
+      setPriorityFilter((current) => {
+        if (checked) return current.includes(value) ? current : [...current, value]
+        return current.filter((item) => item !== value)
+      })
+    })
   }, [])
 
-  const hasActiveFilters = searchQuery || typeFilter !== 'all' || priorityFilter !== 'all'
+  const hasActiveFilters = searchQuery || typeFilter !== 'all' || priorityFilter.length > 0
 
   const clearFilters = useCallback(() => {
     setInputValue('')
     startTransition(() => {
       setSearchQuery('')
       setTypeFilter('all')
-      setPriorityFilter('all')
+      setPriorityFilter([])
     })
   }, [])
 
@@ -117,11 +136,19 @@ export function EventsPage({
 
       if (normalizedSearch && !searchText.includes(normalizedSearch)) return false
       if (typeFilter !== 'all' && !eventType.includes(typeFilter)) return false
-      if (priorityFilter !== 'all' && eventPriority !== priorityFilter) return false
+      if (priorityFilter.length > 0 && !priorityFilter.includes(eventPriority)) return false
 
       return true
     })
   }, [externalEvents, priorityFilter, searchQuery, typeFilter])
+
+  const priorityFilterLabel = useMemo(() => {
+    if (priorityFilter.length === 0) return 'Priority'
+    if (priorityFilter.length === 1) {
+      return PRIORITY_OPTIONS.find((option) => option.value === priorityFilter[0])?.label ?? priorityFilter[0]
+    }
+    return `${priorityFilter.length} priorities`
+  }, [priorityFilter])
 
   const handleSaveEvent = async (eventId: string | number | null, draft: EventEditorDraft) => {
     if (eventId === null) return null
@@ -227,21 +254,28 @@ export function EventsPage({
             </SelectContent>
           </Select>
 
-          <Select value={priorityFilter} onValueChange={updatePriorityFilter}>
-            <SelectTrigger size="sm" className="h-8 w-36">
-              <SelectValue placeholder="Priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectItem value="all">All Priorities</SelectItem>
-                <SelectItem value="P1">P1</SelectItem>
-                <SelectItem value="P2">P2</SelectItem>
-                <SelectItem value="P3">P3</SelectItem>
-                <SelectItem value="P4">P4</SelectItem>
-                <SelectItem value="none">No Priority</SelectItem>
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 min-w-36 justify-between font-normal">
+                {priorityFilterLabel}
+                <ChevronDownIcon data-icon="inline-end" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-44">
+              <DropdownMenuGroup>
+                {PRIORITY_OPTIONS.map((option) => (
+                  <DropdownMenuCheckboxItem
+                    key={option.value}
+                    checked={priorityFilter.includes(option.value)}
+                    onCheckedChange={(checked) => updatePriorityFilter(option.value, checked === true)}
+                    onSelect={(event) => event.preventDefault()}
+                  >
+                    {option.label}
+                  </DropdownMenuCheckboxItem>
+                ))}
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-muted-foreground hover:text-foreground">

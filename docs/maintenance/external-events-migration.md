@@ -38,7 +38,7 @@ It also backfills the 19 imported CSV rows as `external` and preserves existing 
 - Only special-access admins can create and edit external event metadata from the events page. Image uploads go through the guarded `/api/events/[eventId]/image` route into the public `event-images` Supabase Storage bucket.
 - The event editor keeps Interested and Attending read-only by leaving those lists out of edit/create forms.
 - Status is a fixed shadcn `Select`; Type and Format are shadcn checkbox multi-choice groups that can be left empty.
-- The visible external events list uses a members-page-style shadcn filter toolbar with search, Type, Priority, and Clear controls.
+- The visible external events list uses a members-page-style shadcn filter toolbar with search, Type, multi-choice Priority, and Clear controls.
 - `event_link_url` is used as the click-through target when an event image is present.
 - Event images use a compact 1:1 muted frame with `object-contain`; image URLs are managed through upload/storage and are not shown as editable form fields.
 - The page uses shadcn primitives (`Card`, `Badge`, `Button`, `Separator`, `Dialog`, `Empty`) and avoids the previous rainbow gradient event cards.
