@@ -74,7 +74,7 @@ export function EventsPage({
   const internalEvents = events.filter((event) => event.event_kind === 'internal')
   const externalEvents = events.filter((event) => event.event_kind === 'external')
   const showInternalEvents = false
-  const canManageEvents = member?.Role === 'Board Member' || hasSpecialAccess
+  const canManageEvents = hasSpecialAccess
 
   useEffect(() => {
     const id = setTimeout(() => startTransition(() => setSearchQuery(inputValue)), 300)
