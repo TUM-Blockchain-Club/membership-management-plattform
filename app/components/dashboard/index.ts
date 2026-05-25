@@ -1,5 +1,4 @@
 export { SeparatorLine, SubSeparatorLine } from './Separators'
-export { QuickNavigation } from './QuickNavigation'
 export { ProfileDisplay } from './ProfileDisplay'
 export { EditableProfileForm } from './EditableProfileForm'
 export { MemberCard } from './MemberCard'

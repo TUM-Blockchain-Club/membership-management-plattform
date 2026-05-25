@@ -2,11 +2,8 @@ import { Skeleton } from '@/components/ui/skeleton'
 
 export function DashboardLoading() {
   return (
-    <div className="min-h-screen bg-black">
-      <div className="fixed inset-0 grid-background pointer-events-none">
-        <div className="absolute inset-0 grid-pattern" />
-        <div className="absolute inset-0 grid-glow" />
-      </div>
+    <div className="min-h-screen bg-background">
+      <div className="fixed inset-0 grid-background pointer-events-none" />
 
       <div className="relative z-10">
         <header className="border-b border-white/10 backdrop-blur-md">

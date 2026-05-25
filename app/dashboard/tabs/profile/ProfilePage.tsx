@@ -1,27 +1,77 @@
- 'use client'
+'use client'
 
-import Image from 'next/image'
+import { useEffect, useRef } from 'react'
+import {
+  ArrowLeftIcon,
+  Building2Icon,
+  CameraIcon,
+  SaveIcon,
+  ShieldCheckIcon,
+  StarIcon,
+} from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import { Spinner } from '@/components/ui/spinner'
 import { EditableProfileForm } from '@/app/components/dashboard/EditableProfileForm'
-import { ProfileDisplay } from '@/app/components/dashboard/ProfileDisplay'
+import { cn } from '@/lib/utils'
 import type { Dispatch, SetStateAction } from 'react'
 import type { DashboardMember, EditableMember, ProfileSection } from '@/app/components/dashboard/types'
+
+// ── Colour helpers ────────────────────────────────────────────────────────
+
+function avatarRingClass(role: string, status: string) {
+  if (role === 'Board Member') return 'ring-yellow-500/50'
+  if (role === 'Core Member')  return 'ring-blue-500/50'
+  if (status === 'Honorary')   return 'ring-amber-500/50'
+  if (status === 'Alumni')     return 'ring-emerald-500/50'
+  if (status === 'Advisor')    return 'ring-indigo-500/50'
+  return 'ring-border'
+}
+
+function avatarGradientClass(role: string, status: string) {
+  if (role === 'Board Member') return 'from-yellow-500 to-orange-600'
+  if (role === 'Core Member')  return 'from-blue-500 to-purple-600'
+  if (status === 'Honorary')   return 'from-amber-500 to-yellow-600'
+  if (status === 'Alumni')     return 'from-emerald-500 to-teal-600'
+  if (status === 'Advisor')    return 'from-indigo-500 to-violet-600'
+  return 'from-blue-500 to-purple-600'
+}
+
+function roleBadgeClass(role: string) {
+  if (role === 'Board Member') return 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
+  if (role === 'Core Member')  return 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+  return 'bg-secondary border-border text-muted-foreground'
+}
+
+function statusBadgeClass(status: string) {
+  if (status === 'Active')   return 'bg-green-500/10 border-green-500/25 text-green-400'
+  if (status === 'Honorary') return 'bg-amber-500/10 border-amber-500/25 text-amber-300'
+  if (status === 'Alumni')   return 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300'
+  if (status === 'Advisor')  return 'bg-indigo-500/10 border-indigo-500/25 text-indigo-300'
+  return 'bg-secondary border-border text-muted-foreground'
+}
+
+// ── Component ─────────────────────────────────────────────────────────────
 
 export function ProfilePage({
   viewedMember,
   member,
-  editing,
+  editing: _editing,
   editedMember,
   creatingMember,
   uploadingImage,
   hasSpecialAccess,
-  sections,
+  sections: _sections,
   saving,
   canEditField,
   getPictureUrl,
   handleBackToMyProfile,
-  handleEditClick,
+  handleEditClick: _handleEditClick,
   handleSave,
-  handleCancel,
+  handleCancel: _handleCancel,
   handleInputChange,
   setUploadingImage,
   setSelectedImageFile,
@@ -47,313 +97,188 @@ export function ProfilePage({
   setSelectedImageFile: (file: File | null) => void
   setEditedMember: Dispatch<SetStateAction<EditableMember | null>>
 }) {
-  const roleLabel = viewedMember?.Role?.trim() || 'Member'
-  const statusLabel = viewedMember?.Status?.trim() || ''
+  // ── Initialise editable state without touching showMemberEditorModal ──
+  // We deliberately bypass handleEditClick() because it always opens the
+  // member-editor modal (setShowMemberEditorModal(true)).  Instead we seed
+  // editedMember directly:
+  //   • when the viewed member changes (navigating A → B → A)
+  //   • when editedMember is cleared after a successful save
+  useEffect(() => {
+    if (viewedMember) setEditedMember({ ...viewedMember })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewedMember?.id])
+
+  useEffect(() => {
+    if (editedMember === null && viewedMember) {
+      setEditedMember({ ...viewedMember })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editedMember])
+
+  const roleLabel       = viewedMember?.Role?.trim()       || 'Member'
+  const statusLabel     = viewedMember?.Status?.trim()     || ''
   const departmentLabel = viewedMember?.Department?.trim() || ''
-  const editableMember = editedMember ?? {}
-  const pictureUrl = getPictureUrl(editing && editedMember ? editedMember.Picture : viewedMember?.Picture)
+  const isOwnProfile    = viewedMember?.id === member?.id
+  const isViewingOther  = viewedMember && member && !isOwnProfile
+
+  // Use editedMember picture if available (shows preview on image select)
+  const pictureUrl = getPictureUrl(editedMember?.Picture ?? viewedMember?.Picture)
+  const initials = viewedMember?.Name
+    ?.split(' ')
+    .map((n: string) => n[0])
+    .join('')
+    .slice(0, 2) || '?'
+
+  // Hidden file input — triggered by the "Change photo" button
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   return (
-    <div className={`mx-auto ${editing ? 'max-w-6xl' : 'max-w-4xl'}`}>
-      {viewedMember && member && viewedMember.id !== member.id && (
-        <div className="mb-3 sm:mb-4">
-          <button
+    <div>
+
+      {/* ── Back button ─────────────────────────────────────────────── */}
+      {isViewingOther && (
+        <div className="mb-5">
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={handleBackToMyProfile}
-            className="px-3 sm:px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 rounded-lg text-blue-300 hover:text-blue-200 text-xs sm:text-sm transition-all duration-200 flex items-center gap-1.5 sm:gap-2"
+            className="text-muted-foreground hover:text-foreground"
           >
-            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            <span className="hidden sm:inline">Back to My Profile</span>
-            <span className="sm:hidden">Back</span>
-          </button>
+            <ArrowLeftIcon data-icon="inline-start" />
+            My Profile
+          </Button>
         </div>
       )}
 
-        <div className={`backdrop-blur-md border rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 mb-6 sm:mb-8 relative overflow-hidden ${
-          roleLabel === 'Board Member'
-            ? 'bg-gradient-to-br from-yellow-500/10 via-orange-500/5 to-yellow-500/10 border-yellow-500/30'
-            : roleLabel === 'Core Member'
-            ? 'bg-gradient-to-br from-blue-500/10 via-purple-500/5 to-blue-500/10 border-blue-500/30'
-            : statusLabel === 'Honorary'
-            ? 'bg-gradient-to-br from-amber-500/10 via-yellow-500/5 to-amber-500/10 border-amber-500/30'
-            : statusLabel === 'Alumni'
-            ? 'bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-emerald-500/10 border-emerald-500/30'
-            : statusLabel === 'Advisor'
-            ? 'bg-gradient-to-br from-indigo-500/10 via-violet-500/5 to-indigo-500/10 border-indigo-500/30'
-            : 'bg-white/5 border-white/10'
-        }`}>
-          <div className={`absolute top-0 right-0 w-24 h-24 sm:w-32 sm:h-32 opacity-20 blur-3xl ${
-            roleLabel === 'Board Member'
-              ? 'bg-yellow-500'
-              : roleLabel === 'Core Member'
-              ? 'bg-blue-500'
-              : statusLabel === 'Honorary'
-              ? 'bg-amber-500'
-              : statusLabel === 'Alumni'
-              ? 'bg-emerald-500'
-              : statusLabel === 'Advisor'
-              ? 'bg-indigo-500'
-              : 'bg-purple-500'
-          }`} />
+      {/* ── Identity card ──────────────────────────────────────────── */}
+      <Card className="mb-6">
+        <CardHeader className="flex-row items-start gap-5 pb-5">
 
-        <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 relative z-10">
-          <div className="flex-shrink-0 mx-auto sm:mx-0">
-              <div className="relative group">
-              {pictureUrl ? (
-                <Image
-                  src={pictureUrl}
-                  alt={viewedMember?.Name || 'Member'}
-                  width={96}
-                  height={96}
-                  unoptimized
-                  className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full object-cover border-2 ${
-                    roleLabel === 'Board Member'
-                      ? 'border-yellow-500/50'
-                      : roleLabel === 'Core Member'
-                      ? 'border-blue-500/50'
-                      : statusLabel === 'Honorary'
-                      ? 'border-amber-500/50'
-                      : statusLabel === 'Alumni'
-                      ? 'border-emerald-500/50'
-                      : statusLabel === 'Advisor'
-                      ? 'border-indigo-500/50'
-                      : 'border-white/20'
-                  }`}
-                />
-              ) : null}
-              <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full flex items-center justify-center border-2 ${
-                roleLabel === 'Board Member'
-                  ? 'bg-gradient-to-br from-yellow-500 to-orange-600 border-yellow-500/50'
-                  : roleLabel === 'Core Member'
-                  ? 'bg-gradient-to-br from-blue-500 to-purple-600 border-blue-500/50'
-                  : statusLabel === 'Honorary'
-                  ? 'bg-gradient-to-br from-amber-500 to-yellow-600 border-amber-500/50'
-                  : statusLabel === 'Alumni'
-                  ? 'bg-gradient-to-br from-emerald-500 to-teal-600 border-emerald-500/50'
-                  : statusLabel === 'Advisor'
-                  ? 'bg-gradient-to-br from-indigo-500 to-violet-600 border-indigo-500/50'
-                  : 'bg-gradient-to-br from-blue-500 to-purple-600 border-white/20'
-              } ${pictureUrl ? 'hidden' : ''}`}>
-                <span className="text-2xl sm:text-3xl font-bold text-white">
-                  {viewedMember?.Name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
-                </span>
-              </div>
-
-              {editing && (
-                <label className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity">
-                  {uploadingImage ? (
-                    <svg className="animate-spin h-6 w-6 sm:h-8 sm:w-8 text-white" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                    </svg>
-                  ) : (
-                    <svg className="w-6 h-6 sm:w-8 sm:h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                  )}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    disabled={uploadingImage}
-                    onChange={(e) => {
-                      const file = e.target.files?.[0]
-                      if (!file) return
-
-                      setUploadingImage(true)
-                      setSelectedImageFile(file)
-
-                      const reader = new FileReader()
-                      reader.onloadend = () => {
-                        const pictureValue = typeof reader.result === 'string' ? reader.result : null
-
-                        setEditedMember((prev) =>
-                          prev
-                            ? {
-                                ...prev,
-                                Picture: pictureValue,
-                              }
-                            : prev
-                        )
-                        setUploadingImage(false)
-                      }
-                      reader.readAsDataURL(file)
-                    }}
-                  />
-                </label>
+          {/* Avatar + upload button stacked */}
+          <div className="flex flex-col items-start gap-2 shrink-0">
+            <Avatar className={cn('size-36 ring-2 ring-offset-2 ring-offset-background', avatarRingClass(roleLabel, statusLabel))}>
+              {pictureUrl && (
+                <AvatarImage src={pictureUrl} alt={viewedMember?.Name || 'Member'} />
               )}
-            </div>
-          </div>
+              <AvatarFallback className={cn('bg-gradient-to-br text-white font-bold text-4xl', avatarGradientClass(roleLabel, statusLabel))}>
+                {initials}
+              </AvatarFallback>
+            </Avatar>
 
-          <div className="flex-1 w-full sm:w-auto text-center sm:text-left">
-            <div className="flex flex-col sm:flex-row items-center sm:items-start sm:justify-between mb-1 gap-2">
-              <h2 className="text-xl sm:text-2xl font-bold text-white break-words">{viewedMember?.Name}</h2>
-              <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
-                {hasSpecialAccess && viewedMember?.id === member?.id && (
-                  <div className={`flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg border backdrop-blur-sm ${
-                    roleLabel === 'Board Member'
-                      ? 'bg-yellow-500/30 border-yellow-400/60'
-                      : roleLabel === 'Core Member'
-                      ? 'bg-blue-500/30 border-blue-400/60'
-                      : 'bg-purple-500/30 border-purple-400/60'
-                  }`}>
-                    <svg className={`w-3 h-3 sm:w-3.5 sm:h-3.5 ${
-                      roleLabel === 'Board Member'
-                        ? 'text-yellow-300'
-                        : roleLabel === 'Core Member'
-                        ? 'text-blue-300'
-                        : 'text-purple-300'
-                    }`} fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M2.166 4.999A11.954 11.954 0 0010 1.944 11.954 11.954 0 0017.834 5c.11.65.166 1.32.166 2.001 0 5.225-3.34 9.67-8 11.317C5.34 16.67 2 12.225 2 7c0-.682.057-1.35.166-2.001zm11.541 3.708a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                    </svg>
-                    <span className={`text-xs font-semibold ${
-                      roleLabel === 'Board Member'
-                        ? 'text-yellow-200'
-                        : roleLabel === 'Core Member'
-                        ? 'text-blue-200'
-                        : 'text-purple-200'
-                    }`}>Admin</span>
-                  </div>
-                )}
-                {roleLabel === 'Board Member' && (
-                  <div className="flex items-center gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-yellow-500/20 border border-yellow-500/40 rounded-lg">
-                    <svg className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    <span className="text-yellow-300 text-xs font-semibold">Board</span>
-                  </div>
-                )}
-              </div>
-            </div>
-            <p className="text-white/60 text-xs sm:text-sm mb-2 sm:mb-3 break-all">{viewedMember?.['TBC Email'] || 'No email provided'}</p>
-
-            {!creatingMember && (
-              <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
-                <span className={`inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium border ${
-                  roleLabel === 'Board Member'
-                    ? 'bg-yellow-500/20 border-yellow-500/40 text-yellow-300'
-                    : roleLabel === 'Core Member'
-                    ? 'bg-blue-500/20 border-blue-500/40 text-blue-300'
-                    : 'bg-purple-500/20 border-purple-500/40 text-purple-300'
-                }`}>
-                  {roleLabel}
-                </span>
-
-                {statusLabel && (
-                  <span className={`inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm font-medium border ${
-                    statusLabel === 'Active'
-                      ? 'bg-green-500/20 border-green-500/40 text-green-300'
-                      : statusLabel === 'Honorary'
-                      ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                      : statusLabel === 'Alumni'
-                      ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                      : statusLabel === 'Advisor'
-                      ? 'bg-indigo-500/20 border-indigo-500/40 text-indigo-300'
-                      : 'bg-gray-500/20 border-gray-500/40 text-gray-300'
-                  }`}>
-                    <span className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full mr-1.5 sm:mr-2 ${
-                      statusLabel === 'Active'
-                        ? 'bg-green-400 shadow-lg shadow-green-400/50'
-                        : statusLabel === 'Honorary'
-                        ? 'bg-amber-400 shadow-lg shadow-amber-400/50'
-                        : statusLabel === 'Alumni'
-                        ? 'bg-emerald-400 shadow-lg shadow-emerald-400/50'
-                        : statusLabel === 'Advisor'
-                        ? 'bg-indigo-400 shadow-lg shadow-indigo-400/50'
-                        : 'bg-gray-400'
-                    }`} />
-                    {statusLabel}
-                  </span>
-                )}
-
-                {departmentLabel && (
-                  <span className="inline-flex items-center px-2 sm:px-3 py-1 sm:py-1.5 bg-white/10 border border-white/20 rounded-lg text-white/80 text-xs sm:text-sm font-medium">
-                    <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5 mr-1 sm:mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                    <span className="truncate">{departmentLabel}</span>
-                  </span>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl sm:rounded-2xl overflow-hidden">
-        <div className="border-b border-white/10 px-4 sm:px-6 md:px-8 py-4 sm:py-5 md:py-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-          <h3 className="text-lg sm:text-xl font-bold text-white">Profile Information</h3>
-          <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
-            {!editing ? (
-              <button
-                onClick={handleEditClick}
-                className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm rounded-lg transition-colors duration-200 flex items-center justify-center gap-1.5 sm:gap-2"
-              >
-                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                <span className="hidden sm:inline">Edit Profile</span>
-                <span className="sm:hidden">Edit</span>
-              </button>
-            ) : (
+            {/* Explicit upload button — only shown on own profile */}
+            {isOwnProfile && (
               <>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-600/50 disabled:cursor-not-allowed text-white text-xs sm:text-sm rounded-lg transition-all duration-200 shadow-lg shadow-blue-500/20 hover:shadow-blue-500/40 flex items-center justify-center gap-1.5 sm:gap-2"
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={uploadingImage}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-xs"
                 >
-                  {saving ? (
-                    <>
-                      <svg className="animate-spin h-3.5 w-3.5 sm:h-4 sm:w-4" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      <span className="hidden sm:inline">Saving...</span>
-                      <span className="sm:hidden">...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span className="hidden sm:inline">Save Changes</span>
-                      <span className="sm:hidden">Save</span>
-                    </>
-                  )}
-                </button>
-                <button
-                  onClick={handleCancel}
-                  disabled={saving}
-                  className="flex-1 sm:flex-initial px-3 sm:px-4 py-2 bg-white/10 hover:bg-white/20 disabled:bg-white/5 disabled:cursor-not-allowed text-white text-xs sm:text-sm rounded-lg transition-all duration-200 flex items-center justify-center gap-1.5 sm:gap-2"
-                >
-                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                  <span className="hidden sm:inline">Cancel</span>
-                  <span className="sm:hidden">Cancel</span>
-                </button>
+                  <CameraIcon data-icon="inline-start" />
+                  {uploadingImage ? 'Uploading…' : 'Change photo'}
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  disabled={uploadingImage}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0]
+                    if (!file) return
+                    setUploadingImage(true)
+                    setSelectedImageFile(file)
+                    const reader = new FileReader()
+                    reader.onloadend = () => {
+                      setEditedMember((prev) =>
+                        prev ? { ...prev, Picture: typeof reader.result === 'string' ? reader.result : null } : prev,
+                      )
+                      setUploadingImage(false)
+                    }
+                    reader.readAsDataURL(file)
+                  }}
+                />
               </>
             )}
           </div>
-        </div>
 
-        <div className="p-4 sm:p-6 md:p-8">
-          {editing ? (
-            <EditableProfileForm
-              member={editableMember}
-              onInputChange={handleInputChange}
-              onSave={handleSave}
-              isBoardMember={member?.Role === 'Board Member'}
-              isOwnProfile={viewedMember?.id === member?.id}
-              canEditField={canEditField}
-            />
+          {/* Name + email + badges */}
+          <div className="flex-1 min-w-0 pt-1">
+            <div className="flex items-center gap-2 flex-wrap">
+              <CardTitle className="text-base">
+                {viewedMember?.Name || 'Member'}
+              </CardTitle>
+              {hasSpecialAccess && isOwnProfile && (
+                <Badge variant="outline" className="text-[10px] px-1.5 py-px bg-secondary border-border text-muted-foreground">
+                  <ShieldCheckIcon data-icon="inline-start" />
+                  Admin
+                </Badge>
+              )}
+            </div>
+
+            <CardDescription className="mt-0.5">
+              {viewedMember?.['TBC Email'] || 'No email provided'}
+            </CardDescription>
+
+            {!creatingMember && (
+              <div className="flex flex-wrap gap-1 mt-2">
+                <Badge variant="outline" className={cn('text-xs', roleBadgeClass(roleLabel))}>
+                  {roleLabel === 'Board Member' && <StarIcon data-icon="inline-start" />}
+                  {roleLabel}
+                </Badge>
+                {statusLabel && (
+                  <Badge variant="outline" className={cn('text-xs', statusBadgeClass(statusLabel))}>
+                    {statusLabel}
+                  </Badge>
+                )}
+                {departmentLabel && (
+                  <Badge variant="outline" className="text-xs bg-secondary border-border text-muted-foreground">
+                    <Building2Icon data-icon="inline-start" />
+                    {departmentLabel}
+                  </Badge>
+                )}
+              </div>
+            )}
+          </div>
+
+        </CardHeader>
+
+        <Separator />
+
+        {/* ── Form: always visible ────────────────────────────────── */}
+        <CardContent className="pt-6">
+          {editedMember ? (
+            <>
+              <EditableProfileForm
+                member={editedMember}
+                onInputChange={handleInputChange}
+                onSave={handleSave}
+                isBoardMember={member?.Role === 'Board Member'}
+                isOwnProfile={isOwnProfile}
+                canEditField={canEditField}
+              />
+
+              {/* Save at bottom — SCC pattern */}
+              <div className="flex justify-end pt-6">
+                <Button onClick={handleSave} disabled={saving}>
+                  {saving
+                    ? <Spinner data-icon="inline-start" />
+                    : <SaveIcon data-icon="inline-start" />
+                  }
+                  {saving ? 'Saving…' : 'Save changes'}
+                </Button>
+              </div>
+            </>
           ) : (
-            <ProfileDisplay sections={sections} />
+            // Brief loading state while setEditedMember initialises
+            <div className="flex items-center justify-center py-12">
+              <Spinner className="text-muted-foreground" />
+            </div>
           )}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
+
     </div>
   )
 }

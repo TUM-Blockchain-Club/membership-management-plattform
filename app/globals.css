@@ -4,27 +4,28 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
-  --card: #09090b;
-  --card-foreground: #ffffff;
-  --popover: #09090b;
-  --popover-foreground: #ffffff;
+  /* Pure neutral dark — no colour cast */
+  --background: #111111;
+  --foreground: #f2f2f2;
+  --card: #1c1c1c;
+  --card-foreground: #f2f2f2;
+  --popover: #252525;
+  --popover-foreground: #f2f2f2;
   --primary: #3b82f6;
   --primary-foreground: #ffffff;
-  --secondary: rgba(255, 255, 255, 0.08);
-  --secondary-foreground: #ffffff;
-  --muted: rgba(255, 255, 255, 0.08);
-  --muted-foreground: rgba(255, 255, 255, 0.62);
+  --secondary: rgba(255, 255, 255, 0.06);
+  --secondary-foreground: #f2f2f2;
+  --muted: rgba(255, 255, 255, 0.06);
+  --muted-foreground: rgba(242, 242, 242, 0.45);
   --accent: #3b82f6;
   --accent-foreground: #ffffff;
   --accent-hover: #2563eb;
   --destructive: #ef4444;
   --destructive-foreground: #ffffff;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.08);
-  --ring: rgba(59, 130, 246, 0.5);
-  --radius: 0.625rem;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.07);
+  --ring: rgba(59, 130, 246, 0.4);
+  --radius: 0.5rem;
 }
 
 @theme inline {
@@ -65,15 +66,14 @@ html {
 }
 
 body {
-  background: linear-gradient(135deg, #0D0D0D 0%, #151525 50%, #1A1440 100%);
-  background-attachment: fixed;
+  background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   overflow-x: hidden;
 }
 
 .grid-background {
-  background: linear-gradient(135deg, #0D0D0D 0%, #151525 50%, #1A1440 100%);
+  background-color: var(--background);
 }
 
 .grid-pattern {
@@ -81,7 +81,6 @@ body {
     linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
   background-size: 50px 50px;
-  animation: gridMove 20s linear infinite;
 }
 
 .grid-glow {
@@ -91,7 +90,6 @@ body {
     rgba(59, 130, 246, 0.05) 30%,
     transparent 70%
   );
-  animation: pulseGlow 8s ease-in-out infinite;
 }
 
 @keyframes gridMove {
@@ -475,4 +473,3 @@ body {
     filter: none;
   }
 }
-

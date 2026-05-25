@@ -1,5 +1,5 @@
 import type { DashboardMember } from "@/app/components/dashboard/types"
-import { MembersPage } from "./members/MembersPage"
+import { MembersPageV2 } from "./members/MembersPageV2"
 
 export function MembersTab(props: {
   boardMembers: DashboardMember[]
@@ -30,5 +30,5 @@ export function MembersTab(props: {
   handleEditClick: () => void
   handleEditOtherMember: (targetMember: DashboardMember) => void
 }) {
-  return <MembersPage {...props} />
+  return <MembersPageV2 {...props} />
 }

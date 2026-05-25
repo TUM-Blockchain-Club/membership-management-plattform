@@ -8,6 +8,22 @@ type MembersDirectoryFilters = {
   statusFilter: string
 }
 
+const roleOrder: Record<string, number> = {
+  'Board Member': 1,
+  'Core Member': 2,
+  'Ex-Core Member': 3,
+}
+
+const exCoreStatusOrder: Record<string, number> = {
+  Honorary: 1,
+  Alumni: 2,
+  Advisor: 3,
+}
+
+const exCoreHighlightedStatuses = new Set(['Honorary', 'Alumni', 'Advisor'])
+const namedRoleSet = new Set(['Board Member', 'Core Member', 'Ex-Core Member'])
+const memberNameCollator = new Intl.Collator(undefined, { sensitivity: 'base' })
+
 export function useMembersDirectory(
   allMembers: DashboardMember[],
   canViewRemovedMembers: boolean,
@@ -18,67 +34,90 @@ export function useMembersDirectory(
     return allMembers.filter((m) => m.Status !== 'Left' && m.Status !== 'Kicked out')
   }, [allMembers, canViewRemovedMembers])
 
-  const filteredMembers = useMemo(() => {
+  const directory = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
+    const boardMembers: DashboardMember[] = []
+    const coreMembers: DashboardMember[] = []
+    const exCoreHonorary: DashboardMember[] = []
+    const exCoreAlumni: DashboardMember[] = []
+    const exCoreAdvisors: DashboardMember[] = []
+    const exCoreOthers: DashboardMember[] = []
+    const otherMembers: DashboardMember[] = []
 
-    return membersVisibleByRole
-      .filter((m) => {
+    const filteredMembers = membersVisibleByRole
+      .filter((member) => {
+        if (statusFilter !== 'all' && member.Status !== statusFilter) return false
+        if (departmentFilter !== 'all' && member.Department !== departmentFilter) return false
+        if (roleFilter !== 'all' && member.Role !== roleFilter) return false
+
         if (!query) return true
-        return [m.Name, m.Department, m.Role, m['TBC Email']]
-          .map((v) => v?.toLowerCase() || '')
-          .some((v) => v.includes(query))
-      })
-      .filter((m) => statusFilter === 'all' || m.Status === statusFilter)
-      .filter((m) => departmentFilter === 'all' || m.Department === departmentFilter)
-      .filter((m) => roleFilter === 'all' || m.Role === roleFilter)
-      .sort((a, b) => {
-        const roleOrder: Record<string, number> = {
-          'Board Member': 1,
-          'Core Member': 2,
-          'Ex-Core Member': 3,
-        }
 
+        return [member.Name, member.Department, member.Role, member['TBC Email']]
+          .some((value) => value?.toLowerCase().includes(query))
+      })
+      .sort((a, b) => {
         const aOrder = roleOrder[a.Role || ''] || 99
         const bOrder = roleOrder[b.Role || ''] || 99
         if (aOrder !== bOrder) return aOrder - bOrder
 
         if (a.Role === 'Ex-Core Member' && b.Role === 'Ex-Core Member') {
-          const statusOrder: Record<string, number> = {
-            Honorary: 1,
-            Alumni: 2,
-            Advisor: 3,
-          }
-          const aStatusOrder = statusOrder[a.Status || ''] || 99
-          const bStatusOrder = statusOrder[b.Status || ''] || 99
+          const aStatusOrder = exCoreStatusOrder[a.Status || ''] || 99
+          const bStatusOrder = exCoreStatusOrder[b.Status || ''] || 99
           if (aStatusOrder !== bStatusOrder) return aStatusOrder - bStatusOrder
         }
 
-        return (a.Name || '').localeCompare(b.Name || '')
+        return memberNameCollator.compare(a.Name || '', b.Name || '')
       })
-  }, [departmentFilter, membersVisibleByRole, roleFilter, searchQuery, statusFilter])
 
-  const boardMembers = useMemo(() => filteredMembers.filter((m) => m.Role === 'Board Member'), [filteredMembers])
-  const coreMembers = useMemo(() => filteredMembers.filter((m) => m.Role === 'Core Member'), [filteredMembers])
-  const exCoreHonorary = useMemo(
-    () => filteredMembers.filter((m) => m.Role === 'Ex-Core Member' && m.Status === 'Honorary'),
-    [filteredMembers]
-  )
-  const exCoreAlumni = useMemo(
-    () => filteredMembers.filter((m) => m.Role === 'Ex-Core Member' && m.Status === 'Alumni'),
-    [filteredMembers]
-  )
-  const exCoreAdvisors = useMemo(
-    () => filteredMembers.filter((m) => m.Role === 'Ex-Core Member' && m.Status === 'Advisor'),
-    [filteredMembers]
-  )
-  const exCoreOthers = useMemo(
-    () => filteredMembers.filter((m) => m.Role === 'Ex-Core Member' && !['Honorary', 'Alumni', 'Advisor'].includes(m.Status || '')),
-    [filteredMembers]
-  )
-  const otherMembers = useMemo(
-    () => filteredMembers.filter((m) => !['Board Member', 'Core Member', 'Ex-Core Member'].includes(m.Role || '')),
-    [filteredMembers]
-  )
+    filteredMembers.forEach((member) => {
+      if (member.Role === 'Board Member') {
+        boardMembers.push(member)
+        return
+      }
+
+      if (member.Role === 'Core Member') {
+        coreMembers.push(member)
+        return
+      }
+
+      if (member.Role === 'Ex-Core Member') {
+        if (member.Status === 'Honorary') {
+          exCoreHonorary.push(member)
+          return
+        }
+
+        if (member.Status === 'Alumni') {
+          exCoreAlumni.push(member)
+          return
+        }
+
+        if (member.Status === 'Advisor') {
+          exCoreAdvisors.push(member)
+          return
+        }
+
+        if (!exCoreHighlightedStatuses.has(member.Status || '')) {
+          exCoreOthers.push(member)
+          return
+        }
+      }
+
+      if (!namedRoleSet.has(member.Role || '')) {
+        otherMembers.push(member)
+      }
+    })
+
+    return {
+      boardMembers,
+      coreMembers,
+      exCoreAdvisors,
+      exCoreAlumni,
+      exCoreHonorary,
+      exCoreOthers,
+      filteredMembers,
+      otherMembers,
+    }
+  }, [departmentFilter, membersVisibleByRole, roleFilter, searchQuery, statusFilter])
 
   const uniqueStatuses = useMemo(
     () => [...new Set(membersVisibleByRole.map((m) => m.Status).filter((v): v is string => Boolean(v?.trim())))],
@@ -94,15 +133,8 @@ export function useMembersDirectory(
   )
 
   return {
-    boardMembers,
-    coreMembers,
-    exCoreAdvisors,
-    exCoreAlumni,
-    exCoreHonorary,
-    exCoreOthers,
-    filteredMembers,
+    ...directory,
     membersVisibleByRole,
-    otherMembers,
     uniqueDepartments,
     uniqueRoles,
     uniqueStatuses,

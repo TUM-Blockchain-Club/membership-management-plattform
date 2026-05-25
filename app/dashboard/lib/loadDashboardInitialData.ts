@@ -4,8 +4,12 @@ import { cache } from 'react'
 import { headers } from 'next/headers'
 import type { DashboardEvent, DashboardMember, DashboardTab } from '@/app/components/dashboard/types'
 import type { DashboardInitialData } from '@/app/dashboard/lib/initialDataTypes'
-import { isLocalDevBypassEnabled } from '@/lib/devBypass'
-import { NftRequestAdminError, requireNftRequestAdmin } from '@/lib/server/nftRequestAdmin'
+import {
+  getLocalDevBypassMemberId,
+  hasLocalDevBypassSpecialAccess,
+  isLocalDevBypassEnabled,
+} from '@/lib/devBypass'
+import { getSupabaseAdminClient } from '@/lib/server/supabaseAdmin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 type AccessResponse = boolean | null
@@ -41,8 +45,39 @@ const emptyInitialData = (): DashboardInitialData => ({
   viewedMemberHasSpecialAccess: false,
 })
 
-const routeNeedsEvents = (tab: DashboardTab) => tab === 'events'
-const routeNeedsMembers = (tab: DashboardTab) => tab === 'members' || tab === 'stats'
+// 'all' is used by the shared layout to eagerly load every tab's data once.
+const routeNeedsEvents  = (tab: DashboardTab | 'all') => tab === 'events'  || tab === 'all'
+const routeNeedsMembers = (tab: DashboardTab | 'all') => tab === 'members' || tab === 'stats' || tab === 'all'
+const isNftAdminMember = (memberId: number) => NFT_ADMIN_MEMBER_IDS.has(memberId)
+const shouldLogServerPerf = () => process.env.PERF_LOG_SERVER === 'true'
+const now = () => performance.now()
+const roundMs = (start: number) => Math.round(now() - start)
+
+const estimatePicturePayloadBytes = (members: DashboardMember[]) =>
+  members.reduce((sum, member) => {
+    const picture = member.Picture
+    if (!picture) return sum
+    if (typeof picture === 'string') return sum + picture.length
+    if (typeof picture === 'object' && picture !== null && 'data' in picture) {
+      const dataValue = (picture as { data?: unknown }).data
+      if (Array.isArray(dataValue)) return sum + dataValue.length
+    }
+
+    return sum
+  }, 0)
+
+const estimateJsonBytes = (value: unknown) => {
+  try {
+    return JSON.stringify(value).length
+  } catch {
+    return 0
+  }
+}
+
+const logDashboardPerf = (label: string, data: Record<string, unknown>) => {
+  if (!shouldLogServerPerf()) return
+  console.info('[dashboard-perf]', label, data)
+}
 
 const getRequestForCurrentHost = async () => {
   const headerStore = await headers()
@@ -50,22 +85,6 @@ const getRequestForCurrentHost = async () => {
   const protocol = host.startsWith('localhost') || host.startsWith('127.0.0.1') ? 'http' : 'https'
 
   return new Request(`${protocol}://${host}/dashboard`)
-}
-
-const getCanManageNftRequests = async (
-  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-  request: Request
-) => {
-  try {
-    await requireNftRequestAdmin(supabase, request)
-    return true
-  } catch (error) {
-    if (error instanceof NftRequestAdminError && (error.status === 401 || error.status === 403)) {
-      return false
-    }
-
-    throw error
-  }
 }
 
 const loadUpcomingEvents = async (
@@ -123,14 +142,17 @@ const loadUpcomingEvents = async (
   })
 }
 
-export const loadDashboardInitialData = cache(async (routeTab: DashboardTab): Promise<DashboardInitialData> => {
+export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'all'): Promise<DashboardInitialData> => {
+  const totalStartedAt = now()
   const supabase = await createSupabaseServerClient()
   const request = await getRequestForCurrentHost()
   const devBypass = isLocalDevBypassEnabled(new URL(request.url).hostname)
 
+  const authStartedAt = now()
   const {
     data: { user },
   } = await supabase.auth.getUser()
+  logDashboardPerf('auth.getUser', { routeTab, ms: roundMs(authStartedAt), devBypass, hasUser: Boolean(user) })
 
   if (!user) {
     if (!devBypass) {
@@ -140,12 +162,72 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab): Pr
       }
     }
 
+    const dataClient = getSupabaseAdminClient() ?? supabase
+    const devMemberId = getLocalDevBypassMemberId()
+    const memberStartedAt = now()
+    const { data: memberData, error: memberError } = await dataClient
+      .from('members_main')
+      .select(MEMBER_COLUMNS)
+      .eq('id', devMemberId)
+      .maybeSingle()
+    logDashboardPerf('dev.member', { routeTab, memberId: devMemberId, ms: roundMs(memberStartedAt) })
+
+    if (memberError || !memberData) {
+      return {
+        ...emptyInitialData(),
+        canManageNftRequests: isNftAdminMember(devMemberId),
+        message: {
+          type: 'error',
+          text: `Local dev auth bypass could not load members_main.id=${devMemberId}.`,
+        },
+      }
+    }
+
+    const member = memberData as DashboardMember
+    const allMembersPromise = routeNeedsMembers(routeTab)
+      ? dataClient.from('members_main').select(MEMBER_COLUMNS).order('Name', { ascending: true })
+      : Promise.resolve({ data: [] as DashboardMember[], error: null })
+    const eventsPromise = routeNeedsEvents(routeTab)
+      ? loadUpcomingEvents(dataClient, member.id)
+      : Promise.resolve([] as DashboardEvent[])
+    const routeDataStartedAt = now()
+    const [{ data: allMembersData, error: allMembersError }, events] = await Promise.all([
+      allMembersPromise,
+      eventsPromise,
+    ])
+    const allMembers = (allMembersData ?? []) as DashboardMember[]
+    logDashboardPerf('dev.routeData', {
+      routeTab,
+      ms: roundMs(routeDataStartedAt),
+      memberCount: allMembers.length,
+      eventCount: events.length,
+      jsonBytes: estimateJsonBytes(allMembers),
+      pictureBytes: estimatePicturePayloadBytes(allMembers),
+    })
+
+    if (allMembersError) {
+      return {
+        ...emptyInitialData(),
+        member,
+        message: {
+          type: 'error',
+          text: `Local dev auth bypass could not load members: ${allMembersError.message || 'Please contact support.'}`,
+        },
+      }
+    }
+
     return {
-      ...emptyInitialData(),
-      canManageNftRequests: await getCanManageNftRequests(supabase, request),
+      allMembers,
+      canManageNftRequests: isNftAdminMember(member.id) || hasLocalDevBypassSpecialAccess(),
+      events,
+      hasSpecialAccess: hasLocalDevBypassSpecialAccess(),
+      member,
+      message: null,
+      viewedMemberHasSpecialAccess: hasLocalDevBypassSpecialAccess(),
     }
   }
 
+  const memberStartedAt = now()
   const specialAccessPromise = supabase.rpc('has_special_access')
   const memberPromise = supabase
     .from('members_main')
@@ -157,6 +239,7 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab): Pr
     specialAccessPromise,
     memberPromise,
   ])
+  logDashboardPerf('memberAndAccess', { routeTab, ms: roundMs(memberStartedAt) })
 
   if (memberError) {
     return {
@@ -179,7 +262,7 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab): Pr
   const viewedMemberAccessPromise = supabase.rpc('check_email_has_special_access', {
     check_email: member['TBC Email'],
   })
-  const nftAdminAccessPromise = Promise.resolve(NFT_ADMIN_MEMBER_IDS.has(member.id))
+  const nftAdminAccessPromise = Promise.resolve(isNftAdminMember(member.id))
   const allMembersPromise = routeNeedsMembers(routeTab)
     ? supabase.from('members_main').select(MEMBER_COLUMNS).order('Name', { ascending: true })
     : Promise.resolve({ data: [] as DashboardMember[], error: null })
@@ -187,6 +270,7 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab): Pr
     ? loadUpcomingEvents(supabase, member.id)
     : Promise.resolve([] as DashboardEvent[])
 
+  const routeDataStartedAt = now()
   const [
     { data: viewedMemberAccessResult },
     canManageNftRequests,
@@ -198,6 +282,16 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab): Pr
     allMembersPromise,
     eventsPromise,
   ])
+  const allMembers = (allMembersData ?? []) as DashboardMember[]
+  logDashboardPerf('routeData', {
+    routeTab,
+    ms: roundMs(routeDataStartedAt),
+    memberCount: allMembers.length,
+    eventCount: events.length,
+    jsonBytes: estimateJsonBytes(allMembers),
+    pictureBytes: estimatePicturePayloadBytes(allMembers),
+    totalMs: roundMs(totalStartedAt),
+  })
 
   if (allMembersError) {
     return {
@@ -211,7 +305,7 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab): Pr
   }
 
   return {
-    allMembers: (allMembersData ?? []) as DashboardMember[],
+    allMembers,
     canManageNftRequests,
     events,
     hasSpecialAccess: (specialAccessResult as AccessResponse) === true,
