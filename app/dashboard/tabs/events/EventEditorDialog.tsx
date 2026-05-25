@@ -35,7 +35,7 @@ export type EventEditorDraft = {
   city: string
   formats: string[]
   image_url: string
-  image_link_url: string
+  event_link_url: string
 }
 
 type EventEditorDialogProps = {
@@ -79,7 +79,7 @@ const emptyDraft = (): EventEditorDraft => ({
   city: '',
   formats: [],
   image_url: '',
-  image_link_url: '',
+  event_link_url: '',
 })
 
 const toDraft = (event: DashboardEvent | null): EventEditorDraft => {
@@ -95,7 +95,7 @@ const toDraft = (event: DashboardEvent | null): EventEditorDraft => {
     city: event.city ?? event.location ?? '',
     formats: splitStoredOptions(event.format, FORMAT_OPTIONS),
     image_url: event.image_url ?? '',
-    image_link_url: event.image_link_url ?? '',
+    event_link_url: event.event_link_url ?? '',
   }
 }
 
@@ -306,8 +306,8 @@ export function EventEditorDialog({
             />
 
             <Field>
-              <FieldLabel htmlFor="event-image-link">Image link</FieldLabel>
-              <Input id="event-image-link" value={draft.image_link_url} onChange={(event) => updateDraft('image_link_url', event.target.value)} />
+              <FieldLabel htmlFor="event-link">Event link</FieldLabel>
+              <Input id="event-link" value={draft.event_link_url} onChange={(event) => updateDraft('event_link_url', event.target.value)} />
             </Field>
           </FieldGroup>
         </div>

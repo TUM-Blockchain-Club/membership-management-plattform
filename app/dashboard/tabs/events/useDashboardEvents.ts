@@ -20,7 +20,7 @@ type ExternalEventDraft = {
   city: string
   formats: string[]
   image_url: string
-  image_link_url: string
+  event_link_url: string
 }
 
 export function useDashboardEvents(
@@ -104,7 +104,7 @@ export function useDashboardEvents(
           external_status: draft.external_status === 'none' ? null : draft.external_status,
           city: draft.city,
           formats: draft.formats,
-          image_link_url: draft.image_link_url,
+          event_link_url: draft.event_link_url,
         }),
       })
 
@@ -144,7 +144,7 @@ export function useDashboardEvents(
           external_status: draft.external_status === 'none' ? null : draft.external_status,
           city: draft.city,
           formats: draft.formats,
-          image_link_url: draft.image_link_url,
+          event_link_url: draft.event_link_url,
         }),
       })
 

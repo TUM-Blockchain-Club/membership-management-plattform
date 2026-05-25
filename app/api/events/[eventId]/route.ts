@@ -17,11 +17,11 @@ type EventUpdatePayload = {
   external_status?: string | null
   city?: string | null
   formats?: string[]
-  image_link_url?: string | null
+  event_link_url?: string | null
 }
 
 const EVENT_COLUMNS =
-  "id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, image_url, image_link_url, is_hackathon, interested_names, attending_names, all_day"
+  "id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, image_url, event_link_url, is_hackathon, interested_names, attending_names, all_day"
 
 const nullableString = (value: unknown) => {
   if (typeof value !== "string") return null
@@ -82,7 +82,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       external_status: nullableString(payload.external_status),
       city,
       format,
-      image_link_url: nullableString(payload.image_link_url),
+      event_link_url: nullableString(payload.event_link_url),
       location: city,
       organizer_department: eventType,
       is_hackathon: eventTypes.includes("Hackathon"),

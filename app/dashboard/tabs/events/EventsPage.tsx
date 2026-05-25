@@ -279,7 +279,7 @@ export function EventsPage({
                 status={event.external_status}
                 format={event.format}
                 imageUrl={event.image_url}
-                imageLinkUrl={event.image_link_url}
+                imageLinkUrl={event.event_link_url}
                 interestedNames={event.interested_names}
                 attendingNames={event.attending_names}
                 canEdit={canManageEvents}

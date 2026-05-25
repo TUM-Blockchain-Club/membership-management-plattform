@@ -22,7 +22,7 @@ The migration adds:
 - `city`
 - `format`
 - `image_url`
-- `image_link_url`
+- `event_link_url`
 - `is_hackathon`
 - `interested_names`
 - `attending_names`
@@ -39,7 +39,7 @@ It also backfills the 19 imported CSV rows as `external` and preserves existing 
 - The event editor keeps Interested and Attending read-only by leaving those lists out of edit/create forms.
 - Status is a fixed shadcn `Select`; Type and Format are shadcn checkbox multi-choice groups that can be left empty.
 - The visible external events list uses a members-page-style shadcn filter toolbar with search, Type, Priority, and Clear controls.
-- `image_link_url` is used as the click-through target when an event image is present.
+- `event_link_url` is used as the click-through target when an event image is present.
 - Event images use a 1:1 muted frame with `object-contain`; image URLs are managed through upload/storage and are not shown as editable form fields.
 - The page uses shadcn primitives (`Card`, `Badge`, `Button`, `Separator`, `Dialog`, `Empty`) and avoids the previous rainbow gradient event cards.
 - The dashboard header order now places Events before Statistics.
