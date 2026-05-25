@@ -26,6 +26,11 @@ Initialize shadcn/ui for this Next.js App Router project and install the primiti
   - `tooltip`
   - `dropdown-menu`
   - `sonner`
+  - `field`
+  - `input-group`
+  - `spinner`
+  - `empty`
+- Add global `TooltipProvider` and `Toaster` wiring in `app/layout.tsx`.
 - Verify lint, TypeScript, and production build.
 
 ## Non-Goals
