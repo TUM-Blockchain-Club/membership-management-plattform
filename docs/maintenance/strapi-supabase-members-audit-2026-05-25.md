@@ -85,3 +85,25 @@ No Supabase or Strapi changes were made for this audit.
 The next cleanup pass should decide how to map non-active statuses exactly:
 Strapi `exit` likely corresponds to Supabase `Left`, while `unknown` likely
 needs manual review before changing either side.
+
+## Applied Cleanup
+
+After user confirmation, the following Supabase updates were applied on
+2026-05-25:
+
+| Supabase id | Name | Field | Applied value |
+|---:|---|---|---|
+| 47 | Deniz Yavas | `Linkedin` | `https://www.linkedin.com/in/denizyavasxyz/` |
+| 97 | Maximilian Rentz | `Status` | `Passive` |
+| 127 | Timo Zhao | `Status` | `Passive` |
+
+Post-update Supabase `Status` counts:
+
+- `Active`: 55
+- `Passive`: 17
+- `Alumni`: 34
+- `Advisor`: 7
+- `Honorary`: 10
+- `Left`: 9
+- `Kicked out`: 2
+- blank: 5
