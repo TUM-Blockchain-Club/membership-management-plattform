@@ -67,7 +67,7 @@ type ParticipantJoinRow = {
 }
 
 export const eventService = {
-  getUpcomingEvents: async (memberId?: number, limit: number = 100) => {
+  getUpcomingEvents: async (memberId?: number, limit: number = 500) => {
     try {
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')

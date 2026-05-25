@@ -2,7 +2,7 @@
 
 import { ExternalEventCard, InternalEventCard } from '@/app/components/dashboard/EventCard'
 import type { DashboardEvent, DashboardMember, DashboardParticipant } from '@/app/components/dashboard/types'
-import { ChevronDownIcon, PlusIcon, SearchIcon, XIcon } from 'lucide-react'
+import { ChevronDownIcon, HistoryIcon, PlusIcon, SearchIcon, XIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -41,6 +41,7 @@ const PRIORITY_OPTIONS = [
   { value: 'P4', label: 'P4 🧐' },
 ]
 const DEFAULT_PRIORITY_FILTER = ['P1', 'P2']
+const RECENT_PAST_DAYS = 7
 
 export function EventsPage({
   events,
@@ -85,11 +86,18 @@ export function EventsPage({
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [priorityFilter, setPriorityFilter] = useState<string[]>(DEFAULT_PRIORITY_FILTER)
+  const [showOlderPastEvents, setShowOlderPastEvents] = useState(false)
   const [, startTransition] = useTransition()
   const internalEvents = events.filter((event) => event.event_kind === 'internal')
   const externalEvents = events.filter((event) => event.event_kind === 'external')
   const showInternalEvents = false
   const canManageEvents = hasSpecialAccess
+  const recentPastCutoffMs = useMemo(() => {
+    const cutoff = new Date()
+    cutoff.setHours(0, 0, 0, 0)
+    cutoff.setDate(cutoff.getDate() - RECENT_PAST_DAYS)
+    return cutoff.getTime()
+  }, [])
 
   useEffect(() => {
     const id = setTimeout(() => startTransition(() => setSearchQuery(inputValue)), 300)
@@ -112,7 +120,7 @@ export function EventsPage({
   const isDefaultPriorityFilter =
     priorityFilter.length === DEFAULT_PRIORITY_FILTER.length &&
     DEFAULT_PRIORITY_FILTER.every((priority) => priorityFilter.includes(priority))
-  const hasActiveFilters = searchQuery || typeFilter !== 'all' || !isDefaultPriorityFilter
+  const hasActiveFilters = searchQuery || typeFilter !== 'all' || !isDefaultPriorityFilter || showOlderPastEvents
 
   const clearFilters = useCallback(() => {
     setInputValue('')
@@ -120,6 +128,7 @@ export function EventsPage({
       setSearchQuery('')
       setTypeFilter('all')
       setPriorityFilter(DEFAULT_PRIORITY_FILTER)
+      setShowOlderPastEvents(false)
     })
   }, [])
 
@@ -129,6 +138,7 @@ export function EventsPage({
     return externalEvents.filter((event) => {
       const eventType = event.event_type?.toLowerCase() ?? ''
       const eventPriority = event.priority ?? 'none'
+      const eventEndMs = new Date(event.end_at).getTime()
       const searchText = [
         event.title,
         event.city,
@@ -138,13 +148,14 @@ export function EventsPage({
         event.format,
       ].filter(Boolean).join(' ').toLowerCase()
 
+      if (!showOlderPastEvents && Number.isFinite(eventEndMs) && eventEndMs < recentPastCutoffMs) return false
       if (normalizedSearch && !searchText.includes(normalizedSearch)) return false
       if (typeFilter !== 'all' && !eventType.includes(typeFilter)) return false
       if (priorityFilter.length > 0 && !priorityFilter.includes(eventPriority)) return false
 
       return true
     })
-  }, [externalEvents, priorityFilter, searchQuery, typeFilter])
+  }, [externalEvents, priorityFilter, recentPastCutoffMs, searchQuery, showOlderPastEvents, typeFilter])
 
   const priorityFilterLabel = useMemo(() => {
     if (priorityFilter.length === 0) return 'Priority'
@@ -177,7 +188,7 @@ export function EventsPage({
         <div>
           <h1 className="text-xl font-semibold text-foreground">Events</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">
-            {events.length} upcoming {events.length === 1 ? 'event' : 'events'}
+            {events.length} tracked {events.length === 1 ? 'event' : 'events'}
           </p>
         </div>
         {canManageEvents && (
@@ -280,6 +291,17 @@ export function EventsPage({
               </DropdownMenuGroup>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Button
+            variant={showOlderPastEvents ? 'secondary' : 'outline'}
+            size="sm"
+            className="h-8"
+            aria-pressed={showOlderPastEvents}
+            onClick={() => startTransition(() => setShowOlderPastEvents((current) => !current))}
+          >
+            <HistoryIcon data-icon="inline-start" />
+            Older past
+          </Button>
 
           {hasActiveFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-muted-foreground hover:text-foreground">
