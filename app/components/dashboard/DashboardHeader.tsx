@@ -13,7 +13,6 @@ type DashboardHeaderProps = {
   showNftApprovalsTab: boolean
   forceMemberView: boolean
   onToggleMemberView: (enabled: boolean) => void
-  onProfileTabSelected: () => void
 }
 
 const TABS: Array<{
@@ -70,7 +69,6 @@ export function DashboardHeader({
   showNftApprovalsTab,
   forceMemberView,
   onToggleMemberView,
-  onProfileTabSelected,
 }: DashboardHeaderProps) {
   return (
     <header className="border-b border-white/10 backdrop-blur-md sticky top-0 z-50">
@@ -95,7 +93,6 @@ export function DashboardHeader({
               onClick={() => {
                 const next = !forceMemberView
                 onToggleMemberView(next)
-                onProfileTabSelected()
               }}
               className="text-xs sm:text-sm"
             >
