@@ -54,7 +54,7 @@ export function ProfilePage({
   const pictureUrl = getPictureUrl(editing && editedMember ? editedMember.Picture : viewedMember?.Picture)
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className={`mx-auto ${editing ? 'max-w-6xl' : 'max-w-4xl'}`}>
       {viewedMember && member && viewedMember.id !== member.id && (
         <div className="mb-3 sm:mb-4">
           <button
