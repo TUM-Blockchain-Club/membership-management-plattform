@@ -40,6 +40,7 @@ const PRIORITY_OPTIONS = [
   { value: 'P3', label: 'P3 😁' },
   { value: 'P4', label: 'P4 🧐' },
 ]
+const DEFAULT_PRIORITY_FILTER = ['P1', 'P2']
 
 export function EventsPage({
   events,
@@ -83,7 +84,7 @@ export function EventsPage({
   const [inputValue, setInputValue] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
-  const [priorityFilter, setPriorityFilter] = useState<string[]>([])
+  const [priorityFilter, setPriorityFilter] = useState<string[]>(DEFAULT_PRIORITY_FILTER)
   const [, startTransition] = useTransition()
   const internalEvents = events.filter((event) => event.event_kind === 'internal')
   const externalEvents = events.filter((event) => event.event_kind === 'external')
@@ -108,14 +109,17 @@ export function EventsPage({
     })
   }, [])
 
-  const hasActiveFilters = searchQuery || typeFilter !== 'all' || priorityFilter.length > 0
+  const isDefaultPriorityFilter =
+    priorityFilter.length === DEFAULT_PRIORITY_FILTER.length &&
+    DEFAULT_PRIORITY_FILTER.every((priority) => priorityFilter.includes(priority))
+  const hasActiveFilters = searchQuery || typeFilter !== 'all' || !isDefaultPriorityFilter
 
   const clearFilters = useCallback(() => {
     setInputValue('')
     startTransition(() => {
       setSearchQuery('')
       setTypeFilter('all')
-      setPriorityFilter([])
+      setPriorityFilter(DEFAULT_PRIORITY_FILTER)
     })
   }, [])
 
