@@ -66,6 +66,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
   const [forceMemberView, setForceMemberView] = useState(false)
   const {
     events,
+    handleCreateExternalEvent,
     handleEventRegistration,
     handleUpdateExternalEvent,
     handleUploadExternalEventImage,
@@ -410,6 +411,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     handleCancel,
     handleEditClick,
     handleEditOtherMember,
+    handleCreateExternalEvent,
     handleEventRegistration,
     handleUpdateExternalEvent,
     handleUploadExternalEventImage,

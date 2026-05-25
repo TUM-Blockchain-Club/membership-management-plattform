@@ -11,6 +11,7 @@ export default function EventsPageRoute() {
       events={d.events}
       formatEventDate={d.formatEventDate}
       formatEventTime={d.formatEventTime}
+      handleCreateExternalEvent={d.handleCreateExternalEvent}
       handleEventRegistration={d.handleEventRegistration}
       handleUpdateExternalEvent={d.handleUpdateExternalEvent}
       handleUploadExternalEventImage={d.handleUploadExternalEventImage}

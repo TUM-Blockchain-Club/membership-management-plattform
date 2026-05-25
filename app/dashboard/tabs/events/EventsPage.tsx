@@ -2,6 +2,7 @@
 
 import { ExternalEventCard, InternalEventCard } from '@/app/components/dashboard/EventCard'
 import type { DashboardEvent, DashboardMember, DashboardParticipant } from '@/app/components/dashboard/types'
+import { PlusIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -21,6 +22,7 @@ export function EventsPage({
   events,
   formatEventDate,
   formatEventTime,
+  handleCreateExternalEvent,
   handleEventRegistration,
   handleUpdateExternalEvent,
   handleUploadExternalEventImage,
@@ -38,6 +40,7 @@ export function EventsPage({
   events: DashboardEvent[]
   formatEventDate: (startAt: string, endAt: string) => string
   formatEventTime: (startAt: string, endAt: string) => string
+  handleCreateExternalEvent: (draft: EventEditorDraft) => Promise<DashboardEvent | null>
   handleEventRegistration: (eventId: string | number, isCurrentlyRegistered: boolean) => void
   handleUpdateExternalEvent: (eventId: string | number, draft: EventEditorDraft) => Promise<DashboardEvent | null>
   handleUploadExternalEventImage: (eventId: string | number, file: File) => Promise<string | null>
@@ -53,16 +56,27 @@ export function EventsPage({
   setShowParticipantsModal: (show: boolean) => void
 }) {
   const [editingEvent, setEditingEvent] = useState<DashboardEvent | null>(null)
+  const [creatingEvent, setCreatingEvent] = useState(false)
   const internalEvents = events.filter((event) => event.event_kind === 'internal')
   const externalEvents = events.filter((event) => event.event_kind === 'external')
   const showInternalEvents = false
   const canManageEvents = member?.Role === 'Board Member' || hasSpecialAccess
 
-  const handleSaveEvent = async (eventId: string | number, draft: EventEditorDraft) => {
+  const handleSaveEvent = async (eventId: string | number | null, draft: EventEditorDraft) => {
+    if (eventId === null) return null
     const updatedEvent = await handleUpdateExternalEvent(eventId, draft)
     if (updatedEvent) {
       setEditingEvent(null)
     }
+    return updatedEvent
+  }
+
+  const handleCreateEvent = async (_eventId: string | number | null, draft: EventEditorDraft) => {
+    const createdEvent = await handleCreateExternalEvent(draft)
+    if (createdEvent) {
+      setCreatingEvent(false)
+    }
+    return createdEvent
   }
 
   return (
@@ -74,6 +88,12 @@ export function EventsPage({
             {events.length} upcoming {events.length === 1 ? 'event' : 'events'}
           </p>
         </div>
+        {canManageEvents && (
+          <Button size="sm" onClick={() => setCreatingEvent(true)} className="shrink-0">
+            <PlusIcon data-icon="inline-start" />
+            Add Event
+          </Button>
+        )}
       </div>
 
       {showInternalEvents && (
@@ -190,11 +210,24 @@ export function EventsPage({
       <EventEditorDialog
         key={editingEvent?.id ?? 'event-editor'}
         event={editingEvent}
+        mode="edit"
         open={!!editingEvent}
         saving={savingEvent}
         uploading={uploadingEventImage}
         onOpenChange={(open) => { if (!open) setEditingEvent(null) }}
         onSave={handleSaveEvent}
+        onUploadImage={handleUploadExternalEventImage}
+      />
+
+      <EventEditorDialog
+        key={creatingEvent ? 'create-event' : 'create-event-closed'}
+        event={null}
+        mode="create"
+        open={creatingEvent}
+        saving={savingEvent}
+        uploading={uploadingEventImage}
+        onOpenChange={(open) => { if (!open) setCreatingEvent(false) }}
+        onSave={handleCreateEvent}
         onUploadImage={handleUploadExternalEventImage}
       />
     </div>

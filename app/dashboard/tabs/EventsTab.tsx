@@ -6,6 +6,7 @@ export function EventsTab(props: {
   events: DashboardEvent[]
   formatEventDate: (startAt: string, endAt: string) => string
   formatEventTime: (startAt: string, endAt: string) => string
+  handleCreateExternalEvent: (draft: EventEditorDraft) => Promise<DashboardEvent | null>
   handleEventRegistration: (eventId: string | number, isCurrentlyRegistered: boolean) => void
   handleUpdateExternalEvent: (eventId: string | number, draft: EventEditorDraft) => Promise<DashboardEvent | null>
   handleUploadExternalEventImage: (eventId: string | number, file: File) => Promise<string | null>

@@ -12,22 +12,16 @@ type SetDashboardMessage = (message: DashboardMessage | null) => void
 
 type ExternalEventDraft = {
   title: string
-  event_type: string
+  start_date: string
+  end_date: string
+  event_types: string[]
   priority: string
   external_status: string
   city: string
-  format: string
+  formats: string[]
   image_url: string
   image_link_url: string
-  interested_names: string
-  attending_names: string
 }
-
-const splitNames = (value: string) =>
-  value
-    .split(',')
-    .map((name) => name.trim())
-    .filter(Boolean)
 
 export function useDashboardEvents(
   member: DashboardMember | null,
@@ -103,15 +97,15 @@ export function useDashboardEvents(
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: draft.title,
-          event_type: draft.event_type,
+          start_date: draft.start_date,
+          end_date: draft.end_date,
+          event_types: draft.event_types,
           priority: draft.priority === 'none' ? null : draft.priority,
-          external_status: draft.external_status,
+          external_status: draft.external_status === 'none' ? null : draft.external_status,
           city: draft.city,
-          format: draft.format,
+          formats: draft.formats,
           image_url: draft.image_url,
           image_link_url: draft.image_link_url,
-          interested_names: splitNames(draft.interested_names),
-          attending_names: splitNames(draft.attending_names),
         }),
       })
 
@@ -127,6 +121,47 @@ export function useDashboardEvents(
       return updatedEvent
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Could not update the event.'
+      setMessage({ type: 'error', text: message })
+      return null
+    } finally {
+      setSavingEvent(false)
+    }
+  }, [setMessage])
+
+  const handleCreateExternalEvent = useCallback(async (draft: ExternalEventDraft) => {
+    setSavingEvent(true)
+    setMessage(null)
+
+    try {
+      const response = await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: draft.title,
+          start_date: draft.start_date,
+          end_date: draft.end_date,
+          event_types: draft.event_types,
+          priority: draft.priority === 'none' ? null : draft.priority,
+          external_status: draft.external_status === 'none' ? null : draft.external_status,
+          city: draft.city,
+          formats: draft.formats,
+          image_url: draft.image_url,
+          image_link_url: draft.image_link_url,
+        }),
+      })
+
+      const payload = await response.json()
+      if (!response.ok) {
+        throw new Error(payload?.error || 'Could not create the event.')
+      }
+
+      const createdEvent = payload as DashboardEvent
+      setEvents((current) => [...current, createdEvent].sort((a, b) => new Date(a.start_at).getTime() - new Date(b.start_at).getTime()))
+      setMessage({ type: 'success', text: 'Event created successfully.' })
+      setTimeout(() => setMessage(null), 3000)
+      return createdEvent
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not create the event.'
       setMessage({ type: 'error', text: message })
       return null
     } finally {
@@ -170,6 +205,7 @@ export function useDashboardEvents(
   return {
     events,
     handleEventRegistration,
+    handleCreateExternalEvent,
     handleUpdateExternalEvent,
     handleUploadExternalEventImage,
     handleViewParticipants,

@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { CameraIcon, SaveIcon } from 'lucide-react'
 import type { DashboardEvent } from '@/app/components/dashboard/types'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -13,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel, FieldSet } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
   Select,
@@ -24,48 +25,129 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
-import { Textarea } from '@/components/ui/textarea'
 
 export type EventEditorDraft = {
   title: string
-  event_type: string
+  start_date: string
+  end_date: string
+  event_types: string[]
   priority: string
   external_status: string
   city: string
-  format: string
+  formats: string[]
   image_url: string
   image_link_url: string
-  interested_names: string
-  attending_names: string
 }
 
 type EventEditorDialogProps = {
   event: DashboardEvent | null
+  mode: 'create' | 'edit'
   open: boolean
   saving: boolean
   uploading: boolean
   onOpenChange: (open: boolean) => void
-  onSave: (eventId: string | number, draft: EventEditorDraft) => Promise<void>
+  onSave: (eventId: string | number | null, draft: EventEditorDraft) => Promise<DashboardEvent | null>
   onUploadImage: (eventId: string | number, file: File) => Promise<string | null>
 }
 
-const namesToText = (names: string[]) => names.join(', ')
+const STATUS_OPTIONS = ['Uncertain', 'Announced', 'Registration Open', 'Registration Closed', 'Canceled', 'Past']
+const TYPE_OPTIONS = ['Conference', 'Hackathon']
+const FORMAT_OPTIONS = ['Co-Working', 'Virtual', 'In-Person', 'Hybrid']
 
-const toDraft = (event: DashboardEvent): EventEditorDraft => ({
-  title: event.title,
-  event_type: event.event_type ?? '',
-  priority: event.priority ?? 'none',
-  external_status: event.external_status ?? '',
-  city: event.city ?? event.location ?? '',
-  format: event.format ?? '',
-  image_url: event.image_url ?? '',
-  image_link_url: event.image_link_url ?? '',
-  interested_names: namesToText(event.interested_names),
-  attending_names: namesToText(event.attending_names),
+const dateInputValue = (value: string) => {
+  if (!value) return ''
+  return new Date(value).toISOString().slice(0, 10)
+}
+
+const splitStoredOptions = (value: string | null, options: string[]) => {
+  const selected = new Set(
+    (value ?? '')
+      .split(',')
+      .map((part) => part.trim())
+      .filter(Boolean)
+  )
+
+  return options.filter((option) => selected.has(option))
+}
+
+const emptyDraft = (): EventEditorDraft => ({
+  title: '',
+  start_date: '',
+  end_date: '',
+  event_types: [],
+  priority: 'none',
+  external_status: 'none',
+  city: '',
+  formats: [],
+  image_url: '',
+  image_link_url: '',
 })
+
+const toDraft = (event: DashboardEvent | null): EventEditorDraft => {
+  if (!event) return emptyDraft()
+
+  return {
+    title: event.title,
+    start_date: dateInputValue(event.start_at),
+    end_date: dateInputValue(event.end_at),
+    event_types: splitStoredOptions(event.event_type, TYPE_OPTIONS),
+    priority: event.priority ?? 'none',
+    external_status: event.external_status ?? 'none',
+    city: event.city ?? event.location ?? '',
+    formats: splitStoredOptions(event.format, FORMAT_OPTIONS),
+    image_url: event.image_url ?? '',
+    image_link_url: event.image_link_url ?? '',
+  }
+}
+
+function MultiChoiceField({
+  label,
+  description,
+  options,
+  value,
+  onChange,
+}: {
+  label: string
+  description: string
+  options: string[]
+  value: string[]
+  onChange: (next: string[]) => void
+}) {
+  const toggle = (option: string, checked: boolean) => {
+    if (checked) {
+      onChange([...value, option])
+      return
+    }
+
+    onChange(value.filter((item) => item !== option))
+  }
+
+  return (
+    <FieldSet>
+      <Field>
+        <FieldLabel>{label}</FieldLabel>
+        <FieldDescription>{description}</FieldDescription>
+      </Field>
+      <div className="grid gap-2 sm:grid-cols-2">
+        {options.map((option) => (
+          <Field key={option} orientation="horizontal" className="rounded-lg border p-3">
+            <Checkbox
+              checked={value.includes(option)}
+              onCheckedChange={(checked) => toggle(option, checked === true)}
+            />
+            <FieldContent>
+              <FieldLabel>{option}</FieldLabel>
+            </FieldContent>
+          </Field>
+        ))}
+      </div>
+    </FieldSet>
+  )
+}
 
 export function EventEditorDialog({
   event,
+  mode,
   open,
   saving,
   uploading,
@@ -74,141 +156,170 @@ export function EventEditorDialog({
   onUploadImage,
 }: EventEditorDialogProps) {
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const [draft, setDraft] = useState<EventEditorDraft | null>(event ? toDraft(event) : null)
+  const [draft, setDraft] = useState<EventEditorDraft>(() => toDraft(event))
+  const [pendingImageFile, setPendingImageFile] = useState<File | null>(null)
+  const isCreate = mode === 'create'
 
-  const updateDraft = (field: keyof EventEditorDraft, value: string) => {
-    setDraft((current) => current ? { ...current, [field]: value } : current)
+  const updateDraft = <FieldName extends keyof EventEditorDraft>(field: FieldName, value: EventEditorDraft[FieldName]) => {
+    setDraft((current) => ({ ...current, [field]: value }))
   }
 
   const handleUpload = async (file: File) => {
-    if (!event) return
+    if (!event) {
+      setPendingImageFile(file)
+      return
+    }
+
     const imageUrl = await onUploadImage(event.id, file)
     if (imageUrl) updateDraft('image_url', imageUrl)
+  }
+
+  const handleSave = async () => {
+    const savedEvent = await onSave(event?.id ?? null, draft)
+    if (savedEvent && pendingImageFile) {
+      await onUploadImage(savedEvent.id, pendingImageFile)
+    }
   }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
         <DialogHeader className="border-b px-6 py-5">
-          <DialogTitle>Edit external event</DialogTitle>
-          <DialogDescription>{event?.title ?? 'External event'}</DialogDescription>
+          <DialogTitle>{isCreate ? 'Create external event' : 'Edit external event'}</DialogTitle>
+          <DialogDescription>{isCreate ? 'Add a new conference or hackathon.' : event?.title ?? 'External event'}</DialogDescription>
         </DialogHeader>
 
-        {draft && (
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
-            <FieldGroup>
-              {draft.image_url && (
-                <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-muted">
-                  <Image
-                    src={draft.image_url}
-                    alt=""
-                    fill
-                    sizes="(min-width: 768px) 640px, 100vw"
-                    className="object-cover"
-                    unoptimized
-                  />
-                </div>
-              )}
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  disabled={uploading}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {uploading ? <Spinner data-icon="inline-start" /> : <CameraIcon data-icon="inline-start" />}
-                  {uploading ? 'Uploading...' : 'Upload image'}
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  disabled={uploading}
-                  onChange={(event) => {
-                    const file = event.target.files?.[0]
-                    event.target.value = ''
-                    if (file) void handleUpload(file)
-                  }}
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+          <FieldGroup>
+            {draft.image_url && (
+              <div className="relative aspect-[16/9] w-full overflow-hidden rounded-xl bg-muted">
+                <Image
+                  src={draft.image_url}
+                  alt=""
+                  fill
+                  sizes="(min-width: 768px) 640px, 100vw"
+                  className="object-cover"
+                  unoptimized
                 />
               </div>
+            )}
 
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploading}
+                onClick={() => fileInputRef.current?.click()}
+              >
+                {uploading ? <Spinner data-icon="inline-start" /> : <CameraIcon data-icon="inline-start" />}
+                {uploading ? 'Uploading...' : pendingImageFile ? 'Image selected' : 'Upload image'}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                disabled={uploading}
+                onChange={(event) => {
+                  const file = event.target.files?.[0]
+                  event.target.value = ''
+                  if (file) void handleUpload(file)
+                }}
+              />
+            </div>
+
+            <Field>
+              <FieldLabel htmlFor="event-title">Title</FieldLabel>
+              <Input id="event-title" value={draft.title} onChange={(event) => updateDraft('title', event.target.value)} />
+            </Field>
+
+            <div className="grid gap-4 sm:grid-cols-3">
               <Field>
-                <FieldLabel htmlFor="event-title">Title</FieldLabel>
-                <Input id="event-title" value={draft.title} onChange={(event) => updateDraft('title', event.target.value)} />
+                <FieldLabel htmlFor="event-start-date">Start date</FieldLabel>
+                <Input id="event-start-date" type="date" value={draft.start_date} onChange={(event) => updateDraft('start_date', event.target.value)} />
               </Field>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <Field>
-                  <FieldLabel htmlFor="event-city">City</FieldLabel>
-                  <Input id="event-city" value={draft.city} onChange={(event) => updateDraft('city', event.target.value)} />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="event-type">Type</FieldLabel>
-                  <Input id="event-type" value={draft.event_type} onChange={(event) => updateDraft('event_type', event.target.value)} />
-                </Field>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-3">
-                <Field>
-                  <FieldLabel>Priority</FieldLabel>
-                  <Select value={draft.priority} onValueChange={(value) => updateDraft('priority', value)}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectItem value="none">None</SelectItem>
-                        <SelectItem value="P1">P1</SelectItem>
-                        <SelectItem value="P2">P2</SelectItem>
-                        <SelectItem value="P3">P3</SelectItem>
-                        <SelectItem value="P4">P4</SelectItem>
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="event-status">Status</FieldLabel>
-                  <Input id="event-status" value={draft.external_status} onChange={(event) => updateDraft('external_status', event.target.value)} />
-                </Field>
-                <Field>
-                  <FieldLabel htmlFor="event-format">Format</FieldLabel>
-                  <Input id="event-format" value={draft.format} onChange={(event) => updateDraft('format', event.target.value)} />
-                </Field>
-              </div>
-
               <Field>
-                <FieldLabel htmlFor="event-image-url">Image URL</FieldLabel>
-                <Input id="event-image-url" value={draft.image_url} onChange={(event) => updateDraft('image_url', event.target.value)} />
+                <FieldLabel htmlFor="event-end-date">End date</FieldLabel>
+                <Input id="event-end-date" type="date" value={draft.end_date} onChange={(event) => updateDraft('end_date', event.target.value)} />
               </Field>
-
               <Field>
-                <FieldLabel htmlFor="event-image-link">Image link</FieldLabel>
-                <Input id="event-image-link" value={draft.image_link_url} onChange={(event) => updateDraft('image_link_url', event.target.value)} />
+                <FieldLabel htmlFor="event-city">City</FieldLabel>
+                <Input id="event-city" value={draft.city} onChange={(event) => updateDraft('city', event.target.value)} />
               </Field>
+            </div>
 
-              <Field>
-                <FieldLabel htmlFor="event-interested">Interested</FieldLabel>
-                <Textarea id="event-interested" value={draft.interested_names} onChange={(event) => updateDraft('interested_names', event.target.value)} />
-              </Field>
+            <MultiChoiceField
+              label="Type"
+              description="Choose conference, hackathon, both, or leave empty."
+              options={TYPE_OPTIONS}
+              value={draft.event_types}
+              onChange={(next) => updateDraft('event_types', next)}
+            />
 
+            <div className="grid gap-4 sm:grid-cols-2">
               <Field>
-                <FieldLabel htmlFor="event-attending">Attending</FieldLabel>
-                <Textarea id="event-attending" value={draft.attending_names} onChange={(event) => updateDraft('attending_names', event.target.value)} />
+                <FieldLabel>Status</FieldLabel>
+                <Select value={draft.external_status} onValueChange={(value) => updateDraft('external_status', value)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="none">None</SelectItem>
+                      {STATUS_OPTIONS.map((status) => (
+                        <SelectItem key={status} value={status}>{status}</SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
               </Field>
-            </FieldGroup>
-          </div>
-        )}
+              <Field>
+                <FieldLabel>Priority</FieldLabel>
+                <Select value={draft.priority} onValueChange={(value) => updateDraft('priority', value)}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="none">None</SelectItem>
+                      <SelectItem value="P1">P1</SelectItem>
+                      <SelectItem value="P2">P2</SelectItem>
+                      <SelectItem value="P3">P3</SelectItem>
+                      <SelectItem value="P4">P4</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+            </div>
+
+            <MultiChoiceField
+              label="Format"
+              description="Choose one or more formats, or leave empty."
+              options={FORMAT_OPTIONS}
+              value={draft.formats}
+              onChange={(next) => updateDraft('formats', next)}
+            />
+
+            <Field>
+              <FieldLabel htmlFor="event-image-url">Image URL</FieldLabel>
+              <Input id="event-image-url" value={draft.image_url} onChange={(event) => updateDraft('image_url', event.target.value)} />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="event-image-link">Image link</FieldLabel>
+              <Input id="event-image-link" value={draft.image_link_url} onChange={(event) => updateDraft('image_link_url', event.target.value)} />
+            </Field>
+          </FieldGroup>
+        </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving || uploading}>
             Cancel
           </Button>
-          <Button onClick={() => event && draft && void onSave(event.id, draft)} disabled={saving || uploading || !draft?.title.trim()}>
+          <Button onClick={() => void handleSave()} disabled={saving || uploading || !draft.title.trim() || !draft.start_date}>
             {saving ? <Spinner data-icon="inline-start" /> : <SaveIcon data-icon="inline-start" />}
-            {saving ? 'Saving...' : 'Save changes'}
+            {saving ? 'Saving...' : isCreate ? 'Create event' : 'Save changes'}
           </Button>
         </DialogFooter>
       </DialogContent>
