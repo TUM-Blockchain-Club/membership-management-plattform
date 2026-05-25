@@ -2,6 +2,27 @@ import type { DashboardMember, EditableMember } from '@/app/components/dashboard
 
 export const ADMIN_FIELDS = ['Role', 'Status', 'Department', 'Semester Joined'] as const
 
+export const EDITABLE_MEMBER_FIELDS = [
+  'Name',
+  'Degree',
+  'Uni',
+  'Department',
+  'Role',
+  'Status',
+  'Semester Joined',
+  'TBC Email',
+  'Private Email',
+  'Phone',
+  'Linkedin',
+  'Telegram',
+  'Discord',
+  'Instagram',
+  'Twitter',
+  'Project/Task',
+  'Area of Expertise',
+  'Size Merch',
+] as const
+
 export const makeEmptyMember = (): EditableMember => ({
   Name: null,
   Degree: null,
@@ -23,6 +44,15 @@ export const makeEmptyMember = (): EditableMember => ({
   'Size Merch': null,
   Picture: null,
 })
+
+export const getEditableMemberPayload = (member: EditableMember): EditableMember =>
+  EDITABLE_MEMBER_FIELDS.reduce<EditableMember>((payload, field) => {
+    if (Object.prototype.hasOwnProperty.call(member, field)) {
+      payload[field] = member[field]
+    }
+
+    return payload
+  }, {})
 
 export const toDisplayString = (value: unknown, fallback = 'Not specified') => {
   if (typeof value === 'string') {

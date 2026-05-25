@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { formatEventDate, formatEventTime } from '@/app/dashboard/lib/eventFormatters'
 import {
   ADMIN_FIELDS,
+  getEditableMemberPayload,
   getPictureUrl,
   isDashboardMemberAdmin,
   makeEmptyMember,
@@ -285,8 +286,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     setMessage(null)
 
     try {
-      const updatedData: EditableMember = { ...editedMember }
-      delete updatedData.Picture
+      const updatedData = getEditableMemberPayload(editedMember)
 
       if (selectedImageFile) {
         // reserved for future upload flow
