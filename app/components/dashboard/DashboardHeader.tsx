@@ -71,7 +71,7 @@ export function DashboardHeader({
   onToggleMemberView,
 }: DashboardHeaderProps) {
   return (
-    <header className="border-b border-white/10 backdrop-blur-md sticky top-0 z-50">
+    <header className="border-b border-border bg-background sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6 flex items-center justify-between flex-wrap gap-3">
         <div className="flex-1 min-w-0">
           <h1
