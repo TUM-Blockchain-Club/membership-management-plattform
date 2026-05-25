@@ -166,3 +166,18 @@ are populated:
 |---:|---|---|---|
 | 83 | Kenny Nguyen | phd | Master |
 | 135 | Ulas Baran Kilic | bachelor | Master |
+
+## Applied Image And Degree Cleanup
+
+After user confirmation, the following Supabase updates were applied on
+2026-05-25:
+
+| Supabase id | Name | Field | Applied value |
+|---:|---|---|---|
+| 71 | Indrakshee Mukherjee | `Picture` | Copied Strapi image into Supabase Storage as `member-pictures/71-indrakshee-mukherjee.png` and stored the public URL in `members_main.Picture`. |
+| 83 | Kenny Nguyen | `Bachelor/Master` | `PhD` |
+
+Post-update verification:
+
+- Indrakshee Mukherjee now has a Supabase `Picture`.
+- Kenny Nguyen now has `Bachelor/Master = PhD`.
