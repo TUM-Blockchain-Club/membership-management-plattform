@@ -7,6 +7,7 @@ import {
   UserRoundCheckIcon,
   UsersIcon,
 } from 'lucide-react'
+import Image from 'next/image'
 import type { ReactNode } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -20,6 +21,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 
 type InternalEventCardProps = {
   title: string
@@ -45,6 +47,7 @@ type ExternalEventCardProps = {
   priority: string | null
   status: string | null
   format: string | null
+  imageUrl: string | null
   interestedNames: string[]
   attendingNames: string[]
 }
@@ -73,6 +76,20 @@ function PeopleSummary({ label, names }: { label: string; names: string[] }) {
       <p className="line-clamp-2 text-sm text-foreground">{names.join(', ')}</p>
     </div>
   )
+}
+
+function priorityFrameClass(priority: string | null) {
+  const normalized = priority?.trim().toUpperCase()
+
+  if (normalized === 'P1') {
+    return 'bg-[linear-gradient(135deg,#f43f5e,#f97316,#eab308,#22c55e,#06b6d4,#6366f1,#a855f7)] p-px'
+  }
+
+  if (normalized === 'P2') {
+    return 'bg-purple-500/70 p-px'
+  }
+
+  return ''
 }
 
 export function InternalEventCard({
@@ -151,46 +168,63 @@ export function ExternalEventCard({
   priority,
   status,
   format,
+  imageUrl,
   interestedNames,
   attendingNames,
 }: ExternalEventCardProps) {
+  const frameClass = priorityFrameClass(priority)
+
   return (
-    <Card className="h-full" size="sm">
-      <CardHeader>
-        <div className="flex min-w-0 items-start gap-3">
-          <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
-            <TicketIcon />
+    <div className={cn('h-full rounded-xl', frameClass)}>
+      <Card className={cn('h-full', frameClass && 'ring-0')} size="sm">
+        {imageUrl && (
+          <div className="relative aspect-[16/9] w-full overflow-hidden">
+            <Image
+              src={imageUrl}
+              alt=""
+              fill
+              sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
+              className="object-cover"
+              unoptimized
+            />
           </div>
-          <div className="min-w-0 flex-1">
-            <CardTitle className="truncate">{title}</CardTitle>
-            <CardDescription className="truncate">{location}</CardDescription>
-          </div>
-        </div>
-      </CardHeader>
-
-      <CardContent className="flex flex-1 flex-col gap-4">
-        <div className="flex flex-wrap gap-1.5">
-          {eventType && <Badge variant="secondary">{eventType}</Badge>}
-          {priority && <Badge variant="outline">{priority}</Badge>}
-          {status && <Badge variant="outline">{status}</Badge>}
-          {format && <Badge variant="outline">{format}</Badge>}
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <DetailRow icon={CalendarDaysIcon}>{date}</DetailRow>
-          <DetailRow icon={MapPinIcon}>{location}</DetailRow>
-        </div>
-
-        {(interestedNames.length > 0 || attendingNames.length > 0) && (
-          <>
-            <Separator />
-            <div className="flex flex-col gap-3">
-              <PeopleSummary label="Interested" names={interestedNames} />
-              <PeopleSummary label="Attending" names={attendingNames} />
-            </div>
-          </>
         )}
-      </CardContent>
-    </Card>
+
+        <CardHeader>
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+              <TicketIcon />
+            </div>
+            <div className="min-w-0 flex-1">
+              <CardTitle className="truncate">{title}</CardTitle>
+              <CardDescription className="truncate">{location}</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+
+        <CardContent className="flex flex-1 flex-col gap-4">
+          <div className="flex flex-wrap gap-1.5">
+            {eventType && <Badge variant="secondary">{eventType}</Badge>}
+            {status && <Badge variant="outline">{status}</Badge>}
+            {format && <Badge variant="outline">{format}</Badge>}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <DetailRow icon={CalendarDaysIcon}>{date}</DetailRow>
+            <DetailRow icon={MapPinIcon}>{location}</DetailRow>
+          </div>
+
+          {(interestedNames.length > 0 || attendingNames.length > 0) && (
+            <>
+              <Separator />
+              <div className="flex flex-col gap-3">
+                <PeopleSummary label="Interested" names={interestedNames} />
+                <PeopleSummary label="Attending" names={attendingNames} />
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   )
 }

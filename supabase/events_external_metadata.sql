@@ -8,6 +8,7 @@ alter table public.events
   add column if not exists external_status text,
   add column if not exists city text,
   add column if not exists format text,
+  add column if not exists image_url text,
   add column if not exists is_hackathon boolean not null default false,
   add column if not exists interested_names text[] not null default '{}',
   add column if not exists attending_names text[] not null default '{}',

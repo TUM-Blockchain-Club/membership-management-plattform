@@ -125,6 +125,7 @@ export function EventsPage({
                 priority={event.priority}
                 status={event.external_status}
                 format={event.format}
+                imageUrl={event.image_url}
                 interestedNames={event.interested_names}
                 attendingNames={event.attending_names}
               />
