@@ -83,9 +83,13 @@ export function DashboardFrame({
               saving={dashboard.saving}
               uploadingImage={dashboard.uploadingImage}
               canEditField={dashboard.canEditField}
+              getPictureUrl={dashboard.getPictureUrl}
               handleInputChange={dashboard.handleInputChange}
               handleSave={dashboard.handleSave}
               handleCancel={dashboard.handleCancel}
+              setEditedMember={dashboard.setEditedMember}
+              setUploadingImage={dashboard.setUploadingImage}
+              setSelectedImageFile={dashboard.setSelectedImageFile}
             />
           )}
         </main>
