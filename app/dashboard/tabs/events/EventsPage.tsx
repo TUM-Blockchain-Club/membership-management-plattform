@@ -2,7 +2,7 @@
 
 import { ExternalEventCard, InternalEventCard } from '@/app/components/dashboard/EventCard'
 import type { DashboardEvent, DashboardMember, DashboardParticipant } from '@/app/components/dashboard/types'
-import { PlusIcon } from 'lucide-react'
+import { PlusIcon, SearchIcon, XIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,8 +14,17 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Separator } from '@/components/ui/separator'
-import { useState } from 'react'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
 import { EventEditorDialog, type EventEditorDraft } from './EventEditorDialog'
 
 export function EventsPage({
@@ -57,10 +66,62 @@ export function EventsPage({
 }) {
   const [editingEvent, setEditingEvent] = useState<DashboardEvent | null>(null)
   const [creatingEvent, setCreatingEvent] = useState(false)
+  const [inputValue, setInputValue] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [typeFilter, setTypeFilter] = useState('all')
+  const [priorityFilter, setPriorityFilter] = useState('all')
+  const [, startTransition] = useTransition()
   const internalEvents = events.filter((event) => event.event_kind === 'internal')
   const externalEvents = events.filter((event) => event.event_kind === 'external')
   const showInternalEvents = false
   const canManageEvents = member?.Role === 'Board Member' || hasSpecialAccess
+
+  useEffect(() => {
+    const id = setTimeout(() => startTransition(() => setSearchQuery(inputValue)), 300)
+    return () => clearTimeout(id)
+  }, [inputValue, setSearchQuery])
+
+  const updateTypeFilter = useCallback((value: string) => {
+    startTransition(() => setTypeFilter(value))
+  }, [])
+
+  const updatePriorityFilter = useCallback((value: string) => {
+    startTransition(() => setPriorityFilter(value))
+  }, [])
+
+  const hasActiveFilters = searchQuery || typeFilter !== 'all' || priorityFilter !== 'all'
+
+  const clearFilters = useCallback(() => {
+    setInputValue('')
+    startTransition(() => {
+      setSearchQuery('')
+      setTypeFilter('all')
+      setPriorityFilter('all')
+    })
+  }, [])
+
+  const filteredExternalEvents = useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLowerCase()
+
+    return externalEvents.filter((event) => {
+      const eventType = event.event_type?.toLowerCase() ?? ''
+      const eventPriority = event.priority ?? 'none'
+      const searchText = [
+        event.title,
+        event.city,
+        event.location,
+        event.event_type,
+        event.external_status,
+        event.format,
+      ].filter(Boolean).join(' ').toLowerCase()
+
+      if (normalizedSearch && !searchText.includes(normalizedSearch)) return false
+      if (typeFilter !== 'all' && !eventType.includes(typeFilter)) return false
+      if (priorityFilter !== 'all' && eventPriority !== priorityFilter) return false
+
+      return true
+    })
+  }, [externalEvents, priorityFilter, searchQuery, typeFilter])
 
   const handleSaveEvent = async (eventId: string | number | null, draft: EventEditorDraft) => {
     if (eventId === null) return null
@@ -139,24 +200,75 @@ export function EventsPage({
       )}
 
       <section className="flex flex-col gap-4">
+        <div className="flex flex-wrap gap-2">
+          <InputGroup className="h-8 w-48">
+            <InputGroupAddon align="inline-start">
+              <SearchIcon />
+            </InputGroupAddon>
+            <InputGroupInput
+              type="text"
+              placeholder="Search..."
+              value={inputValue}
+              onChange={(event) => setInputValue(event.target.value)}
+              className="text-sm"
+            />
+          </InputGroup>
+
+          <Select value={typeFilter} onValueChange={updateTypeFilter}>
+            <SelectTrigger size="sm" className="h-8 w-40">
+              <SelectValue placeholder="Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="conference">Conferences</SelectItem>
+                <SelectItem value="hackathon">Hackathons</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+
+          <Select value={priorityFilter} onValueChange={updatePriorityFilter}>
+            <SelectTrigger size="sm" className="h-8 w-36">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                <SelectItem value="all">All Priorities</SelectItem>
+                <SelectItem value="P1">P1</SelectItem>
+                <SelectItem value="P2">P2</SelectItem>
+                <SelectItem value="P3">P3</SelectItem>
+                <SelectItem value="P4">P4</SelectItem>
+                <SelectItem value="none">No Priority</SelectItem>
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 text-muted-foreground hover:text-foreground">
+              <XIcon data-icon="inline-start" />
+              Clear
+            </Button>
+          )}
+        </div>
+
         <div className="flex items-center gap-3">
           <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
             External Events
           </span>
           <Separator className="flex-1" />
-          <Badge variant="secondary">{externalEvents.length}</Badge>
+          <Badge variant="secondary">{filteredExternalEvents.length}</Badge>
         </div>
 
-        {externalEvents.length === 0 ? (
+        {filteredExternalEvents.length === 0 ? (
           <Empty className="border-dashed">
             <EmptyHeader>
               <EmptyTitle>No external events</EmptyTitle>
-              <EmptyDescription>Imported conferences and hackathons will show up here.</EmptyDescription>
+              <EmptyDescription>Try adjusting your search or filters.</EmptyDescription>
             </EmptyHeader>
           </Empty>
         ) : (
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {externalEvents.map((event) => (
+            {filteredExternalEvents.map((event) => (
               <ExternalEventCard
                 key={event.id}
                 title={event.title}
