@@ -182,3 +182,31 @@ department by TBC email:
 `admin`, `Ali`, `Artur Morozas`, `Felix Kania`, `Ismail Kuzu`,
 `Julian Baumann`, `Moritz Schindelmann`, `Sebastian Kreutz`, `t`, `ttt`,
 `Valentin Hartig`, `Yannik Fräbel`.
+
+## Applied Department Updates
+
+After user confirmation, the following department updates were written to
+`public.members_main` on 2026-05-25:
+
+| `members_main.id` | Supabase name | Applied department |
+|---:|---|---|
+| 181 | anton.kazarinov | Industry |
+| 36 | Cem Denizsel | Research |
+| 40 | Daniel Moreno | Research |
+| 57 | Eugenio Vairo | Research |
+| 69 | Huixu Liu | Research |
+| 64 | Fynn Endreß | Marketing |
+
+User-confirmed rows intentionally left unchanged:
+
+| `members_main.id` | Supabase name | Department kept |
+|---:|---|---|
+| 66 | Gopi Mehta | Web3 Talents |
+| 84 | Kerem Eskici | External Relations |
+| 113 | Salan Isaqzoi | External Relations |
+| 141 | Yehor Kubakh | IT & Development, Research |
+
+Post-update verification:
+
+- `members_main` rows: 139
+- Rows still missing `Department`: 23
