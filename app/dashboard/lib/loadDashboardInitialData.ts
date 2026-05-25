@@ -23,6 +23,16 @@ type EventRow = {
   location: string
   organizer_department: string
   capacity_total: number
+  event_kind: 'internal' | 'external'
+  event_type: string | null
+  priority: string | null
+  external_status: string | null
+  city: string | null
+  format: string | null
+  is_hackathon: boolean
+  interested_names: string[]
+  attending_names: string[]
+  all_day: boolean
 }
 
 type EventRegistrationRow = {
@@ -33,7 +43,7 @@ type EventRegistrationRow = {
 const NFT_ADMIN_MEMBER_IDS = new Set([0, 99, 107, 26, 126])
 const MEMBER_COLUMNS =
   'id, created_at, Name, Role, Status, Department, "Project/Task", "Area of Expertise", Picture, Uni, "Semester Joined", Degree, Phone, "Private Email", "TBC Email", Linkedin, Telegram, Discord, Instagram, Twitter, "Size Merch"'
-const EVENT_COLUMNS = 'id, title, description, start_at, end_at, location, organizer_department, capacity_total'
+const EVENT_COLUMNS = 'id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, is_hackathon, interested_names, attending_names, all_day'
 
 const emptyInitialData = (): DashboardInitialData => ({
   allMembers: [],
@@ -90,11 +100,12 @@ const getRequestForCurrentHost = async () => {
 const loadUpcomingEvents = async (
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   memberId: number,
-  limit = 6
+  limit = 100
 ): Promise<DashboardEvent[]> => {
   const { data: eventsData, error: eventsError } = await supabase
     .from('events')
     .select(EVENT_COLUMNS)
+    .order('start_at', { ascending: true })
     .limit(limit)
 
   if (eventsError) {

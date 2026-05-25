@@ -1,5 +1,17 @@
-import { EventCard } from '@/app/components/dashboard/EventCard'
+import { ExternalEventCard, InternalEventCard } from '@/app/components/dashboard/EventCard'
 import type { DashboardEvent, DashboardMember, DashboardParticipant } from '@/app/components/dashboard/types'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from '@/components/ui/empty'
+import { Separator } from '@/components/ui/separator'
 
 export function EventsPage({
   events,
@@ -28,68 +40,124 @@ export function EventsPage({
   participantsLoading: boolean
   setShowParticipantsModal: (show: boolean) => void
 }) {
-  return (
-    <div>
-      <h2 className="text-2xl font-bold text-white mb-6">Upcoming Events</h2>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {events.map((event, index) => {
-          const colors = ['blue', 'purple', 'green', 'orange', 'cyan', 'pink']
-          const color = colors[index % colors.length]
+  const internalEvents = events.filter((event) => event.event_kind === 'internal')
+  const externalEvents = events.filter((event) => event.event_kind === 'external')
 
-          return (
-            <EventCard
-              key={event.id}
-              title={event.title}
-              date={formatEventDate(event.start_at, event.end_at)}
-              time={formatEventTime(event.start_at, event.end_at)}
-              location={event.location}
-              description={event.description}
-              organizer={event.organizer_department}
-              maxAttendees={event.capacity_total}
-              currentAttendees={event.current_registrations || 0}
-              hasApplyButton={true}
-              isApplied={event.is_registered || false}
-              color={color}
-              onApply={() => handleEventRegistration(event.id, event.is_registered || false)}
-              showParticipantsButton={!!event.current_registrations && (member?.Role === 'Board Member' || hasSpecialAccess)}
-              onViewParticipants={() => handleViewParticipants(event.id, event.title)}
-            />
-          )
-        })}
+  return (
+    <div className="flex flex-col gap-10">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-semibold text-foreground">Events</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {events.length} upcoming {events.length === 1 ? 'event' : 'events'}
+          </p>
+        </div>
       </div>
 
-      {showParticipantsModal && (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
-          <div className="bg-black/90 rounded-xl p-6 max-w-md w-full max-h-[80vh] overflow-y-auto">
-            <h3 className="text-xl font-bold text-white mb-4 flex items-center justify-between">
-              <span>Participants for {modalEventTitle}</span>
-              <span className="text-sm text-white/60">{participants.length} registered</span>
-            </h3>
-
-            {participantsLoading ? (
-              <p className="text-white/60">Loading...</p>
-            ) : participants.length === 0 ? (
-              <p className="text-white/60">No registrations yet.</p>
-            ) : (
-              <ul className="divide-y divide-white/20">
-                {participants.map((p) => (
-                  <li key={p.member_id} className="py-2 flex items-center gap-3">
-                    <span className="w-2 h-2 rounded-full bg-blue-400" />
-                    <span className="text-white font-medium">{p.members_main?.Name || 'Unknown'}</span>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            <button
-              onClick={() => setShowParticipantsModal(false)}
-              className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white"
-            >
-              Close
-            </button>
-          </div>
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            Our Events
+          </span>
+          <Separator className="flex-1" />
+          <Badge variant="secondary">{internalEvents.length}</Badge>
         </div>
-      )}
+
+        {internalEvents.length === 0 ? (
+          <Empty className="border-dashed">
+            <EmptyHeader>
+              <EmptyTitle>No internal events</EmptyTitle>
+              <EmptyDescription>New events organized by the club will show up here.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {internalEvents.map((event) => (
+              <InternalEventCard
+                key={event.id}
+                title={event.title}
+                date={formatEventDate(event.start_at, event.end_at)}
+                time={formatEventTime(event.start_at, event.end_at)}
+                location={event.location}
+                description={event.description}
+                organizer={event.organizer_department}
+                maxAttendees={event.capacity_total}
+                currentAttendees={event.current_registrations || 0}
+                hasApplyButton={true}
+                isApplied={event.is_registered || false}
+                onApply={() => handleEventRegistration(event.id, event.is_registered || false)}
+                showParticipantsButton={!!event.current_registrations && (member?.Role === 'Board Member' || hasSpecialAccess)}
+                onViewParticipants={() => handleViewParticipants(event.id, event.title)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            External Events
+          </span>
+          <Separator className="flex-1" />
+          <Badge variant="secondary">{externalEvents.length}</Badge>
+        </div>
+
+        {externalEvents.length === 0 ? (
+          <Empty className="border-dashed">
+            <EmptyHeader>
+              <EmptyTitle>No external events</EmptyTitle>
+              <EmptyDescription>Imported conferences and hackathons will show up here.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {externalEvents.map((event) => (
+              <ExternalEventCard
+                key={event.id}
+                title={event.title}
+                date={formatEventDate(event.start_at, event.end_at)}
+                location={event.city || event.location}
+                eventType={event.event_type}
+                priority={event.priority}
+                status={event.external_status}
+                format={event.format}
+                interestedNames={event.interested_names}
+                attendingNames={event.attending_names}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      <Dialog open={showParticipantsModal} onOpenChange={setShowParticipantsModal}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Participants for {modalEventTitle}</DialogTitle>
+            <DialogDescription>{participants.length} registered</DialogDescription>
+          </DialogHeader>
+
+          {participantsLoading ? (
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : participants.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No registrations yet.</p>
+          ) : (
+            <ul className="flex flex-col">
+              {participants.map((p) => (
+                <li key={p.member_id} className="flex items-center justify-between gap-3 border-b py-2 last:border-b-0">
+                  <span className="font-medium text-foreground">{p.members_main?.Name || 'Unknown'}</span>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowParticipantsModal(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

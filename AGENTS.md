@@ -10,3 +10,4 @@
 - Use `NEXT_PUBLIC_LOG_WEB_VITALS=true`, `NEXT_PUBLIC_MEMBERS_PERF_PROBE=true`, and `PERF_LOG_SERVER=true` for local `/members` profiling. Use `NEXT_PUBLIC_DASHBOARD_BACKGROUND_ANIMATION=false` when isolating idle CPU/paint cost from dashboard background animations.
 - Keep `NEXT_PUBLIC_MEMBERS_OVERSCAN` modest; high values can negate virtualization and broad manual image preloading can flood the browser with avatar requests.
 - Do not reintroduce route-wide member avatar preloading on `/members`; the fixed CPU regression came from loading far more avatar resources than mounted virtualized cards.
+- Events are split into `internal` and `external` rows via `events.event_kind`. Apply `supabase/events_external_metadata.sql` before deploying event UI changes that select external-event metadata columns.

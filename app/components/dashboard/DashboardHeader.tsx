@@ -34,16 +34,16 @@ const TABS: Array<{
     icon: UsersIcon,
   },
   {
-    key: 'stats',
-    labelDesktop: 'Statistics',
-    labelMobile: 'Stats',
-    icon: BarChart3Icon,
-  },
-  {
     key: 'events',
     labelDesktop: 'Events',
     labelMobile: 'Events',
     icon: CalendarIcon,
+  },
+  {
+    key: 'stats',
+    labelDesktop: 'Statistics',
+    labelMobile: 'Stats',
+    icon: BarChart3Icon,
   },
   {
     key: 'nft-approvals',

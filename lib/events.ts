@@ -9,6 +9,16 @@ export interface Event {
   location: string
   organizer_department: string
   capacity_total: number
+  event_kind: 'internal' | 'external'
+  event_type: string | null
+  priority: string | null
+  external_status: string | null
+  city: string | null
+  format: string | null
+  is_hackathon: boolean
+  interested_names: string[]
+  attending_names: string[]
+  all_day: boolean
   current_registrations?: number
   is_registered?: boolean
 }
@@ -30,6 +40,16 @@ type EventRow = {
   location: string
   organizer_department: string
   capacity_total: number
+  event_kind: 'internal' | 'external'
+  event_type: string | null
+  priority: string | null
+  external_status: string | null
+  city: string | null
+  format: string | null
+  is_hackathon: boolean
+  interested_names: string[]
+  attending_names: string[]
+  all_day: boolean
 }
 
 type EventRegistrationRow = {
@@ -43,11 +63,12 @@ type ParticipantJoinRow = {
 }
 
 export const eventService = {
-  getUpcomingEvents: async (memberId?: number, limit: number = 6) => {
+  getUpcomingEvents: async (memberId?: number, limit: number = 100) => {
     try {
       const { data: eventsData, error: eventsError } = await supabase
         .from('events')
         .select('*')
+        .order('start_at', { ascending: true })
         .limit(limit)
 
       if (eventsError) {
