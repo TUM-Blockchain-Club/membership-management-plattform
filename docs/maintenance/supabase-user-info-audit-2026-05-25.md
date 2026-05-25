@@ -135,3 +135,50 @@ Post-update verification:
 - `members_main` rows: 139
 - Rows with non-empty `TBC Email`: 110
 - Rows still missing `TBC Email`: 29
+
+## Department CSV Comparison
+
+A follow-up read-only department comparison matched Supabase members to the CSV
+by `members_main."TBC Email"` and normalized CSV `Org Unit Path` values:
+
+- `/Industry` -> `Industry`
+- `/Web3talents` -> `Web3 Talents`
+- `/Research and Development` -> `Research`
+- `/IT and Development` -> `IT & Development`
+- `/Legal and Finances` -> `Legal & Finance`
+- `/External Affairs` -> `External Relations`
+- `/Marketing` -> `Marketing`
+
+No Supabase changes were made during this check.
+
+Members with blank Supabase `Department` but a department in the CSV:
+
+| `members_main.id` | Supabase name | TBC email | CSV org unit | Proposed department | CSV status |
+|---:|---|---|---|---|---|
+| 181 | anton.kazarinov | anton.kazarinov@tum-blockchain.com | `/Industry` | Industry | Active |
+| 36 | Cem Denizsel | cem.denizsel@tum-blockchain.com | `/Research and Development` | Research | Active |
+| 40 | Daniel Moreno | daniel.moreno@tum-blockchain.com | `/Research and Development` | Research | Suspended |
+| 57 | Eugenio Vairo | eugenio.vairo@tum-blockchain.com | `/Research and Development` | Research | Active |
+| 69 | Huixu Liu | huixu@tum-blockchain.com | `/Research and Development` | Research | Suspended |
+
+Department mismatches between Supabase and CSV:
+
+| `members_main.id` | Supabase name | TBC email | Supabase department | CSV org unit | CSV department | CSV status |
+|---:|---|---|---|---|---|---|
+| 64 | Fynn Endreß | fynn.endress@tum-blockchain.com | Industry | `/Marketing` | Marketing | Active |
+| 66 | Gopi Mehta | gopi.mehta@tum-blockchain.com | Web3 Talents | `/Research and Development` | Research | Active |
+| 84 | Kerem Eskici | kerem.eskici@tum-blockchain.com | External Relations | `/Web3talents` | Web3 Talents | Active |
+| 113 | Salan Isaqzoi | salan.isaqzoi@tum-blockchain.com | External Relations | `/Web3talents` | Web3 Talents | Active |
+
+Multi-department row that already includes the CSV department:
+
+| `members_main.id` | Supabase name | TBC email | Supabase department | CSV org unit | CSV department |
+|---:|---|---|---|---|---|
+| 141 | Yehor Kubakh | yehor.kubakh@tum-blockchain.com | IT & Development, Research | `/IT and Development` | IT & Development |
+
+Rows with blank Supabase `Department` that could not be matched to a CSV
+department by TBC email:
+
+`admin`, `Ali`, `Artur Morozas`, `Felix Kania`, `Ismail Kuzu`,
+`Julian Baumann`, `Moritz Schindelmann`, `Sebastian Kreutz`, `t`, `ttt`,
+`Valentin Hartig`, `Yannik Fräbel`.
