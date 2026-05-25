@@ -1,3 +1,5 @@
+import { Separator } from '@/components/ui/separator'
+
 export function SeparatorLine({ title, gradient = false, color = 'purple' }: { title?: string; gradient?: boolean; color?: 'purple' | 'cyan' | 'blue' }) {
   const colorSchemes = {
     purple: {
@@ -25,7 +27,7 @@ export function SeparatorLine({ title, gradient = false, color = 'purple' }: { t
   return (
     <div className="mb-10 mt-12">
       <div className="flex items-center gap-4">
-        <div className={`h-0.5 flex-1 ${gradient ? scheme!.lineLeft : 'bg-gradient-to-r from-transparent via-white/30 to-white/30'}`} />
+        <Separator className={`h-0.5 flex-1 ${gradient ? scheme!.lineLeft : 'bg-gradient-to-r from-transparent via-white/30 to-white/30'}`} />
         {title && (
           <div className={`px-4 py-2 rounded-lg border backdrop-blur-sm ${
             gradient
@@ -37,7 +39,7 @@ export function SeparatorLine({ title, gradient = false, color = 'purple' }: { t
             </span>
           </div>
         )}
-        <div className={`h-0.5 flex-1 ${gradient ? scheme!.lineRight : 'bg-gradient-to-r from-white/30 via-white/30 to-transparent'}`} />
+        <Separator className={`h-0.5 flex-1 ${gradient ? scheme!.lineRight : 'bg-gradient-to-r from-white/30 via-white/30 to-transparent'}`} />
       </div>
     </div>
   )
@@ -47,9 +49,9 @@ export function SubSeparatorLine() {
   return (
     <div className="mb-8 mt-8">
       <div className="flex items-center gap-4">
-        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-white/10 to-white/10" />
+        <Separator className="flex-1 bg-gradient-to-r from-transparent via-white/10 to-white/10" />
         <div className="w-2 h-2 rounded-full bg-white/20" />
-        <div className="h-px flex-1 bg-gradient-to-r from-white/10 via-white/10 to-transparent" />
+        <Separator className="flex-1 bg-gradient-to-r from-white/10 via-white/10 to-transparent" />
       </div>
     </div>
   )

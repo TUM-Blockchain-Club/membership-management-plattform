@@ -5,6 +5,12 @@ import { useRouter } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import Image from 'next/image'
 import Link from 'next/link'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Separator } from '@/components/ui/separator'
+import { Spinner } from '@/components/ui/spinner'
 
 export default function SignIn() {
   const [email, setEmail] = useState('')
@@ -56,7 +62,8 @@ export default function SignIn() {
       </div>
 
       <div className="relative z-10 w-full max-w-md">
-        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl p-6 sm:p-8">
+        <Card className="bg-white/5 backdrop-blur-md border-white/10 shadow-2xl">
+          <CardContent className="p-6 sm:p-8">
           <div className="text-center mb-6 sm:mb-8">
             <Link href="/" className="inline-block mb-4 sm:mb-6">
               <Image
@@ -73,15 +80,17 @@ export default function SignIn() {
           </div>
 
           {error && (
-            <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-red-500/10 border border-red-500/20 rounded-lg">
-              <p className="text-red-400 text-xs sm:text-sm">{error}</p>
-            </div>
+            <Alert variant="destructive" className="mb-4 sm:mb-6 border-red-500/20 bg-red-500/10 text-red-400">
+              <AlertDescription className="text-current">{error}</AlertDescription>
+            </Alert>
           )}
 
-          <button
+          <Button
+            type="button"
             onClick={handleGoogleSignIn}
             disabled={loading}
-            className="w-full mb-4 sm:mb-6 flex items-center justify-center gap-2 sm:gap-3 px-4 sm:px-6 py-2.5 sm:py-3 bg-white text-black rounded-lg font-medium text-sm sm:text-base transition-all duration-300 hover:bg-white/90 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full mb-4 sm:mb-6 bg-white text-black hover:bg-white/90"
+            size="lg"
           >
             <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24">
               <path
@@ -102,55 +111,57 @@ export default function SignIn() {
               />
             </svg>
             <span className="truncate">Continue with Google</span>
-          </button>
+          </Button>
 
           <div className="relative mb-4 sm:mb-6">
             <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-white/10"></div>
+              <Separator className="bg-white/10" />
             </div>
             <div className="relative flex justify-center text-xs sm:text-sm">
               <span className="px-3 sm:px-4 bg-transparent text-white/60">Or continue with email</span>
             </div>
           </div>
 
-          <form onSubmit={handleEmailSignIn} className="space-y-3 sm:space-y-4">
-            <div>
+          <form onSubmit={handleEmailSignIn} className="flex flex-col gap-3 sm:gap-4">
+            <div className="flex flex-col gap-1.5 sm:gap-2">
               <label htmlFor="email" className="block text-xs sm:text-sm font-medium text-white/80 mb-1.5 sm:mb-2">
                 Email
               </label>
-              <input
+              <Input
                 id="email"
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+                className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/40"
                 placeholder="you@tum-blockchain.com"
               />
             </div>
 
-            <div>
+            <div className="flex flex-col gap-1.5 sm:gap-2">
               <label htmlFor="password" className="block text-xs sm:text-sm font-medium text-white/80 mb-1.5 sm:mb-2">
                 Password
               </label>
-              <input
+              <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 text-sm sm:text-base bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all"
+                className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/40"
                 placeholder="••••••••"
               />
             </div>
 
-            <button
+            <Button
               type="submit"
               disabled={loading}
-              className="w-full px-4 sm:px-6 py-2.5 sm:py-3 text-sm sm:text-base bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-lg font-medium transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-lg hover:shadow-blue-500/30"
+              size="lg"
             >
+              {loading && <Spinner data-icon="inline-start" />}
               {loading ? 'Signing in...' : 'Sign In'}
-            </button>
+            </Button>
           </form>
 
           <p className="mt-4 sm:mt-6 text-center text-xs sm:text-sm text-white/60">
@@ -159,7 +170,8 @@ export default function SignIn() {
               Sign up
             </Link>
           </p>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

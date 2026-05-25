@@ -1,6 +1,16 @@
 import { MemberCard } from '@/app/components/dashboard/MemberCard'
 import { QuickNavigation } from '@/app/components/dashboard/QuickNavigation'
 import { SeparatorLine, SubSeparatorLine } from '@/app/components/dashboard/Separators'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import type { DashboardMember } from '@/app/components/dashboard/types'
 
 export function MembersPage({
@@ -79,25 +89,25 @@ export function MembersPage({
 
           <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
             {((member?.Role === 'Board Member') || hasSpecialAccess) && (
-              <button
+              <Button
                 onClick={handleAddMember}
-                className="px-3 sm:px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm rounded-lg transition-all duration-200 flex items-center gap-1.5 sm:gap-2 whitespace-nowrap"
+                className="bg-blue-600 text-white hover:bg-blue-700 text-xs sm:text-sm"
               >
-                <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg data-icon="inline-start" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
                 <span className="hidden sm:inline">Add Member</span>
                 <span className="sm:hidden">Add</span>
-              </button>
+              </Button>
             )}
 
           <div className="relative">
-            <input
+            <Input
               type="text"
               placeholder="Search members..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-4 pr-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent"
+              className="bg-white/5 border-white/20 text-white placeholder:text-white/40"
             />
           </div>
         </div>
@@ -106,61 +116,81 @@ export function MembersPage({
         <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2 sm:gap-3">
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <label className="text-white/60 text-xs sm:text-sm whitespace-nowrap">Status:</label>
-            <select
+            <Select
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="flex-1 sm:flex-initial px-2 sm:px-3 py-1.5 bg-black/40 border border-white/20 rounded-lg text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:bg-black/50 transition-colors"
+              onValueChange={setStatusFilter}
             >
-              <option value="all" className="bg-gray-900 text-white">All Statuses</option>
-              {uniqueStatuses.map((status) => (
-                <option key={status} value={status} className="bg-gray-900 text-white">{status}</option>
-              ))}
-            </select>
+              <SelectTrigger size="sm" className="flex-1 sm:w-[180px] bg-black/40 border-white/20 text-white hover:bg-black/50">
+                <SelectValue placeholder="All Statuses" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  {uniqueStatuses.map((status) => (
+                    <SelectItem key={status} value={status}>{status}</SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <label className="text-white/60 text-xs sm:text-sm whitespace-nowrap">Department:</label>
-            <select
+            <Select
               value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-              className="flex-1 sm:flex-initial px-2 sm:px-3 py-1.5 bg-black/40 border border-white/20 rounded-lg text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:bg-black/50 transition-colors"
+              onValueChange={setDepartmentFilter}
             >
-              <option value="all" className="bg-gray-900 text-white">All Departments</option>
-              {uniqueDepartments.map((dept) => (
-                <option key={dept} value={dept} className="bg-gray-900 text-white">{dept}</option>
-              ))}
-            </select>
+              <SelectTrigger size="sm" className="flex-1 sm:w-[220px] bg-black/40 border-white/20 text-white hover:bg-black/50">
+                <SelectValue placeholder="All Departments" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="all">All Departments</SelectItem>
+                  {uniqueDepartments.map((dept) => (
+                    <SelectItem key={dept} value={dept}>{dept}</SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="flex items-center gap-2 w-full sm:w-auto">
             <label className="text-white/60 text-xs sm:text-sm whitespace-nowrap">Role:</label>
-            <select
+            <Select
               value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="flex-1 sm:flex-initial px-2 sm:px-3 py-1.5 bg-black/40 border border-white/20 rounded-lg text-white text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 hover:bg-black/50 transition-colors"
+              onValueChange={setRoleFilter}
             >
-              <option value="all" className="bg-gray-900 text-white">All Roles</option>
-              {uniqueRoles.map((role) => (
-                <option key={role} value={role} className="bg-gray-900 text-white">{role}</option>
-              ))}
-            </select>
+              <SelectTrigger size="sm" className="flex-1 sm:w-[180px] bg-black/40 border-white/20 text-white hover:bg-black/50">
+                <SelectValue placeholder="All Roles" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  {uniqueRoles.map((role) => (
+                    <SelectItem key={role} value={role}>{role}</SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
 
           {(statusFilter !== 'all' || departmentFilter !== 'all' || roleFilter !== 'all' || searchQuery) && (
-            <button
+            <Button
+              variant="destructive"
+              size="sm"
               onClick={() => {
                 setStatusFilter('all')
                 setDepartmentFilter('all')
                 setRoleFilter('all')
                 setSearchQuery('')
               }}
-              className="px-3 py-1.5 bg-red-500/20 border border-red-500/40 rounded-lg text-red-400 text-xs sm:text-sm hover:bg-red-500/30 transition-colors flex items-center gap-1.5 w-full sm:w-auto justify-center"
+              className="w-full sm:w-auto text-xs sm:text-sm"
             >
-              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg data-icon="inline-start" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
               Clear Filters
-            </button>
+            </Button>
           )}
         </div>
 

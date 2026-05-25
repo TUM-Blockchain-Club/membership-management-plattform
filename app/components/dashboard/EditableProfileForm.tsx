@@ -1,5 +1,17 @@
 import type { ReactNode } from 'react'
 import UniversityAutocomplete from '@/app/components/UniversityAutocomplete'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Input } from '@/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { EditableMember } from './types'
 
 export function EditableProfileForm({
@@ -104,64 +116,77 @@ export function EditableProfileForm({
   ]
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); onSave(); }} className="space-y-6">
+    <form onSubmit={(e) => { e.preventDefault(); onSave(); }} className="flex flex-col gap-6">
       {fieldSections.map((section, idx) => (
-        <div key={idx} className="border border-white/10 rounded-xl p-6 bg-white/[0.02]">
-          <div className="flex items-center gap-2 mb-4">
+        <Card key={idx} className="bg-white/[0.02]">
+          <CardHeader className="flex-row items-center gap-2">
             <div className="text-blue-400">{section.icon}</div>
-            <h4 className="text-lg font-semibold text-white">{section.title}</h4>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <CardTitle className="text-lg font-semibold text-white">{section.title}</CardTitle>
+          </CardHeader>
+          <CardContent>
+          <FieldGroup className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {section.fields.map((field, fieldIdx) => {
               const isFieldDisabled = !canEditField(field.key, isOwnProfile)
+              const fieldValue = String(memberRecord[field.key] ?? '')
+
               return (
-                <div key={fieldIdx} className={field.key === 'Project/Task' || field.key === 'Area of Expertise' ? 'md:col-span-2' : ''}>
-                  <label className="block text-white/60 text-xs uppercase tracking-wider font-medium mb-2">
+                <Field
+                  key={fieldIdx}
+                  data-disabled={isFieldDisabled || undefined}
+                  className={field.key === 'Project/Task' || field.key === 'Area of Expertise' ? 'md:col-span-2' : ''}
+                >
+                  <FieldLabel className="text-white/60 text-xs uppercase tracking-wider font-medium">
                     {field.label}
                     {isFieldDisabled && <span className="ml-2 text-white/40">(Read-only)</span>}
-                  </label>
+                  </FieldLabel>
                   {field.key === 'Uni' ? (
                     <UniversityAutocomplete
-                      value={String(memberRecord[field.key] ?? '')}
+                      value={fieldValue}
                       onChange={(value) => onInputChange(field.key, value)}
                       disabled={isFieldDisabled}
                     />
                   ) : field.type === 'select' ? (
-                    <select
-                      value={String(memberRecord[field.key] ?? '')}
-                      onChange={(e) => onInputChange(field.key, e.target.value)}
+                    <Select
+                      value={fieldValue || undefined}
+                      onValueChange={(value) => onInputChange(field.key, value)}
                       disabled={isFieldDisabled}
-                      className="w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <option value="" className="bg-gray-900 text-white">Select {field.label.toLowerCase()}</option>
-                      {field.options?.map((option: string) => (
-                        <option key={option} value={option} className="bg-gray-900 text-white">{option}</option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="w-full bg-white/5 border-white/20 text-white">
+                        <SelectValue placeholder={`Select ${field.label.toLowerCase()}`} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          {field.options?.map((option: string) => (
+                            <SelectItem key={option} value={option}>{option}</SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
                   ) : (
-                    <input
+                    <Input
                       type={field.type}
-                      value={String(memberRecord[field.key] ?? '')}
+                      value={fieldValue}
                       onChange={(e) => onInputChange(field.key, e.target.value)}
                       placeholder={field.placeholder}
                       disabled={isFieldDisabled}
-                      className="w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="bg-white/5 border-white/20 text-white placeholder:text-white/30"
                     />
                   )}
-                </div>
+                </Field>
               )
             })}
-          </div>
+          </FieldGroup>
           {section.title === 'Contact Information' && (
-            <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-              <p className="text-blue-200 text-sm">
+            <Alert className="mt-4 bg-blue-500/10 border-blue-500/20">
+              <AlertDescription className="text-blue-200">
                 <strong>Privacy Notice:</strong> Your contact information and social media profiles are stored securely in our encrypted database.
                 This data is used solely for internal member communication and networking purposes within the organization.
                 We are committed to protecting your privacy and will never share your personal information with third parties without your explicit consent.
-              </p>
-            </div>
+              </AlertDescription>
+            </Alert>
           )}
-        </div>
+          </CardContent>
+        </Card>
       ))}
     </form>
   )

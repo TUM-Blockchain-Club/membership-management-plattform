@@ -36,3 +36,9 @@ Replace hand-built buttons, inputs, selects, textareas, checkboxes, alerts, badg
 - Raw primitive usage is meaningfully reduced.
 - Existing behavior is preserved.
 - `pnpm lint`, `pnpm exec tsc --noEmit`, and `pnpm build` pass.
+
+## Execution Notes
+
+- Migrated the Step 2 priority files away from raw buttons, inputs, selects, textareas, custom skeletons, and hand-built separators.
+- Kept modal-specific rewrites for Step 3, where Dialog composition and NFT status page decomposition are handled together.
+- Preserved existing visual intent by carrying over domain-specific color classes where they encode member roles, request statuses, or TBC branding.

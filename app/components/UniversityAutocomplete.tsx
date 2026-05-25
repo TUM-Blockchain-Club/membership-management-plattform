@@ -1,6 +1,9 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 import { searchUniversities } from '@/lib/universities'
 
 interface Institution {
@@ -108,7 +111,7 @@ export default function UniversityAutocomplete({ value, onChange, disabled = fal
 
   return (
     <div className="relative">
-      <input
+      <Input
         ref={inputRef}
         type="text"
         value={inputValue}
@@ -122,24 +125,25 @@ export default function UniversityAutocomplete({ value, onChange, disabled = fal
         }}
         disabled={disabled}
         placeholder="Type university name or acronym (e.g., TUM, LMU, KIT)"
-        className="w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="bg-white/5 border-white/20 text-white placeholder:text-white/30"
       />
       
       {showDropdown && suggestions.length > 0 && (
-        <div
+        <Card
           ref={dropdownRef}
-          className="absolute z-50 w-full mt-2 bg-gray-900 border border-white/20 rounded-lg shadow-2xl max-h-80 overflow-y-auto"
+          className="absolute z-50 w-full mt-2 bg-gray-900 border-white/20 shadow-2xl max-h-80 overflow-y-auto py-0"
         >
           {suggestions.map((institution, index) => (
-            <button
+            <Button
               key={`${institution.name}-${index}`}
               type="button"
+              variant="ghost"
               onMouseDown={(e) => {
                 e.preventDefault()
                 handleSelectInstitution(institution)
               }}
               onMouseEnter={() => setSelectedIndex(index)}
-              className={`w-full px-4 py-3 text-left transition-colors border-b border-white/5 last:border-b-0 ${
+              className={`h-auto w-full justify-start rounded-none px-4 py-3 text-left transition-colors border-b border-white/5 last:border-b-0 ${
                 index === selectedIndex
                   ? 'bg-blue-500/20 border-blue-500/30'
                   : 'hover:bg-white/5'
@@ -167,20 +171,20 @@ export default function UniversityAutocomplete({ value, onChange, disabled = fal
                   )}
                 </div>
               </div>
-            </button>
+            </Button>
           ))}
-        </div>
+        </Card>
       )}
       
       {showDropdown && suggestions.length === 0 && inputValue.length >= 1 && (
-        <div
+        <Card
           ref={dropdownRef}
-          className="absolute z-50 w-full mt-2 bg-gray-900 border border-white/20 rounded-lg shadow-2xl p-4"
+          className="absolute z-50 w-full mt-2 bg-gray-900 border-white/20 shadow-2xl"
         >
-          <div className="text-white/40 text-sm text-center">
+          <CardContent className="p-4 text-center text-sm text-white/40">
             No universities found. Try a different search term.
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   )

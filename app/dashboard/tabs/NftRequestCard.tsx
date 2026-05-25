@@ -2,6 +2,10 @@
 "use client"
 
 import { useState } from "react"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import type { NftRequestStatus } from "@/lib/nftRequests"
 import { CheckIcon, ClockIcon, XIcon } from "./Icons"
 
@@ -51,7 +55,7 @@ export function NftRequestCard({
   const [imageFailed, setImageFailed] = useState(false)
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] shadow-xl shadow-black/20 transition-colors hover:border-cyan-400/30">
+    <Card className="overflow-hidden border-white/10 bg-white/[0.03] py-0 shadow-xl shadow-black/20 transition-colors hover:border-cyan-400/30">
       <div className="relative aspect-[4/5] overflow-hidden bg-black">
         {!imageFailed ? (
           <img
@@ -69,7 +73,7 @@ export function NftRequestCard({
           </div>
         )}
 
-        <div className={`absolute right-3 top-3 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ${STATUS_STYLES[request.status]}`}>
+        <Badge variant="outline" className={`absolute right-3 top-3 ${STATUS_STYLES[request.status]}`}>
           {request.status === "approved" ? (
             <CheckIcon className="h-3 w-3" />
           ) : request.status === "rejected" ? (
@@ -78,27 +82,24 @@ export function NftRequestCard({
             <ClockIcon className="h-3 w-3" />
           )}
           <span className="capitalize">{request.status}</span>
-        </div>
+        </Badge>
       </div>
 
-      <div className="flex flex-col gap-4 p-4">
-        <div>
+      <CardHeader>
           <p className="text-[11px] uppercase tracking-[0.18em] text-cyan-200/70">Display Name</p>
-          <h3 className="mt-1 text-lg font-semibold text-white">{request.displayName}</h3>
-        </div>
+          <CardTitle className="text-lg font-semibold text-white">{request.displayName}</CardTitle>
+      </CardHeader>
 
+      <CardContent className="flex flex-col gap-4">
         <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
-          {request.memberAvatar ? (
-            <img
-              src={`${request.memberAvatar}?v=${new Date().getTime()}`}
-              alt={request.memberName}
-              className="h-10 w-10 shrink-0 rounded-full border border-white/10 object-cover"
-            />
-          ) : (
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/5 text-xs font-semibold text-white/80">
+          <Avatar size="lg">
+            {request.memberAvatar && (
+              <AvatarImage src={`${request.memberAvatar}?v=${new Date().getTime()}`} alt={request.memberName} />
+            )}
+            <AvatarFallback className="border border-white/10 bg-white/5 text-xs font-semibold text-white/80">
               {request.memberInitials}
-            </div>
-          )}
+            </AvatarFallback>
+          </Avatar>
 
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-white">{request.memberName}</p>
@@ -106,7 +107,7 @@ export function NftRequestCard({
           </div>
         </div>
 
-        <div className="space-y-3 rounded-xl border border-white/10 bg-black/20 p-3">
+        <div className="flex flex-col gap-3 rounded-xl border border-white/10 bg-black/20 p-3">
           <div>
           <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Highlight</p>
           <p className="mt-1 text-sm leading-6 text-white/80">{request.highlight || "No highlight provided."}</p>
@@ -148,26 +149,27 @@ export function NftRequestCard({
           <ClockIcon className="h-3 w-3 shrink-0" />
           <span>Submitted {request.submittedAt}</span>
         </div>
+      </CardContent>
 
         {isActionable ? (
-          <div className="flex gap-2">
-            <button
+          <CardFooter className="gap-2 border-white/10 bg-transparent">
+            <Button
               onClick={() => onApprove(request.id)}
               disabled={isUpdating || isMinting}
-              className="flex-1 rounded-xl bg-emerald-500 px-3 py-2.5 text-xs font-semibold text-slate-950 transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:bg-emerald-500/60"
+              className="flex-1 bg-emerald-500 text-xs font-semibold text-slate-950 hover:bg-emerald-400 disabled:bg-emerald-500/60"
             >
               {isMinting ? "Minting..." : "Approve"}
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="outline"
               onClick={() => onReject(request.id)}
               disabled={isUpdating || isMinting}
-              className="flex-1 rounded-xl border border-rose-400/40 px-3 py-2.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/10 disabled:cursor-not-allowed disabled:border-rose-400/20 disabled:text-rose-200/60"
+              className="flex-1 border-rose-400/40 text-xs font-semibold text-rose-200 hover:bg-rose-500/10 disabled:border-rose-400/20 disabled:text-rose-200/60"
             >
               Reject
-            </button>
-          </div>
+            </Button>
+          </CardFooter>
         ) : null}
-      </div>
-    </article>
+    </Card>
   )
 }
