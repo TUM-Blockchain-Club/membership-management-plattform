@@ -107,3 +107,62 @@ Post-update Supabase `Status` counts:
 - `Left`: 9
 - `Kicked out`: 2
 - blank: 5
+
+## Follow-Up Discrepancy Check
+
+A follow-up read-only comparison was run after the cleanup above.
+
+Image presence only, without comparing image contents:
+
+- Matched Strapi members with `profile_picture`: 107
+- Matched Supabase members with `Picture`: 106
+- Strapi has image but Supabase has no image: 1
+- Supabase has image but Strapi has no image among matched members: 0
+
+Image presence discrepancy:
+
+| Supabase id | Name | Supabase email | Strapi image | Supabase image |
+|---:|---|---|---|---|
+| 71 | Indrakshee Mukherjee | indrakshee.mukherjee@tum-blockchain.com | yes | no |
+
+LinkedIn after cleanup:
+
+- LinkedIn differences among matched members: 0
+
+Email completeness:
+
+- 94 matched Strapi records have blank `email` while their Supabase rows have
+  `TBC Email`. These are not identity mismatches because all Strapi members
+  still matched by `supabase_id`.
+
+Active/status discrepancies:
+
+| Supabase id | Name | Strapi status | Supabase role | Supabase status | Note |
+|---:|---|---|---|---|---|
+| 92 | Lukas Heine | core | Ex-Core Member | Alumni | Active/non-active mismatch. |
+
+Mapped non-active status differences to review in the alumni/exited pass:
+
+| Supabase id | Name | Strapi status | Mapped Strapi status | Supabase status |
+|---:|---|---|---|---|
+| 120 | Sparsh Tyagi | alumni | Alumni | Advisor |
+| 73 | Jago Wahl-Schwentker | exit | Left | Alumni |
+| 87 | Konstantin Amm | exit | Left | Alumni |
+| 108 | Nils Rehtanz | exit | Left | Alumni |
+
+Department difference after the user-confirmed Supabase override:
+
+| Supabase id | Name | Strapi departments | Supabase department |
+|---:|---|---|---|
+| 64 | Fynn Endreß | Industry | Marketing |
+
+This difference is expected from the manual confirmation that Fynn should be
+Marketing in Supabase.
+
+Degree differences where both Strapi `degree` and Supabase `Bachelor/Master`
+are populated:
+
+| Supabase id | Name | Strapi degree | Supabase `Bachelor/Master` |
+|---:|---|---|---|
+| 83 | Kenny Nguyen | phd | Master |
+| 135 | Ulas Baran Kilic | bachelor | Master |
