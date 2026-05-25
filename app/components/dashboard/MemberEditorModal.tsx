@@ -47,7 +47,7 @@ export function MemberEditorModal({
       if (!nextOpen) handleCancel()
     }}>
       <DialogContent
-        className="z-[70] flex h-[90vh] w-full max-w-4xl flex-col overflow-hidden border-white/20 bg-black/90 p-0 text-white"
+        className="z-[70] flex h-[90vh] w-full max-w-[calc(100vw-2rem)] flex-col overflow-hidden border-white/20 bg-black/90 p-0 text-white sm:max-w-5xl"
         showCloseButton={!saving}
       >
         <DialogHeader className="shrink-0 border-b border-white/10 bg-black/95 px-4 pb-3 pt-4 sm:px-6 sm:pt-6">
