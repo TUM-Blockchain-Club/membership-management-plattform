@@ -34,3 +34,4 @@ It also backfills the 19 imported CSV rows as `external` and preserves existing 
 - External event cards show structured conference/hackathon metadata and member interest lists.
 - The page uses shadcn primitives (`Card`, `Badge`, `Button`, `Separator`, `Dialog`, `Empty`) and avoids the previous rainbow gradient event cards.
 - The dashboard header order now places Events before Statistics.
+- As of the latest UI pass, the internal "Our Events" section is hidden behind the local `showInternalEvents` flag in `EventsPage`. The internal card implementation remains in place for later re-enabling.

@@ -42,6 +42,7 @@ export function EventsPage({
 }) {
   const internalEvents = events.filter((event) => event.event_kind === 'internal')
   const externalEvents = events.filter((event) => event.event_kind === 'external')
+  const showInternalEvents = false
 
   return (
     <div className="flex flex-col gap-10">
@@ -54,45 +55,47 @@ export function EventsPage({
         </div>
       </div>
 
-      <section className="flex flex-col gap-4">
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-            Our Events
-          </span>
-          <Separator className="flex-1" />
-          <Badge variant="secondary">{internalEvents.length}</Badge>
-        </div>
-
-        {internalEvents.length === 0 ? (
-          <Empty className="border-dashed">
-            <EmptyHeader>
-              <EmptyTitle>No internal events</EmptyTitle>
-              <EmptyDescription>New events organized by the club will show up here.</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {internalEvents.map((event) => (
-              <InternalEventCard
-                key={event.id}
-                title={event.title}
-                date={formatEventDate(event.start_at, event.end_at)}
-                time={formatEventTime(event.start_at, event.end_at)}
-                location={event.location}
-                description={event.description}
-                organizer={event.organizer_department}
-                maxAttendees={event.capacity_total}
-                currentAttendees={event.current_registrations || 0}
-                hasApplyButton={true}
-                isApplied={event.is_registered || false}
-                onApply={() => handleEventRegistration(event.id, event.is_registered || false)}
-                showParticipantsButton={!!event.current_registrations && (member?.Role === 'Board Member' || hasSpecialAccess)}
-                onViewParticipants={() => handleViewParticipants(event.id, event.title)}
-              />
-            ))}
+      {showInternalEvents && (
+        <section className="flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+              Our Events
+            </span>
+            <Separator className="flex-1" />
+            <Badge variant="secondary">{internalEvents.length}</Badge>
           </div>
-        )}
-      </section>
+
+          {internalEvents.length === 0 ? (
+            <Empty className="border-dashed">
+              <EmptyHeader>
+                <EmptyTitle>No internal events</EmptyTitle>
+                <EmptyDescription>New events organized by the club will show up here.</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+              {internalEvents.map((event) => (
+                <InternalEventCard
+                  key={event.id}
+                  title={event.title}
+                  date={formatEventDate(event.start_at, event.end_at)}
+                  time={formatEventTime(event.start_at, event.end_at)}
+                  location={event.location}
+                  description={event.description}
+                  organizer={event.organizer_department}
+                  maxAttendees={event.capacity_total}
+                  currentAttendees={event.current_registrations || 0}
+                  hasApplyButton={true}
+                  isApplied={event.is_registered || false}
+                  onApply={() => handleEventRegistration(event.id, event.is_registered || false)}
+                  showParticipantsButton={!!event.current_registrations && (member?.Role === 'Board Member' || hasSpecialAccess)}
+                  onViewParticipants={() => handleViewParticipants(event.id, event.title)}
+                />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
