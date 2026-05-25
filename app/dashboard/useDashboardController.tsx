@@ -284,8 +284,16 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
       const updatedData: EditableMember = { ...editedMember }
       delete updatedData.Picture
 
-      if (selectedImageFile) {
-        // reserved for future upload flow
+      if (selectedImageFile && viewedMember) {
+        const { data: pictureUrl, error: uploadError } = await memberService.uploadProfilePicture(
+          String(viewedMember.id),
+          selectedImageFile
+        )
+        if (uploadError || !pictureUrl) {
+          setMessage({ type: 'error', text: `Failed to upload image: ${uploadError?.message || 'Unknown error'}` })
+          return
+        }
+        updatedData.Picture = pictureUrl
       }
 
       if (creatingMember) {
