@@ -14,7 +14,7 @@ Improve repository structure, documentation, and Supabase consistency after the 
   - `lib/supabase/client.ts`
   - `lib/supabase/server.ts`
 - Split `useDashboardController` into smaller hooks where useful.
-- Fix Supabase docs so they match the actual schema and table names.
+- Supabase docs now have a current baseline in `docs/database/schema.md`; keep them updated as schema changes land.
 - Regenerate Supabase database types or document how to regenerate them.
 - Centralize NFT admin authorization IDs or move them fully into Supabase.
 - Add or remove missing routes referenced by UI:
@@ -26,7 +26,7 @@ Improve repository structure, documentation, and Supabase consistency after the 
 ## Acceptance Criteria
 
 - README explains local setup, env vars, scripts, Supabase, and deployment.
-- Supabase setup docs match current code.
+- Supabase setup docs match current code, with `docs/database/schema.md` as the canonical schema overview.
 - Authorization constants are not duplicated inconsistently.
 - Production build works with documented env setup.
 - `pnpm lint`, `pnpm exec tsc --noEmit`, and `pnpm build` pass.

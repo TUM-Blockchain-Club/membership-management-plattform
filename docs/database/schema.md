@@ -1,0 +1,269 @@
+# Database Schema
+
+This document is the canonical repo-level overview of the current Supabase schema for the membership management platform.
+
+Last inspected against the live Supabase project: 2026-05-26.
+
+## Source Of Truth
+
+- Live database: Supabase project configured by `NEXT_PUBLIC_SUPABASE_URL`.
+- Application clients:
+  - Browser/client Supabase access: `lib/supabase.ts`
+  - Server Supabase access: `lib/supabase/server.ts`
+  - Service-role admin access: `lib/server/supabaseAdmin.ts`
+- SQL files:
+  - `supabase/events_external_metadata.sql`
+  - `supabase/nft_requests.sql`
+- Import tooling:
+  - `scripts/import-external-events-csv.mjs`
+
+There is no active `mmp` schema and no current `supabase/schema.sql` in this repository. The app uses the `public` schema.
+
+## Public Tables
+
+### `public.members_main`
+
+Primary member directory table. App code resolves the signed-in user by matching Supabase Auth `email` to `members_main."TBC Email"`.
+
+Current live count: 139 rows.
+
+| Column | Type | Null | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | `bigint` | no | none | Primary key. |
+| `created_at` | `timestamptz` | no | `now()` | Creation timestamp. |
+| `Name` | `text` | no | none | Display name. |
+| `Role` | `text` | yes | none | Examples include `Core Member`, `Board Member`, `Ex-Core Member`, `Guest`. |
+| `Status` | `text` | yes | none | Examples include `Active`, `Passive`, `Left`, `Kicked out`. |
+| `Department` | `text` | yes | none | May contain comma-separated departments. |
+| `Project/Task` | `text` | yes | none | Current project/task. |
+| `Area of Expertise` | `text` | yes | none | Free-form expertise text. |
+| `Picture` | `bytea` | yes | none | Legacy binary picture storage; newer flows may use public storage URLs. |
+| `Batch` | `text` | yes | none | Batch/cohort metadata. |
+| `Uni` | `text` | yes | none | University. |
+| `Semester Joined` | `text` | yes | none | Joined semester. |
+| `Bachelor/Master` | `text` | yes | none | Degree level. |
+| `Phone` | `text` | yes | none | Phone number. |
+| `Private Email` | `text` | yes | none | Personal email. |
+| `TBC Email` | `text` | yes | none | Unique TBC email used for auth/member matching. |
+| `Linkedin` | `text` | yes | none | LinkedIn URL or handle. |
+| `Telegram` | `text` | yes | none | Telegram handle. |
+| `Discord` | `text` | yes | none | Discord handle. |
+| `Instagram` | `text` | yes | none | Instagram handle. |
+| `Twitter` | `text` | yes | none | X/Twitter handle. |
+| `Size Merch` | `text` | yes | none | Merchandise size. |
+| `UUID` | `uuid` | yes | none | Optional UUID metadata. |
+| `Degree` | `text` | yes | none | Degree program. |
+| `degree_at_uni` | `text` | yes | none | Additional degree metadata. |
+| `highlight` | `text` | yes | none | Profile highlight. |
+| `nft_avatar` | `text` | yes | none | NFT avatar reference. |
+| `nft_consent` | `boolean` | yes | `false` | Consent for NFT flows. |
+| `nickname` | `text` | yes | none | Preferred nickname. |
+
+Constraints and indexes:
+
+- Primary key: `Members_TUM_pkey` on `id`.
+- Unique index: `members_main_tbc_email_unique` on `"TBC Email"`.
+
+### `public.events`
+
+Shared table for club-organized internal events and imported external ecosystem events.
+
+Current live count: 29 rows.
+
+| Column | Type | Null | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | `bigint` | no | none | Primary key. |
+| `created_at` | `timestamptz` | no | `now()` | Creation timestamp. |
+| `title` | `varchar` | yes | none | Event title. |
+| `description` | `varchar` | yes | none | Event description. |
+| `start_at` | `timestamptz` | yes | none | Event start. Event display uses UTC formatting for hydration stability. |
+| `end_at` | `timestamptz` | yes | none | Event end. |
+| `location` | `varchar` | yes | none | Location display fallback. |
+| `organizer_department` | `varchar` | yes | none | Internal organizer or external event type. |
+| `capacity_total` | `integer` | yes | none | Internal event capacity. |
+| `check_in_token` | `uuid` | yes | `gen_random_uuid()` | Token for check-in flows. |
+| `check_in_enabled` | `boolean` | no | `false` | Enables event check-in. |
+| `event_kind` | `text` | no | `internal` | `internal` or `external`. |
+| `event_type` | `text` | yes | none | External type, e.g. `Conference`, `Hackathon`, or both. |
+| `priority` | `text` | yes | none | External priority, e.g. `P1`, `P2`, `P3`, `P4`, `P5`. |
+| `external_status` | `text` | yes | none | External status such as `Registration Open`, `Past`, `Canceled`. |
+| `city` | `text` | yes | none | External city. |
+| `format` | `text` | yes | none | External format such as `In-Person`, `Virtual`, `Hybrid`. |
+| `is_hackathon` | `boolean` | no | `false` | Convenience flag for hackathons. |
+| `interested_names` | `text[]` | no | `{}` | Imported free-form interested list. |
+| `attending_names` | `text[]` | no | `{}` | Imported free-form attending list. |
+| `all_day` | `boolean` | no | `false` | External CSV imports are all-day events. |
+| `image_url` | `text` | yes | none | Public image URL for event card display. |
+| `event_link_url` | `text` | yes | none | Click-through target for the event image/card link. |
+
+Constraints and indexes:
+
+- Primary key: `events_pkey` on `id`.
+- Check: `events_event_kind_check`, restricts `event_kind` to `internal` or `external`.
+- Unique index: `events_check_in_token_idx` on `check_in_token`.
+
+App behavior:
+
+- Internal events use registration, participant count, capacity, organizer, and check-in flows.
+- External events use structured metadata from CSV/admin edits.
+- Events page defaults to P1/P2 priorities and hides events older than seven days unless `Past Events` is enabled.
+- Full external CSV imports use `scripts/import-external-events-csv.mjs`.
+
+### `public.event_registrations`
+
+Registration table for internal event attendance intent.
+
+Current live count: 5 rows.
+
+| Column | Type | Null | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | `bigint` | no | none | Primary key. |
+| `created_at` | `timestamptz` | no | `now()` | Registration timestamp. |
+| `event_id` | `bigint` | yes | none | References `events.id`. |
+| `member_id` | `bigint` | yes | none | References `members_main.id`. |
+
+Relationships:
+
+- `event_id` -> `events.id`
+- `member_id` -> `members_main.id`
+
+### `public.attendance`
+
+Check-in table for event attendance.
+
+| Column | Type | Null | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | no | `gen_random_uuid()` | Primary key. |
+| `member_id` | `integer` | no | none | References `members_main.id`. |
+| `event_id` | `integer` | no | none | References `events.id`. |
+| `checked_in_at` | `timestamptz` | no | `now()` | Check-in timestamp. |
+
+Constraints and indexes:
+
+- Primary key: `attendance_pkey` on `id`.
+- Unique index: `attendance_member_id_event_id_key` on `(member_id, event_id)`.
+- Index: `attendance_member_id_idx` on `member_id`.
+- Index: `attendance_event_id_idx` on `event_id`.
+
+Relationships:
+
+- `member_id` -> `members_main.id`
+- `event_id` -> `events.id`
+
+### `public.nft_requests`
+
+NFT image/profile request table.
+
+Current live count: 2 rows.
+
+| Column | Type | Null | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | no | `gen_random_uuid()` | Primary key. |
+| `member_id` | `integer` | no | none | References `members_main.id`; one request per member. |
+| `status` | `text` | no | `pending` | Request lifecycle status. |
+| `display_name` | `text` | no | none | Display name for NFT. |
+| `fun_facts` | `text` | yes | none | Optional prompt/profile facts. |
+| `wallet_address` | `text` | yes | none | Optional wallet override. |
+| `image_path` | `text` | no | none | Storage object path. |
+| `image_url` | `text` | no | none | Public image URL. |
+| `created_at` | `timestamptz` | no | `now()` | Creation timestamp. |
+| `reviewed_at` | `timestamptz` | yes | none | Review timestamp. |
+| `reviewed_by` | `uuid` | yes | none | References an auth user. |
+| `review_note` | `text` | yes | none | Admin review note. |
+| `mint_tx_hash` | `text` | yes | none | Mint transaction hash. |
+| `burn_tx_hash` | `text` | yes | none | Burn transaction hash. |
+| `update_tx_hash` | `text` | yes | none | Metadata/update transaction hash. |
+
+Constraints and indexes:
+
+- Primary key: `nft_requests_pkey` on `id`.
+- Unique index: `nft_requests_one_per_member` on `member_id`.
+- Unique indexes on `image_path` and `image_url`.
+- Index: `nft_requests_status_created_at_idx` on `(status, created_at desc)`.
+- Check constraints exist for `status`, wallet address, transaction hashes, and `fun_facts`.
+
+Relationships:
+
+- `member_id` -> `members_main.id`
+- `reviewed_by` -> Supabase Auth user id.
+
+## Functions
+
+| Function | Returns | Purpose |
+| --- | --- | --- |
+| `current_member_id()` | `integer` | Resolves current authenticated user to `members_main.id`. |
+| `has_special_access()` | `boolean` | Checks whether the current user has special admin access. |
+| `check_email_has_special_access(check_email text)` | `boolean` | Checks special access for a supplied email. |
+| `can_manage_nft_requests()` | `boolean` | Checks NFT admin permissions. |
+| `allow_only_test_domain()` | `trigger` | Auth-related domain guard. |
+| `block_guest_core_updates_email()` | `trigger` | Prevents restricted email updates. |
+| `handle_new_user_members_main()` | `trigger` | Auth/member sync helper. |
+| `handle_new_user_test()` | `trigger` | Test/new-user helper. |
+
+## Row Level Security And Policies
+
+This section summarizes the active policies. For exact SQL, inspect Supabase or the live database.
+
+### Members
+
+- Authenticated users can read `members_main`.
+- Users can update their own row where `"TBC Email"` matches their auth email.
+- Board members can insert members.
+- Board members can update members in matching departments.
+- Special-access emails can insert members and update all members.
+
+Special-access emails are currently encoded in DB policies and app-side admin checks. Keep them synchronized if changing authorization behavior.
+
+### Events And Registration
+
+- `events` is publicly readable.
+- Board members can update `events` through RLS.
+- Event admin create/update API routes additionally guard writes with server-side special access checks and use the service-role client when available.
+- `event_registrations` is publicly readable.
+- Authenticated users can insert registrations.
+- Authenticated users can delete their own registration rows.
+- `attendance` rows can be inserted by the checked-in member, viewed by the owner, and viewed by board members.
+
+### NFT Requests
+
+- Members can insert their own NFT request.
+- Members can view their own request.
+- NFT admins can view all, update, and delete requests.
+
+### Storage
+
+- `member-pictures`: authenticated users can view; users can upload/update their own object path.
+- `event-images`: public read access.
+- `event-qr-codes`: public read access; board members can upload/update.
+- `nft-images-picks`: open policy for anon/authenticated users named `dev_open_nft_images`; review this before production hardening.
+
+## Storage Buckets
+
+| Bucket | Public | Purpose |
+| --- | --- | --- |
+| `member-pictures` | yes | Member profile pictures. |
+| `event-images` | yes | External event card images. |
+| `event-qr-codes` | yes | Event check-in QR codes. |
+| `nft-images-picks` | yes | NFT request image uploads/picks. |
+
+## Known Documentation And Type Gaps
+
+- `lib/types/database.types.ts` currently models `members_main` only. It is not a full generated Supabase type map.
+- `events`, `event_registrations`, `attendance`, and `nft_requests` are modeled locally in feature files where needed.
+- If you regenerate Supabase types, include all `public` tables and update imports that currently rely on hand-written interfaces.
+
+## Maintenance Commands
+
+Import recent external events from a CSV:
+
+```bash
+pnpm exec node scripts/import-external-events-csv.mjs --file=/absolute/path/events.csv --months-back=1
+```
+
+Run checks after schema-sensitive UI/API changes:
+
+```bash
+pnpm exec tsc --noEmit
+pnpm lint
+pnpm build
+```
