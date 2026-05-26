@@ -1,46 +1,17 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 
 export default function SignIn() {
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const router = useRouter()
-
-  const getRedirectTarget = () => {
-    if (typeof window === 'undefined') return '/dashboard'
-
-    const searchParams = new URLSearchParams(window.location.search)
-    const nextParam = searchParams.get('next')
-    return nextParam?.startsWith('/') ? nextParam : '/dashboard'
-  }
-
-  const handleEmailSignIn = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-
-    const { error: signInError } = await auth.signInWithPassword(email, password)
-
-    if (signInError) {
-      setError(signInError.message)
-      setLoading(false)
-    } else {
-      router.push(getRedirectTarget())
-    }
-  }
 
   const handleGoogleSignIn = async () => {
     setLoading(true)
@@ -76,7 +47,7 @@ export default function SignIn() {
               />
             </Link>
             <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">Welcome Back</h1>
-            <p className="text-sm sm:text-base text-white/60">Sign in to your account</p>
+            <p className="text-sm sm:text-base text-white/60">Sign in with your Google account</p>
           </div>
 
           {error && (
@@ -92,6 +63,7 @@ export default function SignIn() {
             className="w-full mb-4 sm:mb-6 bg-white text-black hover:bg-white/90"
             size="lg"
           >
+            {loading && <Spinner data-icon="inline-start" />}
             <svg className="w-4 h-4 sm:w-5 sm:h-5" viewBox="0 0 24 24">
               <path
                 fill="currentColor"
@@ -110,66 +82,8 @@ export default function SignIn() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            <span className="truncate">Continue with Google</span>
+            <span className="truncate">{loading ? 'Redirecting...' : 'Continue with Google'}</span>
           </Button>
-
-          <div className="relative mb-4 sm:mb-6">
-            <div className="absolute inset-0 flex items-center">
-              <Separator className="bg-white/10" />
-            </div>
-            <div className="relative flex justify-center text-xs sm:text-sm">
-              <span className="px-3 sm:px-4 bg-transparent text-white/60">Or continue with email</span>
-            </div>
-          </div>
-
-          <form onSubmit={handleEmailSignIn} className="flex flex-col gap-3 sm:gap-4">
-            <div className="flex flex-col gap-1.5 sm:gap-2">
-              <label htmlFor="email" className="block text-xs sm:text-sm font-medium text-white/80 mb-1.5 sm:mb-2">
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/40"
-                placeholder="you@tum-blockchain.com"
-              />
-            </div>
-
-            <div className="flex flex-col gap-1.5 sm:gap-2">
-              <label htmlFor="password" className="block text-xs sm:text-sm font-medium text-white/80 mb-1.5 sm:mb-2">
-                Password
-              </label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="h-11 bg-white/5 border-white/10 text-white placeholder:text-white/40"
-                placeholder="••••••••"
-              />
-            </div>
-
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:shadow-lg hover:shadow-blue-500/30"
-              size="lg"
-            >
-              {loading && <Spinner data-icon="inline-start" />}
-              {loading ? 'Signing in...' : 'Sign In'}
-            </Button>
-          </form>
-
-          <p className="mt-4 sm:mt-6 text-center text-xs sm:text-sm text-white/60">
-            Don&apos;t have an account?{' '}
-            <Link href="/signup" className="text-blue-400 hover:text-blue-300 transition-colors">
-              Sign up
-            </Link>
-          </p>
           </CardContent>
         </Card>
       </div>

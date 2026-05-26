@@ -8,6 +8,7 @@ export async function proxy(request: NextRequest) {
   const devBypass = isLocalDevBypassEnabled(request.nextUrl.hostname)
 
   const { pathname, search } = request.nextUrl
+  const isRootRoute = pathname === '/'
   const isSigninRoute = pathname === '/signin'
   const isAuthCallbackRoute = pathname.startsWith('/auth/callback')
   const isApiRoute = pathname.startsWith('/api')
@@ -15,7 +16,7 @@ export async function proxy(request: NextRequest) {
   const isProtectedPageRoute = !isPublicRoute && !isApiRoute
 
   if (devBypass) {
-    if (isSigninRoute) {
+    if (isSigninRoute || isRootRoute) {
       const dashboardUrl = request.nextUrl.clone()
       dashboardUrl.pathname = '/dashboard'
       dashboardUrl.search = ''
@@ -29,6 +30,13 @@ export async function proxy(request: NextRequest) {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseKey) {
+    if (isRootRoute) {
+      const signInUrl = request.nextUrl.clone()
+      signInUrl.pathname = '/signin'
+      signInUrl.search = ''
+      return NextResponse.redirect(signInUrl)
+    }
+
     if (isProtectedPageRoute) {
       const signInUrl = request.nextUrl.clone()
       signInUrl.pathname = '/signin'
@@ -57,6 +65,13 @@ export async function proxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
+
+  if (isRootRoute) {
+    const targetUrl = request.nextUrl.clone()
+    targetUrl.pathname = user ? '/dashboard' : '/signin'
+    targetUrl.search = ''
+    return NextResponse.redirect(targetUrl)
+  }
 
   if (!user && isProtectedPageRoute) {
     const signInUrl = request.nextUrl.clone()

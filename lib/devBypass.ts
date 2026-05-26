@@ -8,8 +8,7 @@ export const isLocalDevelopmentHost = (hostname: string | null | undefined) => {
 const isEnabled = (value: string | undefined) => value?.trim().toLowerCase() === 'true'
 
 export const isLocalDevBypassEnabled = (hostname: string | null | undefined) =>
-  (isEnabled(process.env.DEV_AUTH_BYPASS) || isEnabled(process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS)) &&
-  isLocalDevelopmentHost(hostname)
+  isEnabled(process.env.DEV_AUTH_BYPASS) && isLocalDevelopmentHost(hostname)
 
 export const getLocalDevBypassMemberId = () => {
   const rawMemberId = process.env.DEV_AUTH_BYPASS_MEMBER_ID?.trim() || '0'
