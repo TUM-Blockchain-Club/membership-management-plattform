@@ -36,6 +36,8 @@ export type EventEditorDraft = {
   formats: string[]
   image_url: string
   event_link_url: string
+  tally_url: string
+  whatsapp_url: string
 }
 
 type EventEditorDialogProps = {
@@ -86,6 +88,8 @@ const emptyDraft = (): EventEditorDraft => ({
   formats: [],
   image_url: '',
   event_link_url: '',
+  tally_url: '',
+  whatsapp_url: '',
 })
 
 const toDraft = (event: DashboardEvent | null): EventEditorDraft => {
@@ -102,6 +106,8 @@ const toDraft = (event: DashboardEvent | null): EventEditorDraft => {
     formats: splitStoredOptions(event.format, FORMAT_OPTIONS),
     image_url: event.image_url ?? '',
     event_link_url: event.event_link_url ?? '',
+    tally_url: event.tally_url ?? '',
+    whatsapp_url: event.whatsapp_url ?? '',
   }
 }
 
@@ -313,6 +319,28 @@ export function EventEditorDialog({
             <Field>
               <FieldLabel htmlFor="event-link">Event link</FieldLabel>
               <Input id="event-link" value={draft.event_link_url} onChange={(event) => updateDraft('event_link_url', event.target.value)} />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="event-tally-url">Application form URL (Tally)</FieldLabel>
+              <FieldDescription>When set, shows an &ldquo;Apply&rdquo; button on the event card.</FieldDescription>
+              <Input
+                id="event-tally-url"
+                value={draft.tally_url}
+                onChange={(event) => updateDraft('tally_url', event.target.value)}
+                placeholder="https://tally.so/r/..."
+              />
+            </Field>
+
+            <Field>
+              <FieldLabel htmlFor="event-whatsapp-url">WhatsApp group URL</FieldLabel>
+              <FieldDescription>Shown alongside &ldquo;Apply&rdquo; when an application link is set.</FieldDescription>
+              <Input
+                id="event-whatsapp-url"
+                value={draft.whatsapp_url}
+                onChange={(event) => updateDraft('whatsapp_url', event.target.value)}
+                placeholder="https://chat.whatsapp.com/..."
+              />
             </Field>
           </FieldGroup>
         </div>

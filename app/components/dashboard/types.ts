@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { Event, Participant } from '@/lib/events'
+import type { Event, InterestedMember, Participant } from '@/lib/events'
 import type { Member } from '@/lib/types/database.types'
 
 export type ProfileSectionField = {
@@ -20,6 +20,8 @@ export type EditableMember = Partial<DashboardMember>
 export type DashboardEvent = Event
 
 export type DashboardParticipant = Participant
+
+export type DashboardInterestedMember = InterestedMember
 
 export type DashboardStats = {
   total: number

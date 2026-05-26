@@ -1,27 +1,16 @@
 import { useCallback, useState } from 'react'
 import type {
   DashboardEvent,
+  DashboardInterestedMember,
   DashboardMember,
   DashboardMessage,
   DashboardParticipant,
 } from '@/app/components/dashboard/types'
 import { eventService } from '@/lib/events'
 import { supabase } from '@/lib/supabase'
+import type { EventEditorDraft } from './EventEditorDialog'
 
 type SetDashboardMessage = (message: DashboardMessage | null) => void
-
-type ExternalEventDraft = {
-  title: string
-  start_date: string
-  end_date: string
-  event_types: string[]
-  priority: string
-  external_status: string
-  city: string
-  formats: string[]
-  image_url: string
-  event_link_url: string
-}
 
 export function useDashboardEvents(
   member: DashboardMember | null,
@@ -29,10 +18,20 @@ export function useDashboardEvents(
   initialEvents: DashboardEvent[] = []
 ) {
   const [events, setEvents] = useState<DashboardEvent[]>(initialEvents)
+
+  // Internal event participants modal
   const [participants, setParticipants] = useState<DashboardParticipant[]>([])
   const [participantsLoading, setParticipantsLoading] = useState(false)
   const [showParticipantsModal, setShowParticipantsModal] = useState(false)
   const [modalEventTitle, setModalEventTitle] = useState('')
+
+  // External event interested members modal
+  const [interestedMembers, setInterestedMembers] = useState<DashboardInterestedMember[]>([])
+  const [interestedMembersLoading, setInterestedMembersLoading] = useState(false)
+  const [showInterestedModal, setShowInterestedModal] = useState(false)
+  const [interestedModalTitle, setInterestedModalTitle] = useState('')
+
+  // Save / upload state
   const [savingEvent, setSavingEvent] = useState(false)
   const [uploadingEventImage, setUploadingEventImage] = useState(false)
 
@@ -87,7 +86,57 @@ export function useDashboardEvents(
     setShowParticipantsModal(true)
   }, [setMessage])
 
-  const handleUpdateExternalEvent = useCallback(async (eventId: string | number, draft: ExternalEventDraft) => {
+  /**
+   * Toggle the current member's interest for an external event.
+   * Uses the API route so the client receives the authoritative interest count
+   * after the database write.
+   */
+  const handleToggleInterest = useCallback(async (eventId: string | number) => {
+    if (!member) return
+
+    try {
+      const response = await fetch(`/api/events/${eventId}/interest`, {
+        method: 'POST',
+      })
+      const payload = await response.json()
+
+      if (!response.ok) {
+        throw new Error(payload?.error || 'Could not update interest.')
+      }
+
+      const isInterested = Boolean(payload?.is_interested)
+      const interestCount = typeof payload?.interest_count === 'number' ? payload.interest_count : 0
+
+      setEvents((current) =>
+        current.map((event) => event.id === eventId
+          ? { ...event, is_interested: isInterested, interest_count: interestCount }
+          : event)
+      )
+    } catch {
+      setMessage({ type: 'error', text: 'Failed to update interest. Please try again.' })
+    }
+  }, [member, setMessage])
+
+  /**
+   * Load and display the list of members interested in an external event.
+   */
+  const handleViewInterestedMembers = useCallback(async (eventId: string | number, title: string) => {
+    setInterestedMembersLoading(true)
+    setInterestedModalTitle(title)
+
+    const { data, error } = await eventService.getEventInterestedMembers(eventId)
+    if (error) {
+      setMessage({ type: 'error', text: 'Could not load interested members.' })
+      setInterestedMembers([])
+    } else {
+      setInterestedMembers(data || [])
+    }
+
+    setInterestedMembersLoading(false)
+    setShowInterestedModal(true)
+  }, [setMessage])
+
+  const handleUpdateExternalEvent = useCallback(async (eventId: string | number, draft: EventEditorDraft) => {
     setSavingEvent(true)
     setMessage(null)
 
@@ -105,6 +154,8 @@ export function useDashboardEvents(
           city: draft.city,
           formats: draft.formats,
           event_link_url: draft.event_link_url,
+          tally_url: draft.tally_url,
+          whatsapp_url: draft.whatsapp_url,
         }),
       })
 
@@ -127,7 +178,7 @@ export function useDashboardEvents(
     }
   }, [setMessage])
 
-  const handleCreateExternalEvent = useCallback(async (draft: ExternalEventDraft) => {
+  const handleCreateExternalEvent = useCallback(async (draft: EventEditorDraft) => {
     setSavingEvent(true)
     setMessage(null)
 
@@ -145,6 +196,8 @@ export function useDashboardEvents(
           city: draft.city,
           formats: draft.formats,
           event_link_url: draft.event_link_url,
+          tally_url: draft.tally_url,
+          whatsapp_url: draft.whatsapp_url,
         }),
       })
 
@@ -207,14 +260,22 @@ export function useDashboardEvents(
     handleUpdateExternalEvent,
     handleUploadExternalEventImage,
     handleViewParticipants,
+    handleToggleInterest,
+    handleViewInterestedMembers,
+    interestedMembers,
+    interestedMembersLoading,
+    interestedModalTitle,
     loadEvents,
     modalEventTitle,
     participants,
     participantsLoading,
     savingEvent,
     setEvents,
+    setInterestedMembers,
+    setShowInterestedModal,
     setParticipants,
     setShowParticipantsModal,
+    showInterestedModal,
     showParticipantsModal,
     uploadingEventImage,
   }

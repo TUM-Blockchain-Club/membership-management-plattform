@@ -11,7 +11,6 @@ alter table public.events
   add column if not exists image_url text,
   add column if not exists event_link_url text,
   add column if not exists is_hackathon boolean not null default false,
-  add column if not exists interested_names text[] not null default '{}',
   add column if not exists attending_names text[] not null default '{}',
   add column if not exists all_day boolean not null default false;
 
@@ -37,29 +36,28 @@ with external_events (
   city,
   format,
   is_hackathon,
-  attending_names,
-  interested_names
+  attending_names
 ) as (
   values
-    ('Vienna Blockchain Week', 'Conference', 'P3', null, 'Vienna', null, false, array[]::text[], array[]::text[]),
-    ('Nordic Blockchain Conference', 'Conference', 'P3', null, 'Stockholm', null, false, array[]::text[], array[]::text[]),
-    ('Crypto Valley Conference', 'Conference', 'P4', null, 'Zug', null, false, array[]::text[], array['Rami']::text[]),
-    ('Istanbul Blockchain Week', 'Conference', 'P3', null, 'Istanbul', null, false, array[]::text[], array['Tianhao Gu']::text[]),
-    ('EthConf', 'Conference', 'P2', 'Registration Open', 'New York', null, false, array[]::text[], array['Srini','Fynn Endreß','Rami']::text[]),
-    ('BTC Prague', 'Conference', 'P3', null, 'Prague', null, false, array[]::text[], array[]::text[]),
-    ('ETHGlobal New York', 'Hackathon', 'P2', null, 'New York', null, true, array[]::text[], array['Daniel Shamsi','Tianhao Gu','Annemarie','Amelie Leininger','Fynn Endreß','Rami']::text[]),
-    ('Solana Summit Germany', 'Conference', 'P1', null, 'Berlin', 'In-Person', false, array[]::text[], array['Felix Rihacek','Fynn Endreß','Rami','Amelie']::text[]),
-    ('DappCon', 'Conference', 'P3', 'Registration Open', 'Berlin', null, false, array[]::text[], array[]::text[]),
-    ('Dutch Blockchain Week Summit', 'Conference', 'P3', null, 'Amsterdam', null, false, array[]::text[], array['Rami']::text[]),
-    ('Cashflow Conference', 'Conference', 'P4', 'Registration Open', 'Frankfurt', null, false, array[]::text[], array['Rami']::text[]),
-    ('Pragma Lisbon', 'Conference', 'P3', null, 'Lisbon', null, false, array[]::text[], array[]::text[]),
-    ('ETHGlobal Lisbon', 'Hackathon', 'P2', null, 'Lisbon', null, true, array[]::text[], array[]::text[]),
-    ('Conf3rence', 'Conference', 'P2', null, 'Dortmund', null, false, array[]::text[], array['Felix Rihacek','Rami']::text[]),
-    ('Pragma Tokyo', 'Conference', 'P3', null, 'Tokyo', null, false, array[]::text[], array['Daniel Shamsi','Srini','Fynn Endreß','Tianhao Gu','Anna','Amelie','Shriya Sachin Kokane','Rami']::text[]),
-    ('ETHGlobal Tokyo', 'Hackathon', 'P2', null, 'Tokyo', null, true, array[]::text[], array['Felix Rihacek','Daniel Shamsi','Srini','Tianhao Gu','Anna','Amelie','Shriya Sachin Kokane','Fynn Endreß','Elena Grütter','Rami']::text[]),
-    ('Token 2049 Singapore', 'Conference', 'P3', null, 'Singapore', null, false, array[]::text[], array['Damian Mayr','Shriya Sachin Kokane','Fynn Endreß','Rami','Tianhao Gu']::text[]),
-    ('Sui Basecamp', 'Conference', 'P3', null, 'Singapore', null, false, array[]::text[], array['Damian Mayr','Shriya Sachin Kokane','Fynn Endreß','Rami','Tianhao Gu']::text[]),
-    ('Devcon 8', 'Conference, Hackathon', 'P1', null, 'Mumbai, India', null, true, array[]::text[], array['Daniel Shamsi','Amelie Leininger','Damian Mayr','Shriya Sachin Kokane','Srini','Fynn Endreß','Tianhao Gu']::text[])
+    ('Vienna Blockchain Week', 'Conference', 'P3', null, 'Vienna', null, false, array[]::text[]),
+    ('Nordic Blockchain Conference', 'Conference', 'P3', null, 'Stockholm', null, false, array[]::text[]),
+    ('Crypto Valley Conference', 'Conference', 'P4', null, 'Zug', null, false, array[]::text[]),
+    ('Istanbul Blockchain Week', 'Conference', 'P3', null, 'Istanbul', null, false, array[]::text[]),
+    ('EthConf', 'Conference', 'P2', 'Registration Open', 'New York', null, false, array[]::text[]),
+    ('BTC Prague', 'Conference', 'P3', null, 'Prague', null, false, array[]::text[]),
+    ('ETHGlobal New York', 'Hackathon', 'P2', null, 'New York', null, true, array[]::text[]),
+    ('Solana Summit Germany', 'Conference', 'P1', null, 'Berlin', 'In-Person', false, array[]::text[]),
+    ('DappCon', 'Conference', 'P3', 'Registration Open', 'Berlin', null, false, array[]::text[]),
+    ('Dutch Blockchain Week Summit', 'Conference', 'P3', null, 'Amsterdam', null, false, array[]::text[]),
+    ('Cashflow Conference', 'Conference', 'P4', 'Registration Open', 'Frankfurt', null, false, array[]::text[]),
+    ('Pragma Lisbon', 'Conference', 'P3', null, 'Lisbon', null, false, array[]::text[]),
+    ('ETHGlobal Lisbon', 'Hackathon', 'P2', null, 'Lisbon', null, true, array[]::text[]),
+    ('Conf3rence', 'Conference', 'P2', null, 'Dortmund', null, false, array[]::text[]),
+    ('Pragma Tokyo', 'Conference', 'P3', null, 'Tokyo', null, false, array[]::text[]),
+    ('ETHGlobal Tokyo', 'Hackathon', 'P2', null, 'Tokyo', null, true, array[]::text[]),
+    ('Token 2049 Singapore', 'Conference', 'P3', null, 'Singapore', null, false, array[]::text[]),
+    ('Sui Basecamp', 'Conference', 'P3', null, 'Singapore', null, false, array[]::text[]),
+    ('Devcon 8', 'Conference, Hackathon', 'P1', null, 'Mumbai, India', null, true, array[]::text[])
 )
 update public.events as events
 set
@@ -71,7 +69,6 @@ set
   format = external_events.format,
   is_hackathon = external_events.is_hackathon,
   attending_names = external_events.attending_names,
-  interested_names = external_events.interested_names,
   all_day = true,
   location = external_events.city,
   organizer_department = external_events.event_type,

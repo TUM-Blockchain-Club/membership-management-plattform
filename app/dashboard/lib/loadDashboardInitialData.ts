@@ -31,8 +31,9 @@ type EventRow = {
   format: string | null
   image_url: string | null
   event_link_url: string | null
+  tally_url: string | null
+  whatsapp_url: string | null
   is_hackathon: boolean
-  interested_names: string[]
   attending_names: string[]
   all_day: boolean
 }
@@ -42,11 +43,16 @@ type EventRegistrationRow = {
   member_id: number
 }
 
+type EventInterestRow = {
+  event_id: string | number
+  member_id: number
+}
+
 const NFT_ADMIN_MEMBER_IDS = new Set([0, 99, 107, 26, 126])
 const EVENTS_FETCH_LIMIT = 500
 const MEMBER_COLUMNS =
   'id, created_at, Name, Role, Status, Department, "Project/Task", "Area of Expertise", Picture, Uni, "Semester Joined", Degree, Phone, "Private Email", "TBC Email", Linkedin, Telegram, Discord, Instagram, Twitter, "Size Merch"'
-const EVENT_COLUMNS = 'id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, image_url, event_link_url, is_hackathon, interested_names, attending_names, all_day'
+const EVENT_COLUMNS = 'id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, image_url, event_link_url, tally_url, whatsapp_url, is_hackathon, attending_names, all_day'
 
 const emptyInitialData = (): DashboardInitialData => ({
   allMembers: [],
@@ -121,37 +127,61 @@ const loadUpcomingEvents = async (
   }
 
   const eventIds = typedEventsData.map((event) => event.id)
-  const { data: registrationsData, error: registrationsError } = await supabase
-    .from('event_registrations')
-    .select('event_id, member_id')
-    .in('event_id', eventIds)
 
-  if (registrationsError) {
-    throw registrationsError
+  const [registrationsResult, interestResult] = await Promise.all([
+    supabase
+      .from('event_registrations')
+      .select('event_id, member_id')
+      .in('event_id', eventIds),
+    supabase
+      .from('event_interest')
+      .select('event_id, member_id')
+      .in('event_id', eventIds),
+  ])
+
+  if (registrationsResult.error) {
+    throw registrationsResult.error
   }
 
-  const typedRegistrationsData = (registrationsData ?? []) as EventRegistrationRow[]
-  const registrationsByEventId = new Map<string, EventRegistrationRow[]>()
+  if (interestResult.error) {
+    throw interestResult.error
+  }
 
+  const typedRegistrationsData = (registrationsResult.data ?? []) as EventRegistrationRow[]
+  const typedInterestData = (interestResult.data ?? []) as EventInterestRow[]
+
+  const registrationsByEventId = new Map<string, EventRegistrationRow[]>()
   typedRegistrationsData.forEach((registration) => {
     const key = String(registration.event_id)
     const registrations = registrationsByEventId.get(key)
-
     if (registrations) {
       registrations.push(registration)
       return
     }
-
     registrationsByEventId.set(key, [registration])
+  })
+
+  const interestByEventId = new Map<string, EventInterestRow[]>()
+  typedInterestData.forEach((row) => {
+    const key = String(row.event_id)
+    const rows = interestByEventId.get(key)
+    if (rows) {
+      rows.push(row)
+      return
+    }
+    interestByEventId.set(key, [row])
   })
 
   return typedEventsData.map((event) => {
     const eventRegistrations = registrationsByEventId.get(String(event.id)) ?? []
+    const eventInterests = interestByEventId.get(String(event.id)) ?? []
 
     return {
       ...event,
       current_registrations: eventRegistrations.length,
       is_registered: eventRegistrations.some((registration) => registration.member_id === memberId),
+      interest_count: eventInterests.length,
+      is_interested: eventInterests.some((row) => row.member_id === memberId),
     }
   })
 }

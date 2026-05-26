@@ -191,7 +191,6 @@ for (const record of records) {
       format: nullableString(record.Format ?? ''),
       event_link_url: nullableString(record.Website ?? ''),
       is_hackathon: eventTypes.some((eventType) => eventType.toLowerCase() === 'hackathon'),
-      interested_names: splitNames(record.Interested ?? ''),
       attending_names: splitNames(record.Attending ?? ''),
       all_day: true,
     },

@@ -1,7 +1,11 @@
 import {
   CalendarDaysIcon,
   EyeIcon,
+  ExternalLinkIcon,
+  GlobeIcon,
+  MessageCircleIcon,
   PencilIcon,
+  StarIcon,
   type LucideIcon,
   MapPinIcon,
   TicketIcon,
@@ -50,10 +54,16 @@ type ExternalEventCardProps = {
   format: string | null
   imageUrl: string | null
   imageLinkUrl: string | null
-  interestedNames: string[]
   attendingNames: string[]
   canEdit?: boolean
   onEdit?: () => void
+  // Interest / application features
+  tallyUrl: string | null
+  whatsappUrl: string | null
+  interestCount: number
+  isInterested: boolean
+  onToggleInterest?: () => void
+  onViewInterestedMembers?: () => void
 }
 
 function DetailRow({
@@ -174,14 +184,19 @@ export function ExternalEventCard({
   format,
   imageUrl,
   imageLinkUrl,
-  interestedNames,
   attendingNames,
   canEdit,
   onEdit,
+  tallyUrl,
+  whatsappUrl,
+  interestCount,
+  isInterested,
+  onToggleInterest,
+  onViewInterestedMembers,
 }: ExternalEventCardProps) {
   const frameClass = priorityFrameClass(priority)
   const image = imageUrl ? (
-    <div className="relative aspect-square w-full overflow-hidden bg-muted">
+    <div className="relative aspect-square w-full overflow-hidden bg-card">
       <Image
         src={imageUrl}
         alt=""
@@ -211,12 +226,24 @@ export function ExternalEventCard({
               <CardDescription className="truncate">{location}</CardDescription>
             </div>
           </div>
-          {canEdit && onEdit && (
+          {(imageLinkUrl || (canEdit && onEdit)) && (
             <CardAction>
-              <Button variant="ghost" size="icon-sm" onClick={onEdit} title="Edit event">
-                <PencilIcon />
-                <span className="sr-only">Edit event</span>
-              </Button>
+              <div className="flex items-center gap-0.5">
+                {imageLinkUrl && (
+                  <Button variant="ghost" size="icon-sm" asChild title="Open event website">
+                    <a href={imageLinkUrl} target="_blank" rel="noreferrer">
+                      <GlobeIcon />
+                      <span className="sr-only">Open event website</span>
+                    </a>
+                  </Button>
+                )}
+                {canEdit && onEdit && (
+                  <Button variant="ghost" size="icon-sm" onClick={onEdit} title="Edit event">
+                    <PencilIcon />
+                    <span className="sr-only">Edit event</span>
+                  </Button>
+                )}
+              </div>
             </CardAction>
           )}
         </CardHeader>
@@ -233,16 +260,68 @@ export function ExternalEventCard({
             <DetailRow icon={MapPinIcon}>{location}</DetailRow>
           </div>
 
-          {(interestedNames.length > 0 || attendingNames.length > 0) && (
+          {attendingNames.length > 0 && (
             <>
               <Separator />
               <div className="flex flex-col gap-3">
-                <PeopleSummary label="Interested" names={interestedNames} />
                 <PeopleSummary label="Attending" names={attendingNames} />
               </div>
             </>
           )}
         </CardContent>
+
+        <CardFooter className="flex-col gap-2">
+          {/* Interest count + toggle — always visible */}
+          <div className="flex w-full items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="gap-1.5 tabular-nums"
+              onClick={onViewInterestedMembers}
+              title="See who's interested"
+            >
+              <UsersIcon className="size-4 shrink-0" />
+              {interestCount} interested
+            </Button>
+            {onToggleInterest && (
+              <Button
+                variant={isInterested ? 'default' : 'outline'}
+                size="sm"
+                onClick={onToggleInterest}
+                aria-pressed={isInterested}
+                className="ml-auto"
+              >
+                <StarIcon
+                  data-icon="inline-start"
+                  className={cn('size-4', isInterested && 'fill-current')}
+                />
+                {isInterested ? 'Interested' : "I'm Interested"}
+              </Button>
+            )}
+          </div>
+
+          {(tallyUrl || whatsappUrl) && (
+            // Apply + WhatsApp row — shown whenever at least one link is set
+            <div className="flex w-full gap-2">
+              {tallyUrl && (
+                <Button asChild size="sm" className="flex-1">
+                  <a href={tallyUrl} target="_blank" rel="noreferrer">
+                    <ExternalLinkIcon data-icon="inline-start" />
+                    Apply Now
+                  </a>
+                </Button>
+              )}
+              {whatsappUrl && (
+                <Button asChild variant="outline" size="sm" className="flex-1" title="Join WhatsApp group">
+                  <a href={whatsappUrl} target="_blank" rel="noreferrer">
+                    <MessageCircleIcon data-icon="inline-start" />
+                    WhatsApp
+                  </a>
+                </Button>
+              )}
+            </div>
+          )}
+        </CardFooter>
       </Card>
     </div>
   )

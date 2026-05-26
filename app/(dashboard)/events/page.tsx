@@ -15,6 +15,13 @@ export default function EventsPageRoute() {
       handleEventRegistration={d.handleEventRegistration}
       handleUpdateExternalEvent={d.handleUpdateExternalEvent}
       handleUploadExternalEventImage={d.handleUploadExternalEventImage}
+      handleToggleInterest={d.handleToggleInterest}
+      handleViewInterestedMembers={d.handleViewInterestedMembers}
+      interestedMembers={d.interestedMembers}
+      interestedMembersLoading={d.interestedMembersLoading}
+      interestedModalTitle={d.interestedModalTitle}
+      showInterestedModal={d.showInterestedModal}
+      setShowInterestedModal={d.setShowInterestedModal}
       member={d.member}
       hasSpecialAccess={d.effectiveHasSpecialAccess}
       handleViewParticipants={d.handleViewParticipants}

@@ -1,7 +1,13 @@
 'use client'
 
 import { ExternalEventCard, InternalEventCard } from '@/app/components/dashboard/EventCard'
-import type { DashboardEvent, DashboardMember, DashboardParticipant } from '@/app/components/dashboard/types'
+import type {
+  DashboardEvent,
+  DashboardInterestedMember,
+  DashboardMember,
+  DashboardParticipant,
+} from '@/app/components/dashboard/types'
+import { getPictureUrl } from '@/app/dashboard/lib/memberUtils'
 import { ChevronDownIcon, HistoryIcon, PlusIcon, SearchIcon, XIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -51,6 +57,13 @@ export function EventsPage({
   handleEventRegistration,
   handleUpdateExternalEvent,
   handleUploadExternalEventImage,
+  handleToggleInterest,
+  handleViewInterestedMembers,
+  interestedMembers,
+  interestedMembersLoading,
+  interestedModalTitle,
+  showInterestedModal,
+  setShowInterestedModal,
   member,
   hasSpecialAccess,
   handleViewParticipants,
@@ -69,6 +82,13 @@ export function EventsPage({
   handleEventRegistration: (eventId: string | number, isCurrentlyRegistered: boolean) => void
   handleUpdateExternalEvent: (eventId: string | number, draft: EventEditorDraft) => Promise<DashboardEvent | null>
   handleUploadExternalEventImage: (eventId: string | number, file: File) => Promise<string | null>
+  handleToggleInterest: (eventId: string | number) => void
+  handleViewInterestedMembers: (eventId: string | number, title: string) => void
+  interestedMembers: DashboardInterestedMember[]
+  interestedMembersLoading: boolean
+  interestedModalTitle: string
+  showInterestedModal: boolean
+  setShowInterestedModal: (show: boolean) => void
   member: DashboardMember | null
   hasSpecialAccess: boolean
   handleViewParticipants: (eventId: string | number, title: string) => void
@@ -338,16 +358,22 @@ export function EventsPage({
                 format={event.format}
                 imageUrl={event.image_url}
                 imageLinkUrl={event.event_link_url}
-                interestedNames={event.interested_names}
                 attendingNames={event.attending_names}
                 canEdit={canManageEvents}
                 onEdit={() => setEditingEvent(event)}
+                tallyUrl={event.tally_url ?? null}
+                whatsappUrl={event.whatsapp_url ?? null}
+                interestCount={event.interest_count ?? 0}
+                isInterested={event.is_interested ?? false}
+                onToggleInterest={member ? () => handleToggleInterest(event.id) : undefined}
+                onViewInterestedMembers={() => handleViewInterestedMembers(event.id, event.title)}
               />
             ))}
           </div>
         )}
       </section>
 
+      {/* Participants modal (internal events) */}
       <Dialog open={showParticipantsModal} onOpenChange={setShowParticipantsModal}>
         <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
@@ -371,6 +397,53 @@ export function EventsPage({
 
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowParticipantsModal(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Interested members modal (external events) */}
+      <Dialog open={showInterestedModal} onOpenChange={setShowInterestedModal}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Interested in {interestedModalTitle}</DialogTitle>
+            <DialogDescription>
+              {interestedMembersLoading
+                ? 'Loading...'
+                : `${interestedMembers.length} ${interestedMembers.length === 1 ? 'member' : 'members'} interested`}
+            </DialogDescription>
+          </DialogHeader>
+
+          {interestedMembersLoading ? (
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : interestedMembers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No one has expressed interest yet. Be the first!</p>
+          ) : (
+            <ul className="flex flex-col">
+              {interestedMembers.map((m) => {
+                const pictureUrl = getPictureUrl(m.members_main?.Picture)
+                const initial = (m.members_main?.Name ?? '?')[0]?.toUpperCase() ?? '?'
+
+                return (
+                  <li key={m.member_id} className="flex items-center gap-3 border-b py-2.5 last:border-b-0">
+                    <div className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-secondary text-sm font-semibold text-muted-foreground">
+                      {pictureUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={pictureUrl} alt="" className="size-full object-cover" />
+                      ) : (
+                        initial
+                      )}
+                    </div>
+                    <span className="font-medium text-foreground">{m.members_main?.Name ?? 'Unknown'}</span>
+                  </li>
+                )
+              })}
+            </ul>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowInterestedModal(false)}>
               Close
             </Button>
           </DialogFooter>
