@@ -36,6 +36,8 @@ pnpm dev
 
 Open `http://localhost:3000`.
 
+The root route redirects authenticated users to `/dashboard` and unauthenticated users to `/signin`.
+
 ## Common Commands
 
 ```bash
@@ -53,6 +55,7 @@ The current Supabase schema is documented in:
 Supabase SQL scripts live in:
 
 - `supabase/events_external_metadata.sql`
+- `supabase/event_interest.sql`
 - `supabase/nft_requests.sql`
 
 Supabase operational notes live in:

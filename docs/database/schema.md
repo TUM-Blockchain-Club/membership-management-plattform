@@ -13,6 +13,7 @@ Last inspected against the live Supabase project: 2026-05-26.
   - Service-role admin access: `lib/server/supabaseAdmin.ts`
 - SQL files:
   - `supabase/events_external_metadata.sql`
+  - `supabase/event_interest.sql`
   - `supabase/nft_requests.sql`
 - Import tooling:
   - `scripts/import-external-events-csv.mjs`
@@ -90,11 +91,12 @@ Current live count: 29 rows.
 | `city` | `text` | yes | none | External city. |
 | `format` | `text` | yes | none | External format such as `In-Person`, `Virtual`, `Hybrid`. |
 | `is_hackathon` | `boolean` | no | `false` | Convenience flag for hackathons. |
-| `interested_names` | `text[]` | no | `{}` | Imported free-form interested list. |
 | `attending_names` | `text[]` | no | `{}` | Imported free-form attending list. |
 | `all_day` | `boolean` | no | `false` | External CSV imports are all-day events. |
 | `image_url` | `text` | yes | none | Public image URL for event card display. |
 | `event_link_url` | `text` | yes | none | Click-through target for the event image/card link. |
+| `tally_url` | `text` | yes | none | Tally application form URL. When set, the event card shows an "Apply" button in addition to the interest controls. |
+| `whatsapp_url` | `text` | yes | none | WhatsApp group URL. Shown alongside the "Apply" button when set. |
 
 Constraints and indexes:
 
@@ -108,6 +110,29 @@ App behavior:
 - External events use structured metadata from CSV/admin edits.
 - Events page defaults to P1/P2 priorities and hides events older than seven days unless `Past Events` is enabled.
 - Full external CSV imports use `scripts/import-external-events-csv.mjs`.
+
+### `public.event_interest`
+
+N:M mapping table tracking which members have expressed interest in external events. Used by the "I'm Interested" button on event cards and by CSV interest backfills. This replaces the older idea of storing interested people as a free-form array on `events`.
+
+| Column | Type | Null | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | `bigint` | no | identity | Primary key. |
+| `created_at` | `timestamptz` | no | `now()` | Row creation timestamp. |
+| `event_id` | `bigint` | no | none | References `events.id`. Cascades delete. |
+| `member_id` | `bigint` | no | none | References `members_main.id`. Cascades delete. |
+
+Constraints and indexes:
+
+- Primary key: `event_interest_pkey` on `id`.
+- Unique index: `(event_id, member_id)` — one row per member per event.
+- Index: `event_interest_event_id_idx` on `event_id`.
+- Index: `event_interest_member_id_idx` on `member_id`.
+
+Relationships:
+
+- `event_id` -> `events.id`
+- `member_id` -> `members_main.id`
 
 ### `public.event_registrations`
 
@@ -222,6 +247,9 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 - `event_registrations` is publicly readable.
 - Authenticated users can insert registrations.
 - Authenticated users can delete their own registration rows.
+- `event_interest` is readable by authenticated users.
+- Authenticated users can insert their own interest rows (`member_id = current_member_id()`).
+- Authenticated users can delete their own interest rows.
 - `attendance` rows can be inserted by the checked-in member, viewed by the owner, and viewed by board members.
 
 ### NFT Requests

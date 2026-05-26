@@ -15,6 +15,11 @@ For the live schema overview, table columns, relationships, RLS summary, storage
   - Adds the `event-images` storage bucket and public read policy.
   - Keeps `events.event_kind` constrained to `internal` or `external`.
 
+- `event_interest.sql`
+  - Adds Tally/WhatsApp action-link columns to `public.events`.
+  - Creates `public.event_interest` for member-event interest tracking.
+  - Adds idempotent indexes and RLS policies for interest reads/inserts/deletes.
+
 - `nft_requests.sql`
   - Creates/updates `public.nft_requests`.
   - Adds NFT request helper functions, indexes, policies, and storage policies.
@@ -36,6 +41,12 @@ DATABASE_URL=
 ```
 
 Do not commit `.env.local` or secret values.
+
+## Auth Providers
+
+The app sign-in screen only exposes Google OAuth. Keep Google enabled in Supabase Auth providers.
+
+If email/password or magic-link login should be unavailable outside the UI too, disable the Email provider in the Supabase dashboard under Authentication providers. UI removal alone does not prevent direct API calls to enabled auth providers.
 
 ## Migration Workflow
 
