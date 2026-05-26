@@ -93,10 +93,8 @@ export function EventsPage({
   const showInternalEvents = false
   const canManageEvents = hasSpecialAccess
   const recentPastCutoffMs = useMemo(() => {
-    const cutoff = new Date()
-    cutoff.setHours(0, 0, 0, 0)
-    cutoff.setDate(cutoff.getDate() - RECENT_PAST_DAYS)
-    return cutoff.getTime()
+    const now = new Date()
+    return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - RECENT_PAST_DAYS)
   }, [])
 
   useEffect(() => {
@@ -300,7 +298,7 @@ export function EventsPage({
             onClick={() => startTransition(() => setShowOlderPastEvents((current) => !current))}
           >
             <HistoryIcon data-icon="inline-start" />
-            Older past
+            Past Events
           </Button>
 
           {hasActiveFilters && (

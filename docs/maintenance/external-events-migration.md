@@ -40,8 +40,9 @@ It also backfills the 19 imported CSV rows as `external` and preserves existing 
 - Status is a fixed shadcn `Select`; Type and Format are shadcn checkbox multi-choice groups that can be left empty.
 - The visible external events list uses a members-page-style shadcn filter toolbar with search, Type, multi-choice Priority, and Clear controls.
 - P1 and P2 are selected in the Priority filter by default, keeping lower-priority P3/P4 events hidden until explicitly selected.
-- The visible external events list hides events older than seven days by default; the "Older past" toggle reveals older history without changing the stored data.
+- The visible external events list hides events older than seven days by default; the "Past Events" toggle reveals older history without changing the stored data.
 - Full CSV imports should use `scripts/import-external-events-csv.mjs`. The latest import was run with a one-month age cutoff, skipping CSV events whose end date was before April 25, 2026.
+- Event date labels and the seven-day cutoff use UTC math so server-rendered and client-rendered event dates do not drift across timezones during hydration.
 - `event_link_url` is used as the click-through target when an event image is present.
 - Event images use a compact 1:1 muted frame with `object-contain`; image URLs are managed through upload/storage and are not shown as editable form fields.
 - The page uses shadcn primitives (`Card`, `Badge`, `Button`, `Separator`, `Dialog`, `Empty`) and avoids the previous rainbow gradient event cards.
