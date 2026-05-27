@@ -212,6 +212,58 @@ Relationships:
 - `member_id` -> `members_main.id`
 - `reviewed_by` -> Supabase Auth user id.
 
+### `public.link_redirect_definitions`
+
+Canonical QR/link metadata mirrored from the `tbc-link-redirects` repository and editable deployment notes for the dashboard.
+
+| Column | Type | Null | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | no | `gen_random_uuid()` | Primary key. |
+| `year` | `text` | no | none | URL year segment, e.g. `26`. |
+| `slug` | `text` | no | none | URL slug, e.g. `fly-01`. |
+| `label` | `text` | no | none | Human-readable link label. |
+| `target_url` | `text` | no | none | Redirect target URL. |
+| `origin` | `text` | no | none | Campaign medium, e.g. `flyer` or `roll-up`. |
+| `campaign` | `text` | no | none | Campaign group. |
+| `variant` | `text` | no | none | Variant identifier. |
+| `active` | `boolean` | no | `true` | Metadata status; hardcoded `/q` redirects do not currently read this field. |
+| `deployment_region` | `text` | yes | none | Board-editable placement region. |
+| `deployment_location` | `text` | yes | none | Board-editable placement location. |
+| `deployment_notes` | `text` | yes | none | Board-editable placement notes. |
+| `deployed_at` | `date` | yes | none | Board-editable deployment date. |
+| `created_at` | `timestamptz` | no | `now()` | Creation timestamp. |
+| `updated_at` | `timestamptz` | no | `now()` | Last metadata or sync timestamp. |
+
+Constraints and indexes:
+
+- Unique constraint on `(year, slug)`.
+- Indexes on `(campaign, variant)` and `origin`.
+
+### `public.link_redirect_clicks`
+
+Privacy-preserving click events written by the `tbc-link-redirects` app after redirect responses.
+
+| Column | Type | Null | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | no | `gen_random_uuid()` | Primary key. |
+| `year` | `text` | no | none | URL year segment. |
+| `slug` | `text` | no | none | URL slug. |
+| `status` | `text` | no | none | `redirected` or `not_found`. |
+| `target_url` | `text` | yes | none | Sanitized target URL without query/hash. |
+| `origin` | `text` | yes | none | Campaign medium copied from the redirect definition. |
+| `campaign` | `text` | yes | none | Campaign group copied from the redirect definition. |
+| `variant` | `text` | yes | none | Variant copied from the redirect definition. |
+| `label` | `text` | yes | none | Label copied from the redirect definition. |
+| `referrer_domain` | `text` | yes | none | Referrer host only, not the full URL. |
+| `device_type` | `text` | yes | none | Derived category such as `mobile`, `tablet`, or `desktop`. |
+| `browser_family` | `text` | yes | none | Derived browser family. |
+| `country` | `text` | yes | none | Vercel country header. |
+| `query` | `jsonb` | no | `{}` | Selected UTM parameters. |
+| `request_path` | `text` | no | none | Requested redirect path. |
+| `clicked_at_hour` | `timestamptz` | no | none | Timestamp rounded to the hour. |
+
+This table intentionally does not store IP addresses, full user agents, full referrer URLs, city-level geo fields, or exact timestamps.
+
 ## Functions
 
 | Function | Returns | Purpose |
@@ -258,6 +310,12 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 - Members can view their own request.
 - NFT admins can view all, update, and delete requests.
 
+### Link Redirect Analytics
+
+- `link_redirect_definitions` and `link_redirect_clicks` are protected by RLS for service-role access.
+- The membership dashboard reads aggregate analytics server-side for board members and special-access users.
+- Board members and special-access users can update deployment metadata through the server-side API route.
+
 ### Storage
 
 - `member-pictures`: authenticated users can view; users can upload/update their own object path.
@@ -277,7 +335,7 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 ## Known Documentation And Type Gaps
 
 - `lib/types/database.types.ts` currently models `members_main` only. It is not a full generated Supabase type map.
-- `events`, `event_registrations`, `attendance`, and `nft_requests` are modeled locally in feature files where needed.
+- `events`, `event_registrations`, `attendance`, `nft_requests`, and link redirect analytics tables are modeled locally in feature files where needed.
 - If you regenerate Supabase types, include all `public` tables and update imports that currently rely on hand-written interfaces.
 
 ## Maintenance Commands

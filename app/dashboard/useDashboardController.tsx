@@ -89,6 +89,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
 
   const effectiveHasSpecialAccess = hasSpecialAccess && !forceMemberView
   const effectiveIsBoardMember = member?.Role === 'Board Member' && !forceMemberView
+  const showLinkAnalyticsTab = (effectiveIsBoardMember || effectiveHasSpecialAccess) && !forceMemberView
   const showNftApprovalsTab = canManageNftRequests && !forceMemberView
 
   const activeTab = routeTab
@@ -110,6 +111,12 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
       router.replace(TAB_ROUTES['nft-status'])
     }
   }, [activeTab, loading, router, showNftApprovalsTab])
+
+  useEffect(() => {
+    if (!loading && activeTab === 'link-analytics' && !showLinkAnalyticsTab) {
+      router.replace(TAB_ROUTES.profile)
+    }
+  }, [activeTab, loading, router, showLinkAnalyticsTab])
 
   const handleSignOut = useCallback(async () => {
     await auth.signOut()
@@ -460,6 +467,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     setStatusFilter,
     setUploadingImage,
     showInterestedModal,
+    showLinkAnalyticsTab,
     showMemberEditorModal,
     showNftApprovalsTab,
     showParticipantsModal,

@@ -11,4 +11,5 @@
 - Keep `NEXT_PUBLIC_MEMBERS_OVERSCAN` modest; high values can negate virtualization and broad manual image preloading can flood the browser with avatar requests.
 - Do not reintroduce route-wide member avatar preloading on `/members`; the fixed CPU regression came from loading far more avatar resources than mounted virtualized cards.
 - Events are split into `internal` and `external` rows via `events.event_kind`. Apply `supabase/events_external_metadata.sql` before deploying event UI changes that select external-event metadata columns.
+- Link redirect analytics are sourced from `link_redirect_definitions` and `link_redirect_clicks`. Keep the `/link-analytics` page board-only server-side and do not send raw click rows to the client.
 - `docs/database/schema.md` is the canonical database schema overview. Update it when changing Supabase tables, columns, policies, functions, storage buckets, or import workflows.

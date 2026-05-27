@@ -49,6 +49,7 @@ export function DashboardFrame({
           onSignOut={dashboard.handleSignOut}
           onTitleClick={dashboard.handleTitleClick}
           canUseMemberViewToggle={dashboard.canUseMemberViewToggle}
+          showLinkAnalyticsTab={dashboard.showLinkAnalyticsTab}
           showNftApprovalsTab={dashboard.showNftApprovalsTab}
           forceMemberView={dashboard.forceMemberView}
           onToggleMemberView={dashboard.setForceMemberView}

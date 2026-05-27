@@ -1,5 +1,13 @@
 import type { ComponentType, SVGProps } from 'react'
-import { BarChart3Icon, CalendarIcon, HexagonIcon, LogOutIcon, UserIcon, UsersIcon } from 'lucide-react'
+import {
+  BarChart3Icon,
+  CalendarIcon,
+  HexagonIcon,
+  LinkIcon,
+  LogOutIcon,
+  UserIcon,
+  UsersIcon,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { DashboardMember, DashboardTab } from './types'
 
@@ -10,6 +18,7 @@ type DashboardHeaderProps = {
   onSignOut: () => void
   onTitleClick: () => void
   canUseMemberViewToggle: boolean
+  showLinkAnalyticsTab: boolean
   showNftApprovalsTab: boolean
   forceMemberView: boolean
   onToggleMemberView: (enabled: boolean) => void
@@ -46,6 +55,12 @@ const TABS: Array<{
     icon: BarChart3Icon,
   },
   {
+    key: 'link-analytics',
+    labelDesktop: 'Link Analytics',
+    labelMobile: 'Links',
+    icon: LinkIcon,
+  },
+  {
     key: 'nft-approvals',
     labelDesktop: 'NFT Approvals',
     labelMobile: 'NFTs',
@@ -66,6 +81,7 @@ export function DashboardHeader({
   onSignOut,
   onTitleClick,
   canUseMemberViewToggle,
+  showLinkAnalyticsTab,
   showNftApprovalsTab,
   forceMemberView,
   onToggleMemberView,
@@ -114,7 +130,11 @@ export function DashboardHeader({
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-3 sm:pb-4">
         <nav className="flex gap-1 sm:gap-2 overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
-          {TABS.filter((tab) => showNftApprovalsTab || tab.key !== 'nft-approvals').map((tab) => {
+          {TABS.filter((tab) => {
+            if (tab.key === 'nft-approvals') return showNftApprovalsTab
+            if (tab.key === 'link-analytics') return showLinkAnalyticsTab
+            return true
+          }).map((tab) => {
             const Icon = tab.icon
 
             return (

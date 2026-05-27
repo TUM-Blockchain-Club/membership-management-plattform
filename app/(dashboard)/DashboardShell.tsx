@@ -13,6 +13,7 @@ const PATHNAME_TO_TAB: Record<string, DashboardTab> = {
   '/profile':       'profile',
   '/statistics':    'stats',
   '/events':        'events',
+  '/link-analytics': 'link-analytics',
   '/nft-approvals': 'nft-approvals',
   '/nft-status':    'nft-status',
 }
