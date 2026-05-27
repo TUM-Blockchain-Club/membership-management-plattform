@@ -90,6 +90,12 @@ type MetadataFormState = {
 
 type LinkSortMode = 'engagement' | 'alphabetical'
 
+const QR_EXPORT_SIZE = 1440
+const QR_PREVIEW_SIZE = 320
+const QR_LOGO_SIZE = QR_EXPORT_SIZE / 5
+const QR_LOGO_PADDING = QR_EXPORT_SIZE / 36
+const QR_LOGO_RADIUS = QR_EXPORT_SIZE / 20
+
 const formatMunichDateTime = (value: string) =>
   new Intl.DateTimeFormat('en-US', {
     timeZone: 'Europe/Berlin',
@@ -293,7 +299,7 @@ function QrGenerator({ link }: { link: LinkAnalyticsSummary }) {
       setRendering(true)
 
       await QRCode.toCanvas(canvas, link.url, {
-        width: 360,
+        width: QR_EXPORT_SIZE,
         margin: 2,
         errorCorrectionLevel: 'H',
         color: {
@@ -312,15 +318,20 @@ function QrGenerator({ link }: { link: LinkAnalyticsSummary }) {
       await logo.decode().catch(() => null)
 
       if (!cancelled && logo.complete && logo.naturalWidth > 0) {
-        const size = 72
-        const x = (canvas.width - size) / 2
-        const y = (canvas.height - size) / 2
+        const x = (canvas.width - QR_LOGO_SIZE) / 2
+        const y = (canvas.height - QR_LOGO_SIZE) / 2
 
         context.fillStyle = '#ffffff'
         context.beginPath()
-        context.roundRect(x - 10, y - 10, size + 20, size + 20, 18)
+        context.roundRect(
+          x - QR_LOGO_PADDING,
+          y - QR_LOGO_PADDING,
+          QR_LOGO_SIZE + QR_LOGO_PADDING * 2,
+          QR_LOGO_SIZE + QR_LOGO_PADDING * 2,
+          QR_LOGO_RADIUS
+        )
         context.fill()
-        context.drawImage(logo, x, y, size, size)
+        context.drawImage(logo, x, y, QR_LOGO_SIZE, QR_LOGO_SIZE)
       }
 
       if (!cancelled) {
@@ -352,7 +363,7 @@ function QrGenerator({ link }: { link: LinkAnalyticsSummary }) {
           <QrCodeIcon data-icon="inline-start" />
           QR Code
         </CardTitle>
-        <CardDescription>Generated for {link.url}</CardDescription>
+        <CardDescription>Generated for {link.url} at {QR_EXPORT_SIZE}px.</CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex gap-2">
@@ -376,7 +387,13 @@ function QrGenerator({ link }: { link: LinkAnalyticsSummary }) {
 
         <div className="relative flex justify-center rounded-2xl border border-white/10 bg-[linear-gradient(45deg,rgba(255,255,255,0.06)_25%,transparent_25%),linear-gradient(-45deg,rgba(255,255,255,0.06)_25%,transparent_25%),linear-gradient(45deg,transparent_75%,rgba(255,255,255,0.06)_75%),linear-gradient(-45deg,transparent_75%,rgba(255,255,255,0.06)_75%)] bg-[length:18px_18px] bg-[position:0_0,0_9px,9px_-9px,-9px_0px] p-4">
           {rendering && <Skeleton className="absolute size-80 rounded-xl" />}
-          <canvas ref={canvasRef} className="size-80 max-w-full rounded-xl" />
+          <canvas
+            ref={canvasRef}
+            width={QR_EXPORT_SIZE}
+            height={QR_EXPORT_SIZE}
+            className="max-w-full rounded-xl"
+            style={{ width: QR_PREVIEW_SIZE, height: QR_PREVIEW_SIZE }}
+          />
         </div>
 
         <Button type="button" onClick={download} disabled={rendering}>
