@@ -8,11 +8,14 @@ export type LinkDefinition = {
   year: string
   slug: string
   label: string
+  display_label: string | null
   target_url: string
   origin: string
   campaign: string
   variant: string
   active: boolean
+  image_path: string | null
+  image_url: string | null
   deployment_region: string | null
   deployment_location: string | null
   deployment_notes: string | null
@@ -172,7 +175,7 @@ export async function loadLinkAnalytics(
       dataClient
         .from('link_redirect_definitions')
         .select(
-          'year, slug, label, target_url, origin, campaign, variant, active, deployment_region, deployment_location, deployment_notes, deployed_at, updated_at'
+          'year, slug, label, display_label, target_url, origin, campaign, variant, active, image_path, image_url, deployment_region, deployment_location, deployment_notes, deployed_at, updated_at'
         )
         .order('origin', { ascending: true })
         .order('slug', { ascending: true }),

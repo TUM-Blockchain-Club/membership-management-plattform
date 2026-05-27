@@ -222,11 +222,14 @@ Canonical QR/link metadata mirrored from the `tbc-link-redirects` repository and
 | `year` | `text` | no | none | URL year segment, e.g. `26`. |
 | `slug` | `text` | no | none | URL slug, e.g. `fly-01`. |
 | `label` | `text` | no | none | Human-readable link label. |
+| `display_label` | `text` | yes | none | Board-editable display name shown in the analytics dashboard. |
 | `target_url` | `text` | no | none | Redirect target URL. |
 | `origin` | `text` | no | none | Campaign medium, e.g. `flyer` or `roll-up`. |
 | `campaign` | `text` | no | none | Campaign group. |
 | `variant` | `text` | no | none | Variant identifier. |
 | `active` | `boolean` | no | `true` | Metadata status; hardcoded `/q` redirects do not currently read this field. |
+| `image_path` | `text` | yes | none | Supabase Storage object path for a board-uploaded link image. |
+| `image_url` | `text` | yes | none | Public URL for the board-uploaded link image. |
 | `deployment_region` | `text` | yes | none | Board-editable placement region. |
 | `deployment_location` | `text` | yes | none | Board-editable placement location. |
 | `deployment_notes` | `text` | yes | none | Board-editable placement notes. |
@@ -330,6 +333,7 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 | `member-pictures` | yes | Member profile pictures. |
 | `event-images` | yes | External event card images. |
 | `event-qr-codes` | yes | Event check-in QR codes. |
+| `link-redirect-images` | yes | Board-uploaded visual references for QR/link placements. |
 | `nft-images-picks` | yes | NFT request image uploads/picks. |
 
 ## Known Documentation And Type Gaps

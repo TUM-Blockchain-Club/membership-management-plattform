@@ -1,5 +1,6 @@
 'use client'
 
+import NextImage from 'next/image'
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import QRCode from 'qrcode'
@@ -10,11 +11,13 @@ import {
   DownloadIcon,
   ExternalLinkIcon,
   Globe2Icon,
+  ImageIcon,
   MapPinIcon,
   PencilIcon,
   QrCodeIcon,
   SaveIcon,
   SearchIcon,
+  UploadIcon,
   XIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -68,6 +71,7 @@ import { cn } from '@/lib/utils'
 type QrBackground = 'white' | 'transparent'
 
 type MetadataFormState = {
+  display_label: string
   deployment_region: string
   deployment_location: string
   deployment_notes: string
@@ -84,11 +88,15 @@ const formatMunichDateTime = (value: string) =>
   }).format(new Date(value))
 
 const toFormState = (link: LinkAnalyticsSummary): MetadataFormState => ({
+  display_label: link.definition.display_label ?? '',
   deployment_region: link.definition.deployment_region ?? '',
   deployment_location: link.definition.deployment_location ?? '',
   deployment_notes: link.definition.deployment_notes ?? '',
   deployed_at: link.definition.deployed_at ?? '',
 })
+
+const getLinkDisplayName = (link: LinkAnalyticsSummary) =>
+  link.definition.display_label?.trim() || link.definition.label
 
 function StatTile({
   label,
@@ -299,6 +307,101 @@ function QrGenerator({ link }: { link: LinkAnalyticsSummary }) {
   )
 }
 
+function LinkImageManager({
+  link,
+  onUpdated,
+}: {
+  link: LinkAnalyticsSummary
+  onUpdated: (link: LinkAnalyticsSummary) => void
+}) {
+  const inputRef = useRef<HTMLInputElement | null>(null)
+  const [isPending, startTransition] = useTransition()
+
+  const upload = (file: File | undefined) => {
+    if (!file) return
+
+    startTransition(async () => {
+      const formData = new FormData()
+      formData.append('image', file)
+
+      const response = await fetch(
+        `/api/link-redirects/${link.definition.year}/${link.definition.slug}/image`,
+        {
+          method: 'POST',
+          body: formData,
+        }
+      )
+
+      const payload = (await response.json()) as {
+        definition?: LinkAnalyticsSummary['definition']
+        error?: string
+      }
+
+      if (!response.ok || !payload.definition) {
+        toast.error(payload.error ?? 'Could not upload link image.')
+        return
+      }
+
+      onUpdated({
+        ...link,
+        definition: payload.definition,
+      })
+      toast.success('Link image updated.')
+    })
+  }
+
+  return (
+    <Card className="border-white/10 bg-white/[0.03]">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-white">
+          <ImageIcon data-icon="inline-start" />
+          Link Image
+        </CardTitle>
+        <CardDescription>Optional visual reference for this QR placement.</CardDescription>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-4">
+        <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
+          {link.definition.image_url ? (
+            <NextImage
+              src={link.definition.image_url}
+              alt={`Uploaded image for ${getLinkDisplayName(link)}`}
+              fill
+              unoptimized
+              className="object-cover"
+            />
+          ) : (
+            <div className="flex flex-col items-center gap-3 text-white/40">
+              <ImageIcon aria-hidden="true" />
+              <p className="text-sm">No image uploaded</p>
+            </div>
+          )}
+        </div>
+
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          onChange={(event) => {
+            upload(event.target.files?.[0])
+            event.currentTarget.value = ''
+          }}
+        />
+
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => inputRef.current?.click()}
+          disabled={isPending}
+        >
+          {isPending ? <Spinner data-icon="inline-start" /> : <UploadIcon data-icon="inline-start" />}
+          {link.definition.image_url ? 'Replace Image' : 'Upload Image'}
+        </Button>
+      </CardContent>
+    </Card>
+  )
+}
+
 function MetadataEditor({
   link,
   onUpdated,
@@ -352,6 +455,18 @@ function MetadataEditor({
       </CardHeader>
       <CardContent>
         <FieldGroup>
+          <Field>
+            <FieldLabel htmlFor="display_label">Display Name</FieldLabel>
+            <Input
+              id="display_label"
+              value={form.display_label}
+              onChange={(event) => updateForm('display_label', event.target.value)}
+              placeholder={link.definition.label}
+            />
+            <FieldDescription>
+              Manual dashboard name. Leave empty to use the synced label.
+            </FieldDescription>
+          </Field>
           <Field>
             <FieldLabel htmlFor="deployment_region">Region</FieldLabel>
             <Input
@@ -433,6 +548,7 @@ export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyt
         return [
           link.definition.slug,
           link.definition.label,
+          link.definition.display_label,
           link.definition.origin,
           link.definition.campaign,
           link.definition.target_url,
@@ -591,7 +707,7 @@ export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyt
                         >
                           <span className="font-mono text-sm font-medium text-white">{link.definition.slug}</span>
                           <span className="truncate text-xs text-white/45">
-                            {link.definition.label} · {link.definition.origin}
+                            {getLinkDisplayName(link)} · {link.definition.origin}
                           </span>
                         </Link>
                       </TableCell>
@@ -625,7 +741,7 @@ export function LinkAnalyticsDetail({
   return (
     <main className="flex flex-col gap-8">
       <AnalyticsHeader
-        title={link.definition.label}
+        title={getLinkDisplayName(link)}
         description={`Detailed analytics for ${link.url}`}
         generatedAt={initialData.generatedAt}
       />
@@ -646,7 +762,7 @@ export function LinkAnalyticsDetail({
               <Badge>{link.definition.origin}</Badge>
               <Badge variant="outline">{link.definition.campaign}</Badge>
             </div>
-            <CardTitle className="text-2xl text-white">{link.definition.slug}</CardTitle>
+            <CardTitle className="text-2xl text-white">{getLinkDisplayName(link)}</CardTitle>
             <CardDescription className="mt-2 flex flex-wrap items-center gap-2 font-mono">
               <span>{link.url}</span>
               <Button
@@ -663,6 +779,7 @@ export function LinkAnalyticsDetail({
                 Copy
               </Button>
             </CardDescription>
+            <p className="mt-2 font-mono text-xs text-white/45">Slug: {link.definition.slug}</p>
             <p className="mt-2 text-xs text-white/45">
               Destination: <span className="font-mono">{link.definition.target_url}</span>
             </p>
@@ -718,8 +835,9 @@ export function LinkAnalyticsDetail({
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_25rem]">
+      <div className="grid gap-6 lg:grid-cols-[1fr_22rem_25rem]">
         <MetadataEditor key={link.key} link={link} onUpdated={setLink} />
+        <LinkImageManager link={link} onUpdated={setLink} />
         <QrGenerator link={link} />
       </div>
 

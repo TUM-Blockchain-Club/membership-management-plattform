@@ -20,6 +20,10 @@ For the live schema overview, table columns, relationships, RLS summary, storage
   - Creates `public.event_interest` for member-event interest tracking.
   - Adds idempotent indexes and RLS policies for interest reads/inserts/deletes.
 
+- `link_redirect_assets.sql`
+  - Adds board-managed display names and image references to `public.link_redirect_definitions`.
+  - Adds the `link-redirect-images` storage bucket and public read policy.
+
 - `nft_requests.sql`
   - Creates/updates `public.nft_requests`.
   - Adds NFT request helper functions, indexes, policies, and storage policies.
