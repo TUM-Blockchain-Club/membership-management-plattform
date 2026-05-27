@@ -20,6 +20,8 @@ The overview page shows a table sorted by 60-day clicks with:
 
 The detail page contains the deeper charts, deployment metadata editor, and QR generator.
 
+Weekday, daily, and hour-of-day charts are displayed in Munich local time (`Europe/Berlin`).
+
 ## Data Sources
 
 The page reads:

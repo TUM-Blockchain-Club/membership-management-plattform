@@ -72,7 +72,27 @@ export type LinkAnalyticsData = {
 }
 
 const LINK_BASE_URL = 'https://link.tum-blockchain.com'
+const ANALYTICS_TIME_ZONE = 'Europe/Berlin'
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+const WEEKDAY_INDEX = new Map(WEEKDAYS.map((weekday, index) => [weekday, index]))
+
+const munichDateFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: ANALYTICS_TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+})
+
+const munichWeekdayFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: ANALYTICS_TIME_ZONE,
+  weekday: 'short',
+})
+
+const munichHourFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: ANALYTICS_TIME_ZONE,
+  hour: '2-digit',
+  hourCycle: 'h23',
+})
 
 const emptyWeekdays = () =>
   WEEKDAYS.map((label, index) => ({ key: String(index), label, count: 0 }))
@@ -101,15 +121,30 @@ const toTopBuckets = (map: Map<string, number>, limit = 6): Bucket[] =>
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
     .slice(0, limit)
 
+const getMunichDateKey = (date: Date) => {
+  const parts = munichDateFormatter.formatToParts(date)
+  const year = parts.find((part) => part.type === 'year')?.value
+  const month = parts.find((part) => part.type === 'month')?.value
+  const day = parts.find((part) => part.type === 'day')?.value
+
+  return `${year}-${month}-${day}`
+}
+
+const getMunichWeekdayIndex = (date: Date) => {
+  const weekday = munichWeekdayFormatter.format(date)
+  return WEEKDAY_INDEX.get(weekday) ?? 0
+}
+
+const getMunichHour = (date: Date) => Number(munichHourFormatter.format(date))
+
 const createDailyBuckets = (windowDays: number) => {
   const buckets: Bucket[] = []
   const now = new Date()
-  now.setUTCHours(0, 0, 0, 0)
 
   for (let index = windowDays - 1; index >= 0; index -= 1) {
     const date = new Date(now)
     date.setUTCDate(now.getUTCDate() - index)
-    const key = date.toISOString().slice(0, 10)
+    const key = getMunichDateKey(date)
     buckets.push({
       key,
       label: key.slice(5),
@@ -187,9 +222,9 @@ export async function loadLinkAnalytics(
 
     for (const row of rows) {
       const clickedAt = new Date(row.clicked_at_hour)
-      const weekday = clickedAt.getUTCDay()
-      const hour = clickedAt.getUTCHours()
-      const dayKey = row.clicked_at_hour.slice(0, 10)
+      const weekday = getMunichWeekdayIndex(clickedAt)
+      const hour = getMunichHour(clickedAt)
+      const dayKey = getMunichDateKey(clickedAt)
       const dayIndex = dailyIndex.get(dayKey)
 
       weekdayBuckets[weekday].count += 1

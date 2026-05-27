@@ -63,6 +63,13 @@ type MetadataFormState = {
   deployed_at: string
 }
 
+const formatMunichDateTime = (value: string) =>
+  new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Berlin',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(new Date(value))
+
 const toFormState = (link: LinkAnalyticsSummary): MetadataFormState => ({
   deployment_region: link.definition.deployment_region ?? '',
   deployment_location: link.definition.deployment_location ?? '',
@@ -113,7 +120,7 @@ function AnalyticsHeader({
         </div>
         <div className="flex flex-col gap-2 md:items-end">
           <p className="text-xs text-white/35">
-            Updated {new Date(generatedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+            Updated {formatMunichDateTime(generatedAt)} Munich time
           </p>
           {children}
         </div>
@@ -580,7 +587,7 @@ export function LinkAnalyticsDetail({
       <Card className="border-white/10 bg-white/[0.03]">
         <CardHeader>
           <CardTitle className="text-white">Hour-of-Day Heatmap</CardTitle>
-          <CardDescription>UTC hours, based on hour-rounded tracking timestamps.</CardDescription>
+          <CardDescription>Munich local time, based on hour-rounded tracking timestamps.</CardDescription>
         </CardHeader>
         <CardContent>
           <HourHeatmap buckets={link.hourlyBuckets} />

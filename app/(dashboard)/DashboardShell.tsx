@@ -26,7 +26,9 @@ export function DashboardShell({
   children: React.ReactNode
 }) {
   const pathname  = usePathname()
-  const activeTab = PATHNAME_TO_TAB[pathname] ?? 'profile'
+  const activeTab = pathname.startsWith('/link-analytics/')
+    ? 'link-analytics'
+    : PATHNAME_TO_TAB[pathname] ?? 'profile'
   const dashboard = useDashboardController(activeTab, { initialData })
 
   return (
