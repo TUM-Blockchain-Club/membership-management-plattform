@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TBC Membership Management",
+  title: "TBC Member Portal",
   description: "Membership management platform for TUM Blockchain Club",
 };
 
