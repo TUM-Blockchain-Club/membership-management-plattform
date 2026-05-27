@@ -1,169 +1,229 @@
  'use client'
 
-import Image from 'next/image'
+import { memo, useCallback } from 'react'
+import { EditIcon } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
 import { DashboardMember } from './types'
 
-export function MemberCard({ member, getPictureUrl, isHonorary = false, isAlumni = false, isAdvisor = false, canEdit = false, isOwnProfile = false, onEdit }: {
-  member: DashboardMember;
-  getPictureUrl: (pic: unknown) => string | null;
-  isHonorary?: boolean;
-  isAlumni?: boolean;
-  isAdvisor?: boolean;
-  canEdit?: boolean;
-  isOwnProfile?: boolean;
-  onEdit?: () => void;
+function getAvatarRingClass(
+  isBoardMember: boolean,
+  isHonorary: boolean,
+  isAlumni: boolean,
+  isAdvisor: boolean,
+  isCoreMember: boolean,
+) {
+  if (isBoardMember) return 'ring-yellow-500/50'
+  if (isHonorary)    return 'ring-amber-500/50'
+  if (isAlumni)      return 'ring-emerald-500/50'
+  if (isAdvisor)     return 'ring-indigo-500/50'
+  if (isCoreMember)  return 'ring-blue-500/50'
+  return 'ring-border'
+}
+
+function getAvatarGradientClass(
+  isBoardMember: boolean,
+  isHonorary: boolean,
+  isAlumni: boolean,
+  isAdvisor: boolean,
+) {
+  if (isBoardMember) return 'from-yellow-500 to-orange-600'
+  if (isHonorary)    return 'from-amber-400 to-yellow-500'
+  if (isAlumni)      return 'from-emerald-400 to-teal-500'
+  if (isAdvisor)     return 'from-indigo-400 to-violet-500'
+  return 'from-blue-500 to-purple-600'
+}
+
+function getRoleTextClass(
+  isBoardMember: boolean,
+  isHonorary: boolean,
+  isAlumni: boolean,
+  isAdvisor: boolean,
+  isCoreMember: boolean,
+) {
+  if (isBoardMember) return 'text-yellow-400'
+  if (isHonorary)    return 'text-amber-300'
+  if (isAlumni)      return 'text-emerald-300'
+  if (isAdvisor)     return 'text-indigo-300'
+  if (isCoreMember)  return 'text-blue-400'
+  return 'text-muted-foreground'
+}
+
+function getStatusBadgeClass(statusLabel: string) {
+  if (statusLabel === 'Active')   return 'bg-green-500/15 border-green-500/30 text-green-400'
+  if (statusLabel === 'Honorary') return 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+  if (statusLabel === 'Alumni')   return 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+  if (statusLabel === 'Advisor')  return 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300'
+  return 'bg-white/5 border-white/15 text-muted-foreground'
+}
+
+function getDeptBadgeClass(
+  isHonorary: boolean,
+  isAlumni: boolean,
+  isAdvisor: boolean,
+) {
+  if (isHonorary) return 'bg-amber-500/10 border-amber-500/20 text-amber-300'
+  if (isAlumni)   return 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300'
+  if (isAdvisor)  return 'bg-indigo-500/10 border-indigo-500/20 text-indigo-300'
+  return 'bg-white/5 border-white/10 text-muted-foreground'
+}
+
+// ── Component ─────────────────────────────────────────────────────────────
+
+export const MemberCard = memo(function MemberCard({
+  member,
+  getPictureUrl,
+  isHonorary = false,
+  isAlumni = false,
+  isAdvisor = false,
+  canEdit = false,
+  isOwnProfile = false,
+  imageLoading = 'lazy',
+  onEditSelf,
+  onEditOther,
+}: {
+  member: DashboardMember
+  getPictureUrl: (pic: unknown) => string | null
+  isHonorary?: boolean
+  isAlumni?: boolean
+  isAdvisor?: boolean
+  canEdit?: boolean
+  isOwnProfile?: boolean
+  imageLoading?: 'eager' | 'lazy'
+  onEditSelf?: () => void
+  onEditOther?: (targetMember: DashboardMember) => void
 }) {
-  const roleLabel = member?.Role?.trim() || 'Member'
-  const statusLabel = member?.Status?.trim() || ''
+  const handleEdit = useCallback(() => {
+    if (isOwnProfile) onEditSelf?.()
+    else onEditOther?.(member)
+  }, [isOwnProfile, onEditSelf, onEditOther, member])
+
+  const roleLabel       = member?.Role?.trim()       || 'Member'
+  const statusLabel     = member?.Status?.trim()     || ''
   const departmentLabel = member?.Department?.trim() || ''
-  const emailLabel = member?.['TBC Email']?.trim() || 'No email provided'
-  const pictureUrl = getPictureUrl(member?.Picture)
+  const emailLabel      = member?.['TBC Email']?.trim() || 'No email provided'
+  const pictureUrl      = getPictureUrl(member?.Picture)
 
   const isBoardMember = roleLabel === 'Board Member'
-  const isCoreMember = roleLabel === 'Core Member'
+  const isCoreMember  = roleLabel === 'Core Member'
 
   return (
-    <div className={`backdrop-blur-md border rounded-lg sm:rounded-xl p-3 sm:p-4 md:p-6 hover:border-white/30 transition-all duration-200 relative overflow-hidden ${
-      isBoardMember
-        ? 'bg-gradient-to-br from-yellow-500/10 to-orange-500/10 border-yellow-500/40 shadow-lg shadow-yellow-500/10'
-        : isHonorary
-        ? 'bg-gradient-to-br from-amber-500/10 via-yellow-500/10 to-amber-500/10 border-amber-500/40 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30'
-        : isAlumni
-        ? 'bg-gradient-to-br from-emerald-500/10 via-teal-500/10 to-emerald-500/10 border-emerald-500/40 shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30'
-        : isAdvisor
-        ? 'bg-gradient-to-br from-indigo-500/10 via-violet-500/10 to-indigo-500/10 border-indigo-500/40 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30'
-        : isCoreMember
-        ? 'bg-gradient-to-br from-blue-500/10 to-purple-500/10 border-blue-500/30'
-        : 'bg-white/5 border-white/10'
-    }`}>
-      {isHonorary && (
-        <>
-          <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-amber-400/10 rounded-full blur-xl" />
-          <div className="absolute bottom-0 left-0 w-12 h-12 sm:w-16 sm:h-16 bg-yellow-400/10 rounded-full blur-xl" />
-        </>
-      )}
+    <Card
+      data-member-card
+      className="py-0 transition-colors duration-150 hover:bg-white/[0.02]"
+    >
+      <CardContent className="p-4 md:p-5">
 
-      {isAlumni && (
-        <>
-          <div className="absolute top-0 left-0 w-20 h-20 sm:w-24 sm:h-24 bg-emerald-400/10 rounded-full blur-xl" />
-          <div className="absolute bottom-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-teal-400/10 rounded-full blur-xl" />
-        </>
-      )}
-
-      {isAdvisor && (
-        <>
-          <div className="absolute top-0 right-0 w-20 h-20 sm:w-24 sm:h-24 bg-indigo-400/10 rounded-full blur-xl" />
-          <div className="absolute bottom-0 left-0 w-16 h-16 sm:w-20 sm:h-20 bg-violet-400/10 rounded-full blur-xl" />
-        </>
-      )}
-
-      {isBoardMember && (
-        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10">
-          <div className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-yellow-500/20 border border-yellow-500/40 rounded-full">
-            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-400" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-            </svg>
-            <span className="text-yellow-400 text-[10px] sm:text-xs font-semibold hidden sm:inline">Board</span>
+        {/* Top-right role badge */}
+        {(isBoardMember || isHonorary || isAlumni || isAdvisor) && (
+          <div className="absolute top-2.5 right-2.5">
+            <Badge
+              variant="outline"
+              className={cn('text-[10px] px-1.5 py-0.5', (() => {
+                if (isBoardMember) return 'bg-yellow-500/15 border-yellow-500/30 text-yellow-400'
+                if (isHonorary)    return 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+                if (isAlumni)      return 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                return 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300'
+              })())}
+            >
+              {isBoardMember ? 'Board' : isHonorary ? 'Honorary' : isAlumni ? 'Alumni' : 'Advisor'}
+            </Badge>
           </div>
-        </div>
-      )}
+        )}
 
-      {isHonorary && (
-        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10">
-          <div className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-amber-500/30 border border-amber-400/50 rounded-full backdrop-blur-sm">
-            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-300" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-            </svg>
-            <span className="text-amber-200 text-[10px] sm:text-xs font-semibold hidden sm:inline">Honorary</span>
-          </div>
-        </div>
-      )}
-
-      {isAlumni && (
-        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10">
-          <div className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-emerald-500/30 border border-emerald-400/50 rounded-full backdrop-blur-sm">
-            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 20 20">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-            </svg>
-            <span className="text-emerald-200 text-[10px] sm:text-xs font-semibold hidden sm:inline">Alumni</span>
-          </div>
-        </div>
-      )}
-
-      {isAdvisor && (
-        <div className="absolute top-1.5 right-1.5 sm:top-2 sm:right-2 z-10">
-          <div className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 bg-indigo-500/30 border border-indigo-400/50 rounded-full backdrop-blur-sm">
-            <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-indigo-300" fill="none" stroke="currentColor" viewBox="0 0 20 20">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-            </svg>
-            <span className="text-indigo-200 text-[10px] sm:text-xs font-semibold hidden sm:inline">Advisor</span>
-          </div>
-        </div>
-      )}
-
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-2 sm:gap-3 md:gap-4 relative z-0">
-        <div className="flex-shrink-0">
-          {pictureUrl ? (
-            <Image
-              src={pictureUrl}
-              alt={member?.Name || 'Member'}
-              width={80}
-              height={80}
-              unoptimized
-              className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full object-cover border-2 ${
-                isBoardMember ? 'border-yellow-500/60' : isHonorary ? 'border-amber-400/60 shadow-lg shadow-amber-500/30' : isAlumni ? 'border-emerald-400/60 shadow-lg shadow-emerald-500/30' : isAdvisor ? 'border-indigo-400/60 shadow-lg shadow-indigo-500/30' : isCoreMember ? 'border-blue-500/60' : 'border-white/20'
-              }`}
-            />
-          ) : null}
-          <div className={`w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full bg-gradient-to-br ${
-            isBoardMember ? 'from-yellow-500 to-orange-600' : isHonorary ? 'from-amber-400 to-yellow-500' : isAlumni ? 'from-emerald-400 to-teal-500' : isAdvisor ? 'from-indigo-400 to-violet-500' : isCoreMember ? 'from-blue-500 to-purple-600' : 'from-blue-500 to-purple-600'
-          } flex items-center justify-center border-2 ${
-            isBoardMember ? 'border-yellow-500/60' : isHonorary ? 'border-amber-400/60 shadow-lg shadow-amber-500/30' : isAlumni ? 'border-emerald-400/60 shadow-lg shadow-emerald-500/30' : isAdvisor ? 'border-indigo-400/60 shadow-lg shadow-indigo-500/30' : isCoreMember ? 'border-blue-500/60' : 'border-white/20'
-          } ${pictureUrl ? 'hidden' : ''}`}>
-              <span className="text-lg sm:text-xl md:text-2xl font-bold text-white">
-              {member?.Name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || '?'}
+        {/* Avatar + identity */}
+        <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 md:gap-4">
+          <Avatar className={cn(
+            'size-14 sm:size-16 md:size-20 ring-2 flex-shrink-0',
+            getAvatarRingClass(isBoardMember, isHonorary, isAlumni, isAdvisor, isCoreMember),
+          )}>
+            {pictureUrl && (
+              <AvatarImage
+                src={pictureUrl}
+                alt={member?.Name || 'Member'}
+                decoding="async"
+                loading={imageLoading}
+                fetchPriority={isOwnProfile ? 'high' : 'low'}
+              />
+            )}
+            <AvatarFallback className={cn(
+              'bg-gradient-to-br text-white',
+              getAvatarGradientClass(isBoardMember, isHonorary, isAlumni, isAdvisor),
+            )}>
+              <span className="text-lg sm:text-xl md:text-2xl font-bold">
+                {member?.Name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || '?'}
               </span>
+            </AvatarFallback>
+          </Avatar>
+
+          <div className="flex-1 min-w-0 text-center sm:text-left">
+            <h3 className="text-sm sm:text-base font-semibold text-foreground truncate">
+              {member?.Name}
+            </h3>
+            <p className={cn(
+              'text-xs sm:text-sm font-medium truncate',
+              getRoleTextClass(isBoardMember, isHonorary, isAlumni, isAdvisor, isCoreMember),
+            )}>
+              {roleLabel}
+            </p>
+
+            <div className="mt-1.5 flex flex-wrap gap-1 justify-center sm:justify-start">
+              {statusLabel && (
+                <Badge
+                  variant="outline"
+                  className={cn('text-[10px] sm:text-xs', getStatusBadgeClass(statusLabel))}
+                >
+                  {statusLabel}
+                </Badge>
+              )}
+              {departmentLabel && (
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    'text-[10px] sm:text-xs truncate max-w-full',
+                    getDeptBadgeClass(isHonorary, isAlumni, isAdvisor),
+                  )}
+                >
+                  {departmentLabel}
+                </Badge>
+              )}
             </div>
           </div>
-        <div className="flex-1 min-w-0 text-center sm:text-left w-full sm:w-auto">
-          <h3 className={`text-sm sm:text-base md:text-lg font-semibold truncate ${isHonorary ? 'text-amber-100' : isAlumni ? 'text-emerald-100' : isAdvisor ? 'text-indigo-100' : 'text-white'}`}>{member?.Name}</h3>
-          <p className={`text-xs sm:text-sm truncate font-medium ${isBoardMember ? 'text-yellow-400' : isHonorary ? 'text-amber-300' : isAlumni ? 'text-emerald-300' : isAdvisor ? 'text-indigo-300' : isCoreMember ? 'text-blue-400' : 'text-white/60'}`}>{roleLabel}</p>
-          <div className="mt-1.5 sm:mt-2 flex flex-wrap gap-1 sm:gap-2 justify-center sm:justify-start">
-            {statusLabel && (
-              <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium ${statusLabel === 'Active' ? 'bg-green-500/20 border border-green-500/40 text-green-400' : isHonorary ? 'bg-amber-500/30 border border-amber-400/50 text-amber-300' : isAlumni ? 'bg-emerald-500/30 border border-emerald-400/50 text-emerald-300' : isAdvisor ? 'bg-indigo-500/30 border border-indigo-400/50 text-indigo-300' : 'bg-gray-500/20 border border-gray-500/40 text-gray-400'}`}>
-                {statusLabel}
-              </span>
-            )}
-            {departmentLabel && (
-              <span className={`inline-flex items-center px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full text-[10px] sm:text-xs font-medium truncate max-w-full ${isHonorary ? 'bg-amber-500/20 border border-amber-500/40 text-amber-300' : isAlumni ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300' : isAdvisor ? 'bg-indigo-500/20 border border-indigo-500/40 text-indigo-300' : 'bg-purple-500/20 border border-purple-500/40 text-purple-400'}`}>
-                {departmentLabel}
-              </span>
-            )}
-          </div>
         </div>
-      </div>
-      <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-white/10 relative z-0">
-        <div className="flex flex-col sm:flex-row items-center sm:items-center justify-between gap-2">
+
+        <Separator className="mt-3 sm:mt-4 bg-border" />
+
+        {/* Footer: email + edit */}
+        <div className="mt-3 sm:mt-4 flex flex-col sm:flex-row items-center sm:items-center justify-between gap-2">
           <div className="flex-1 w-full sm:w-auto text-center sm:text-left">
-            <p className={`text-[10px] sm:text-xs ${isHonorary || isAlumni || isAdvisor ? 'text-white/50' : 'text-white/40'}`}>Email</p>
-            <p className={`text-xs sm:text-sm truncate ${isHonorary ? 'text-amber-100' : isAlumni ? 'text-emerald-100' : isAdvisor ? 'text-indigo-100' : 'text-white'}`}>
-              {emailLabel}
-            </p>
+            <p className="text-[10px] text-muted-foreground mb-0.5">Email</p>
+            <p className="text-xs sm:text-sm text-foreground truncate">{emailLabel}</p>
           </div>
-          {canEdit && onEdit && (
-            <button
-              onClick={onEdit}
-              className={`w-full sm:w-auto sm:ml-3 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-medium transition-all duration-200 flex items-center justify-center gap-1 ${isOwnProfile ? 'bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/40 text-blue-300 hover:text-blue-200' : 'bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-300 hover:text-purple-200'}`}
+
+          {canEdit && (onEditSelf || onEditOther) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleEdit}
+              className={cn(
+                'w-full sm:w-auto sm:ml-3 text-[10px] sm:text-xs gap-1.5 border-border',
+                isOwnProfile
+                  ? 'text-blue-400 hover:text-blue-300 hover:border-blue-500/40 hover:bg-blue-500/10'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-white/5',
+              )}
             >
-              <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
+              <EditIcon className="h-3 w-3" />
               <span className="hidden sm:inline">{isOwnProfile ? 'My Profile' : 'Edit'}</span>
               <span className="sm:hidden">{isOwnProfile ? 'Me' : 'Edit'}</span>
-            </button>
+            </Button>
           )}
         </div>
-      </div>
-    </div>
+
+      </CardContent>
+    </Card>
   )
-}
+})

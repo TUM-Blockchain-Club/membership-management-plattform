@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { WebVitalsReporter } from "@/app/components/WebVitalsReporter";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -23,11 +26,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" data-scroll-behavior="smooth">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground`}
       >
-        {children}
+        <TooltipProvider>
+          <WebVitalsReporter />
+          {children}
+          <Toaster theme="dark" />
+        </TooltipProvider>
       </body>
     </html>
   );

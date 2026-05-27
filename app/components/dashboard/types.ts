@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import type { Event, Participant } from '@/lib/events'
+import type { Event, InterestedMember, Participant } from '@/lib/events'
 import type { Member } from '@/lib/types/database.types'
 
 export type ProfileSectionField = {
@@ -21,6 +21,8 @@ export type DashboardEvent = Event
 
 export type DashboardParticipant = Participant
 
+export type DashboardInterestedMember = InterestedMember
+
 export type DashboardStats = {
   total: number
   active: number
@@ -28,7 +30,14 @@ export type DashboardStats = {
   exCore: number
 }
 
-export type DashboardTab = 'profile' | 'members' | 'stats' | 'events'
+export type DashboardTab =
+  | 'profile'
+  | 'members'
+  | 'stats'
+  | 'events'
+  | 'link-analytics'
+  | 'nft-approvals'
+  | 'nft-status'
 
 export type DashboardMessage = {
   type: 'success' | 'error'

@@ -1,6 +1,9 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { searchUniversities } from '@/lib/universities'
 
 interface Institution {
@@ -18,56 +21,79 @@ interface UniversityAutocompleteProps {
 }
 
 export default function UniversityAutocomplete({ value, onChange, disabled = false }: UniversityAutocompleteProps) {
-  const [inputValue, setInputValue] = useState(value || '')
-  const [suggestions, setSuggestions] = useState<Institution[]>([])
+  const [inputValue, setInputValue]     = useState(value || '')
+  const [suggestions, setSuggestions]   = useState<Institution[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({})
+
+  const inputRef    = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
-  const debounceTimeout = useRef<NodeJS.Timeout | null>(null)
+  const debounceRef = useRef<NodeJS.Timeout | null>(null)
 
+  // ── Position the portal dropdown under the input ──────────────────────
+  const updatePosition = useCallback(() => {
+    if (!inputRef.current) return
+    const rect = inputRef.current.getBoundingClientRect()
+    setDropdownStyle({
+      position: 'fixed',
+      top:   rect.bottom + 4,
+      left:  rect.left,
+      width: rect.width,
+      zIndex: 9999,
+    })
+  }, [])
+
+  // Reposition on scroll / resize while open
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        inputRef.current &&
-        !inputRef.current.contains(event.target as Node) &&
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
-        setShowDropdown(false)
-      }
+    if (!showDropdown) return
+    updatePosition()
+    window.addEventListener('scroll', updatePosition, true)
+    window.addEventListener('resize', updatePosition)
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true)
+      window.removeEventListener('resize', updatePosition)
     }
+  }, [showDropdown, updatePosition])
 
+  // Close on click-outside (both input and portal dropdown)
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        inputRef.current?.contains(e.target as Node) ||
+        dropdownRef.current?.contains(e.target as Node)
+      ) return
+      setShowDropdown(false)
+    }
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
+  // ── Handlers ──────────────────────────────────────────────────────────
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value
-    setInputValue(newValue)
-    onChange(newValue)
+    const v = e.target.value
+    setInputValue(v)
+    onChange(v)
     setSelectedIndex(-1)
-    
-    if (debounceTimeout.current) {
-      clearTimeout(debounceTimeout.current)
-    }
-    
-    if (!newValue || newValue.length < 1) {
+
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+
+    if (!v) {
       setSuggestions([])
       setShowDropdown(false)
       return
     }
-    
-    debounceTimeout.current = setTimeout(() => {
-      const results = searchUniversities(newValue)
+
+    debounceRef.current = setTimeout(() => {
+      const results = searchUniversities(v)
       setSuggestions(results)
       setShowDropdown(results.length > 0)
     }, 200)
   }
 
-  const handleSelectInstitution = (institution: Institution) => {
-    setInputValue(institution.name)
-    onChange(institution.name)
+  const handleSelect = (inst: Institution) => {
+    setInputValue(inst.name)
+    onChange(inst.name)
     setShowDropdown(false)
     setSuggestions([])
     setSelectedIndex(-1)
@@ -75,23 +101,18 @@ export default function UniversityAutocomplete({ value, onChange, disabled = fal
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showDropdown || suggestions.length === 0) return
-
     switch (e.key) {
       case 'ArrowDown':
         e.preventDefault()
-        setSelectedIndex(prev => 
-          prev < suggestions.length - 1 ? prev + 1 : prev
-        )
+        setSelectedIndex(p => p < suggestions.length - 1 ? p + 1 : p)
         break
       case 'ArrowUp':
         e.preventDefault()
-        setSelectedIndex(prev => prev > 0 ? prev - 1 : -1)
+        setSelectedIndex(p => p > 0 ? p - 1 : -1)
         break
       case 'Enter':
         e.preventDefault()
-        if (selectedIndex >= 0 && selectedIndex < suggestions.length) {
-          handleSelectInstitution(suggestions[selectedIndex])
-        }
+        if (selectedIndex >= 0) handleSelect(suggestions[selectedIndex])
         break
       case 'Escape':
         setShowDropdown(false)
@@ -101,87 +122,63 @@ export default function UniversityAutocomplete({ value, onChange, disabled = fal
   }
 
   const handleBlur = () => {
-    if (inputValue !== value) {
-      onChange(inputValue)
-    }
+    if (inputValue !== value) onChange(inputValue)
   }
+
+  // ── Render ────────────────────────────────────────────────────────────
+  const dropdown = showDropdown && suggestions.length > 0 && (
+    <div
+      ref={dropdownRef}
+      style={dropdownStyle}
+      className="overflow-y-auto rounded-xl border border-border bg-popover shadow-2xl max-h-72 py-1"
+    >
+      {suggestions.map((inst, i) => (
+        <Button
+          key={`${inst.name}-${i}`}
+          type="button"
+          variant="ghost"
+          onMouseDown={(e) => { e.preventDefault(); handleSelect(inst) }}
+          onMouseEnter={() => setSelectedIndex(i)}
+          className={`h-auto w-full justify-start rounded-none px-4 py-2.5 text-left border-b border-border/50 last:border-b-0 ${
+            i === selectedIndex ? 'bg-accent' : ''
+          }`}
+        >
+          <div className="flex flex-col gap-0.5 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="font-medium text-sm text-foreground">{inst.name}</span>
+              {inst.city && (
+                <span className="text-muted-foreground text-xs">• {inst.city}</span>
+              )}
+            </div>
+            <span className="text-muted-foreground text-xs truncate">{inst.fullName}</span>
+            {inst.country && (
+              <span className="text-muted-foreground/60 text-xs">{inst.country}</span>
+            )}
+          </div>
+        </Button>
+      ))}
+    </div>
+  )
 
   return (
     <div className="relative">
-      <input
+      <Input
         ref={inputRef}
         type="text"
         value={inputValue}
         onChange={handleInputChange}
         onKeyDown={handleKeyDown}
         onBlur={handleBlur}
-        onFocus={() => {
-          if (suggestions.length > 0) {
-            setShowDropdown(true)
-          }
-        }}
+        onFocus={() => { if (suggestions.length > 0) setShowDropdown(true) }}
         disabled={disabled}
         placeholder="Type university name or acronym (e.g., TUM, LMU, KIT)"
-        className="w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-lg text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
       />
-      
-      {showDropdown && suggestions.length > 0 && (
-        <div
-          ref={dropdownRef}
-          className="absolute z-50 w-full mt-2 bg-gray-900 border border-white/20 rounded-lg shadow-2xl max-h-80 overflow-y-auto"
-        >
-          {suggestions.map((institution, index) => (
-            <button
-              key={`${institution.name}-${index}`}
-              type="button"
-              onMouseDown={(e) => {
-                e.preventDefault()
-                handleSelectInstitution(institution)
-              }}
-              onMouseEnter={() => setSelectedIndex(index)}
-              className={`w-full px-4 py-3 text-left transition-colors border-b border-white/5 last:border-b-0 ${
-                index === selectedIndex
-                  ? 'bg-blue-500/20 border-blue-500/30'
-                  : 'hover:bg-white/5'
-              }`}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-white font-semibold text-sm">
-                      {institution.name}
-                    </span>
-                    {institution.city && (
-                      <span className="text-white/40 text-xs">
-                        • {institution.city}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-white/60 text-xs mt-0.5">
-                    {institution.fullName}
-                  </div>
-                  {institution.country && (
-                    <span className="inline-block mt-1 text-white/40 text-xs">
-                      {institution.country}
-                    </span>
-                  )}
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-      
-      {showDropdown && suggestions.length === 0 && inputValue.length >= 1 && (
-        <div
-          ref={dropdownRef}
-          className="absolute z-50 w-full mt-2 bg-gray-900 border border-white/20 rounded-lg shadow-2xl p-4"
-        >
-          <div className="text-white/40 text-sm text-center">
-            No universities found. Try a different search term.
-          </div>
-        </div>
-      )}
+
+      {/* Portal: renders at document.body, escaping any overflow:hidden ancestors */}
+      {typeof window !== 'undefined' && dropdown
+        ? createPortal(dropdown, document.body)
+        : null
+      }
     </div>
   )
 }

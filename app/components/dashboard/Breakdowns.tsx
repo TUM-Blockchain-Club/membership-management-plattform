@@ -1,4 +1,6 @@
 import { DashboardMember } from './types'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export function DepartmentBreakdown({ members }: { members: DashboardMember[] }) {
   const departmentCounts = members.reduce((acc: Record<string, number>, m) => {
@@ -19,12 +21,12 @@ export function DepartmentBreakdown({ members }: { members: DashboardMember[] })
   const totalCount = members.filter(m => m.Department).length
 
   return (
-    <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-3 sm:p-4 md:p-6">
-      <div className="flex items-center justify-between mb-3 sm:mb-4">
-        <h3 className="text-base sm:text-lg md:text-xl font-bold text-white">Department Distribution</h3>
-        <span className="text-white/40 text-[10px] sm:text-xs">{sortedDepts.length} departments</span>
-      </div>
-      <div className="space-y-2 sm:space-y-3">
+    <Card className="bg-white/5 backdrop-blur-md">
+      <CardHeader className="flex-row items-center justify-between gap-3">
+        <CardTitle className="text-base sm:text-lg md:text-xl font-bold text-white">Department Distribution</CardTitle>
+        <Badge variant="outline" className="text-white/50">{sortedDepts.length} departments</Badge>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2 sm:gap-3">
         {sortedDepts.map(([dept, count]) => (
           <div key={dept} className="flex items-center justify-between group hover:bg-white/5 rounded-lg p-1.5 sm:p-2 -mx-1.5 sm:-mx-2 transition-colors duration-200">
             <span className="text-white/80 text-xs sm:text-sm font-medium truncate flex-1 mr-2">{dept}</span>
@@ -36,8 +38,8 @@ export function DepartmentBreakdown({ members }: { members: DashboardMember[] })
             </div>
           </div>
         ))}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }
 
@@ -71,12 +73,12 @@ export function StatusBreakdown({ members }: { members: DashboardMember[] }) {
   const totalCount = members.length
 
   return (
-    <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-3 sm:p-4 md:p-6">
-      <div className="flex items-center justify-between mb-3 sm:mb-4">
-        <h3 className="text-base sm:text-lg md:text-xl font-bold text-white">Member Status</h3>
-        <span className="text-white/40 text-[10px] sm:text-xs">{totalCount} total</span>
-      </div>
-      <div className="space-y-2 sm:space-y-3">
+    <Card className="bg-white/5 backdrop-blur-md">
+      <CardHeader className="flex-row items-center justify-between gap-3">
+        <CardTitle className="text-base sm:text-lg md:text-xl font-bold text-white">Member Status</CardTitle>
+        <Badge variant="outline" className="text-white/50">{totalCount} total</Badge>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-2 sm:gap-3">
         {sortedStatuses.map(([status, count]) => {
           const percentage = ((count / totalCount) * 100).toFixed(1)
           return (
@@ -97,7 +99,7 @@ export function StatusBreakdown({ members }: { members: DashboardMember[] }) {
             </div>
           )
         })}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   )
 }

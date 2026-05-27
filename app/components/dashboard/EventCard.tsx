@@ -1,19 +1,34 @@
-export function EventCard({
-  title,
-  date,
-  time,
-  location,
-  description,
-  organizer,
-  maxAttendees,
-  currentAttendees,
-  hasApplyButton,
-  isApplied,
-  color,
-  onApply,
-  showParticipantsButton,
-  onViewParticipants
-}: {
+import {
+  CalendarDaysIcon,
+  EyeIcon,
+  ExternalLinkIcon,
+  GlobeIcon,
+  MessageCircleIcon,
+  PencilIcon,
+  StarIcon,
+  type LucideIcon,
+  MapPinIcon,
+  TicketIcon,
+  UserRoundCheckIcon,
+  UsersIcon,
+} from 'lucide-react'
+import Image from 'next/image'
+import type { ReactNode } from 'react'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import { cn } from '@/lib/utils'
+
+type InternalEventCardProps = {
   title: string
   date: string
   time: string
@@ -24,87 +39,290 @@ export function EventCard({
   currentAttendees: number | null
   hasApplyButton: boolean
   isApplied: boolean
-  color: string
   onApply?: () => void
   showParticipantsButton?: boolean
   onViewParticipants?: () => void
-}) {
-  const colorClasses = {
-    blue: 'from-blue-500/20 to-blue-600/20 border-blue-500/40',
-    green: 'from-green-500/20 to-green-600/20 border-green-500/40',
-    purple: 'from-purple-500/20 to-purple-600/20 border-purple-500/40',
-    orange: 'from-orange-500/20 to-orange-600/20 border-orange-500/40',
-    cyan: 'from-cyan-500/20 to-cyan-600/20 border-cyan-500/40',
-    pink: 'from-pink-500/20 to-pink-600/20 border-pink-500/40'
-  }
+}
 
-  const buttonColorClasses = {
-    blue: 'bg-blue-600 hover:bg-blue-700 text-white',
-    green: 'bg-green-600 hover:bg-green-700 text-white',
-    purple: 'bg-purple-600 hover:bg-purple-700 text-white',
-    orange: 'bg-orange-600 hover:bg-orange-700 text-white',
-    cyan: 'bg-cyan-600 hover:bg-cyan-700 text-white',
-    pink: 'bg-pink-600 hover:bg-pink-700 text-white'
-  }
+type ExternalEventCardProps = {
+  title: string
+  date: string
+  location: string
+  eventType: string | null
+  priority: string | null
+  status: string | null
+  format: string | null
+  imageUrl: string | null
+  imageLinkUrl: string | null
+  attendingNames: string[]
+  canEdit?: boolean
+  onEdit?: () => void
+  // Interest / application features
+  tallyUrl: string | null
+  whatsappUrl: string | null
+  interestCount: number
+  isInterested: boolean
+  onToggleInterest?: () => void
+  onViewInterestedMembers?: () => void
+}
+
+function DetailRow({
+  icon: Icon,
+  children,
+}: {
+  icon: LucideIcon
+  children: ReactNode
+}) {
+  return (
+    <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
+      <Icon className="shrink-0" />
+      <span className="truncate">{children}</span>
+    </div>
+  )
+}
+
+function PeopleSummary({ label, names }: { label: string; names: string[] }) {
+  if (names.length === 0) return null
 
   return (
-    <div className={`bg-gradient-to-br ${colorClasses[color as keyof typeof colorClasses]} border backdrop-blur-md rounded-xl p-6 hover:border-white/30 transition-all duration-200 relative`}>
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex-1">
-          <h3 className="text-xl font-bold text-white mb-2 relative">{title}</h3>
-          <div className="space-y-1 text-sm text-white/70">
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              {date}
-            </div>
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              {time}
-            </div>
-            <div className="flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-              {location}
-            </div>
+    <div className="flex flex-col gap-1">
+      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+      <p className="line-clamp-2 text-sm text-foreground">{names.join(', ')}</p>
+    </div>
+  )
+}
+
+function priorityFrameClass(priority: string | null) {
+  const normalized = priority?.trim().toUpperCase()
+
+  if (normalized === 'P1') {
+    return 'bg-[linear-gradient(135deg,#f43f5e,#f97316,#eab308,#22c55e,#06b6d4,#6366f1,#a855f7)] p-px'
+  }
+
+  if (normalized === 'P2') {
+    return 'bg-purple-500/70 p-px'
+  }
+
+  return ''
+}
+
+export function InternalEventCard({
+  title,
+  date,
+  time,
+  location,
+  description,
+  organizer,
+  maxAttendees,
+  currentAttendees,
+  hasApplyButton,
+  isApplied,
+  onApply,
+  showParticipantsButton,
+  onViewParticipants,
+}: InternalEventCardProps) {
+  return (
+    <Card className="h-full">
+      <CardHeader>
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+            <CalendarDaysIcon />
+          </div>
+          <div className="min-w-0 flex-1">
+            <CardTitle className="truncate">{title}</CardTitle>
+            <CardDescription className="truncate">{organizer}</CardDescription>
           </div>
         </div>
         {showParticipantsButton && onViewParticipants && (
-          <button
-            onClick={onViewParticipants}
-            className="ml-3 p-1 text-white/60 hover:text-white transition-colors"
-            title="View participants"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
-          </button>
+          <CardAction>
+            <Button variant="ghost" size="icon-sm" onClick={onViewParticipants} title="View participants">
+              <EyeIcon />
+              <span className="sr-only">View participants</span>
+            </Button>
+          </CardAction>
         )}
-      </div>
+      </CardHeader>
 
-      <p className="text-white/80 text-sm mb-4 leading-relaxed">{description}</p>
+      <CardContent className="flex flex-1 flex-col gap-4">
+        <div className="flex flex-col gap-2">
+          <DetailRow icon={CalendarDaysIcon}>{date}</DetailRow>
+          <DetailRow icon={TicketIcon}>{time}</DetailRow>
+          <DetailRow icon={MapPinIcon}>{location}</DetailRow>
+        </div>
 
-      <div className="flex items-center justify-between text-xs text-white/60 mb-4">
-        <span>Organized by: {organizer}</span>
-        {maxAttendees && <span>{currentAttendees || 0}/{maxAttendees} attending</span>}
-      </div>
+        <p className="line-clamp-3 text-sm text-muted-foreground">{description}</p>
+      </CardContent>
 
-      {hasApplyButton && (
-        <button
-          onClick={onApply}
-          className={`w-full px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
-            isApplied ? 'bg-red-600 hover:bg-red-700 text-white' : buttonColorClasses[color as keyof typeof buttonColorClasses]
-          }`}
-        >
-          {isApplied ? 'Deregister' : 'Apply Now'}
-        </button>
-      )}
+      <CardFooter className="justify-between gap-3">
+        {maxAttendees ? (
+          <Badge variant="secondary" className="tabular-nums">
+            <UsersIcon data-icon="inline-start" />
+            {currentAttendees || 0}/{maxAttendees}
+          </Badge>
+        ) : (
+          <span className="text-xs text-muted-foreground">No capacity limit</span>
+        )}
+
+        {hasApplyButton && (
+          <Button variant={isApplied ? 'destructive' : 'default'} size="sm" onClick={onApply}>
+            <UserRoundCheckIcon data-icon="inline-start" />
+            {isApplied ? 'Deregister' : 'Apply'}
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
+  )
+}
+
+export function ExternalEventCard({
+  title,
+  date,
+  location,
+  eventType,
+  priority,
+  status,
+  format,
+  imageUrl,
+  imageLinkUrl,
+  attendingNames,
+  canEdit,
+  onEdit,
+  tallyUrl,
+  whatsappUrl,
+  interestCount,
+  isInterested,
+  onToggleInterest,
+  onViewInterestedMembers,
+}: ExternalEventCardProps) {
+  const frameClass = priorityFrameClass(priority)
+  const image = imageUrl ? (
+    <div className="relative aspect-square w-full overflow-hidden bg-card">
+      <Image
+        src={imageUrl}
+        alt=""
+        fill
+        sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
+        className="object-contain p-2"
+        unoptimized
+      />
+    </div>
+  ) : null
+
+  return (
+    <div className={cn('h-full rounded-xl', frameClass)}>
+      <Card className={cn('h-full', frameClass && 'ring-0')} size="sm">
+        {imageLinkUrl && image ? (
+          <a href={imageLinkUrl} target="_blank" rel="noreferrer" className="block">
+            {image}
+          </a>
+        ) : (
+          image
+        )}
+
+        <CardHeader>
+          <div className="flex min-w-0 items-start gap-3">
+            <div className="min-w-0 flex-1">
+              <CardTitle className="truncate">{title}</CardTitle>
+              <CardDescription className="truncate">{location}</CardDescription>
+            </div>
+          </div>
+          {(imageLinkUrl || (canEdit && onEdit)) && (
+            <CardAction>
+              <div className="flex items-center gap-0.5">
+                {imageLinkUrl && (
+                  <Button variant="ghost" size="icon-sm" asChild title="Open event website">
+                    <a href={imageLinkUrl} target="_blank" rel="noreferrer">
+                      <GlobeIcon />
+                      <span className="sr-only">Open event website</span>
+                    </a>
+                  </Button>
+                )}
+                {canEdit && onEdit && (
+                  <Button variant="ghost" size="icon-sm" onClick={onEdit} title="Edit event">
+                    <PencilIcon />
+                    <span className="sr-only">Edit event</span>
+                  </Button>
+                )}
+              </div>
+            </CardAction>
+          )}
+        </CardHeader>
+
+        <CardContent className="flex flex-1 flex-col gap-4">
+          <div className="flex flex-wrap gap-1.5">
+            {eventType && <Badge variant="secondary">{eventType}</Badge>}
+            {status && <Badge variant="outline">{status}</Badge>}
+            {format && <Badge variant="outline">{format}</Badge>}
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <DetailRow icon={CalendarDaysIcon}>{date}</DetailRow>
+            <DetailRow icon={MapPinIcon}>{location}</DetailRow>
+          </div>
+
+          {attendingNames.length > 0 && (
+            <>
+              <Separator />
+              <div className="flex flex-col gap-3">
+                <PeopleSummary label="Attending" names={attendingNames} />
+              </div>
+            </>
+          )}
+        </CardContent>
+
+        <CardFooter className="flex-col gap-2">
+          {/* Interest count + toggle — always visible */}
+          <div className="flex w-full items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              className="gap-1.5 tabular-nums"
+              onClick={onViewInterestedMembers}
+              title="See who's interested"
+            >
+              <UsersIcon className="size-4 shrink-0" />
+              {interestCount} interested
+            </Button>
+            {onToggleInterest && (
+              <Button
+                variant={isInterested ? 'default' : 'outline'}
+                size="sm"
+                onClick={onToggleInterest}
+                aria-pressed={isInterested}
+                className="ml-auto"
+              >
+                <StarIcon
+                  data-icon="inline-start"
+                  className={cn('size-4', isInterested && 'fill-current')}
+                />
+                {isInterested ? 'Interested' : "I'm Interested"}
+              </Button>
+            )}
+          </div>
+
+          {(tallyUrl || whatsappUrl) && (
+            // Apply + WhatsApp row — shown whenever at least one link is set
+            <div className="flex w-full gap-2">
+              {tallyUrl && (
+                <Button asChild size="sm" className="flex-1">
+                  <a href={tallyUrl} target="_blank" rel="noreferrer">
+                    <ExternalLinkIcon data-icon="inline-start" />
+                    Apply Now
+                  </a>
+                </Button>
+              )}
+              {whatsappUrl && (
+                <Button asChild variant="outline" size="sm" className="flex-1" title="Join WhatsApp group">
+                  <a href={whatsappUrl} target="_blank" rel="noreferrer">
+                    <MessageCircleIcon data-icon="inline-start" />
+                    WhatsApp
+                  </a>
+                </Button>
+              )}
+            </div>
+          )}
+        </CardFooter>
+      </Card>
     </div>
   )
 }
