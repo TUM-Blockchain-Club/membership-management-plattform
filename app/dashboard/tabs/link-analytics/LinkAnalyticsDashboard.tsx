@@ -286,18 +286,19 @@ function HourHeatmap({ buckets }: { buckets: LinkAnalyticsSummary['hourlyBuckets
 }
 
 function QrGenerator({ link }: { link: LinkAnalyticsSummary }) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null)
+  const exportCanvasRef = useRef<HTMLCanvasElement | null>(null)
   const [background, setBackground] = useState<QrBackground>('white')
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [rendering, setRendering] = useState(true)
 
   useEffect(() => {
     let cancelled = false
 
     async function renderQr() {
-      const canvas = canvasRef.current
-      if (!canvas) return
+      const canvas = document.createElement('canvas')
 
       setRendering(true)
+      setPreviewUrl(null)
 
       await QRCode.toCanvas(canvas, link.url, {
         width: QR_EXPORT_SIZE,
@@ -336,6 +337,8 @@ function QrGenerator({ link }: { link: LinkAnalyticsSummary }) {
       }
 
       if (!cancelled) {
+        exportCanvasRef.current = canvas
+        setPreviewUrl(canvas.toDataURL('image/png'))
         setRendering(false)
       }
     }
@@ -348,7 +351,7 @@ function QrGenerator({ link }: { link: LinkAnalyticsSummary }) {
   }, [background, link.url])
 
   const download = () => {
-    const canvas = canvasRef.current
+    const canvas = exportCanvasRef.current
     if (!canvas) return
 
     const anchor = document.createElement('a')
@@ -392,13 +395,15 @@ function QrGenerator({ link }: { link: LinkAnalyticsSummary }) {
             style={{ maxWidth: QR_PREVIEW_SIZE }}
           >
             {rendering && <Skeleton className="absolute inset-0 rounded-xl" />}
-            <canvas
-              ref={canvasRef}
-              width={QR_EXPORT_SIZE}
-              height={QR_EXPORT_SIZE}
-              className="rounded-xl"
-              style={{ display: 'block', width: '100%', height: '100%' }}
-            />
+            {previewUrl && (
+              <NextImage
+                src={previewUrl}
+                alt={`QR code preview for ${link.url}`}
+                fill
+                unoptimized
+                className="rounded-xl object-contain"
+              />
+            )}
           </div>
         </div>
 
