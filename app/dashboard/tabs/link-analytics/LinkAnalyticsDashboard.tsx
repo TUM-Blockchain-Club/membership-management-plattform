@@ -396,7 +396,8 @@ function QrGenerator({ link }: { link: LinkAnalyticsSummary }) {
               ref={canvasRef}
               width={QR_EXPORT_SIZE}
               height={QR_EXPORT_SIZE}
-              className="block size-full rounded-xl"
+              className="rounded-xl"
+              style={{ display: 'block', width: '100%', height: '100%' }}
             />
           </div>
         </div>

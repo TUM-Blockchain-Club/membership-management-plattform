@@ -78,6 +78,7 @@ The detail view can generate PNG QR codes with:
 - white background
 - transparent background
 - centered `/assets/tbc-logo.png`
+- 1440px square PNG export with a fixed-size dashboard preview
 
 `/assets/tbc-logo.png` is a 1024px PNG used for the QR center mark.
 
