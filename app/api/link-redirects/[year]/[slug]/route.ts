@@ -14,6 +14,7 @@ type RouteContext = {
 
 type MetadataPayload = {
   display_label?: string | null
+  target_url?: string | null
   deployment_region?: string | null
   deployment_location?: string | null
   deployment_notes?: string | null
@@ -21,7 +22,7 @@ type MetadataPayload = {
 }
 
 const LINK_DEFINITION_SELECT =
-  'year, slug, label, display_label, target_url, origin, campaign, variant, active, image_path, image_url, deployment_region, deployment_location, deployment_notes, deployed_at, updated_at'
+  'year, slug, label, display_label, target_url, origin, campaign, variant, active, redirect_source, hardcoded_target_url, hardcoded_synced_at, image_path, image_url, deployment_region, deployment_location, deployment_notes, deployed_at, updated_at'
 
 const nullableString = (value: unknown, maxLength = 500) => {
   if (typeof value !== 'string') return null
@@ -36,6 +37,19 @@ const nullableDate = (value: unknown) => {
   return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : null
 }
 
+const requiredUrl = (value: unknown, fallback: string) => {
+  if (typeof value !== 'string') return fallback
+  const trimmed = value.trim()
+  if (!trimmed) return fallback
+
+  try {
+    const url = new URL(trimmed)
+    return url.toString()
+  } catch {
+    return fallback
+  }
+}
+
 export async function PATCH(request: Request, context: RouteContext) {
   try {
     const { year, slug } = await context.params
@@ -43,8 +57,23 @@ export async function PATCH(request: Request, context: RouteContext) {
     const supabase = await createSupabaseServerClient()
     const { dataClient } = await requireLinkAnalyticsAdmin(supabase, request)
 
+    const { data: currentDefinition, error: currentError } = await dataClient
+      .from('link_redirect_definitions')
+      .select('target_url')
+      .eq('year', year)
+      .eq('slug', slug)
+      .single()
+
+    if (currentError || !currentDefinition) {
+      return NextResponse.json(
+        { error: currentError?.message || 'Could not load link metadata.' },
+        { status: 500 }
+      )
+    }
+
     const updates = {
       display_label: nullableString(payload.display_label, 120),
+      target_url: requiredUrl(payload.target_url, currentDefinition.target_url),
       deployment_region: nullableString(payload.deployment_region, 120),
       deployment_location: nullableString(payload.deployment_location, 180),
       deployment_notes: nullableString(payload.deployment_notes, 1200),

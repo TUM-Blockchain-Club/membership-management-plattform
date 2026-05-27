@@ -22,6 +22,8 @@ The overview includes debounced search, type filtering, and sort modes for engag
 
 The detail page contains the deeper charts, deployment metadata editor, optional link image upload, and QR generator. Daily trend rows are ranked by clicks descending so the strongest day appears first.
 
+Board users can create soft links from the overview. Soft links use the exact same public URL shape as hardcoded links, for example `/q/26/fly-21`, but the redirect service resolves them through Supabase until they are promoted into the hardcoded redirect config.
+
 Weekday, daily, and hour-of-day charts are displayed in Munich local time (`Europe/Berlin`).
 
 ## Data Sources
@@ -45,6 +47,7 @@ The page allows board users to edit these operational metadata fields:
 - `display_label`
 - `image_path`
 - `image_url`
+- `target_url`
 
 The redirect project's `pnpm sync:links` script upserts only canonical link fields:
 
@@ -62,6 +65,10 @@ It does not send `deployment_region`, `deployment_location`, `deployment_notes`,
 
 It also does not send `display_label`, `image_path`, or `image_url`, so manual dashboard names and uploaded link images are not overwritten by sync.
 
+Hardcoded links win at redirect time. If a hardcoded link's Supabase `target_url` differs from `hardcoded_target_url`, the dashboard marks it as `Needs promotion`; run `pnpm promote:links` in the redirect repo to update the hardcoded config while keeping the public path unchanged.
+
+Soft links are marked green. Hardcoded links are marked blue. Hardcoded mismatches are marked red.
+
 ## QR Generator
 
 The detail view can generate PNG QR codes with:
@@ -74,4 +81,4 @@ The detail view can generate PNG QR codes with:
 
 ## Database Migration
 
-Apply `supabase/link_redirect_assets.sql` before deploying the image upload UI. It adds the board-managed fields and creates the public `link-redirect-images` bucket.
+Apply `supabase/link_redirect_assets.sql` before deploying the image upload UI. It adds the board-managed fields and creates the private `link-redirect-images` bucket. Link images are served through `/api/link-redirects/[year]/[slug]/image`, which uses the same board-only server-side guard as the analytics page.

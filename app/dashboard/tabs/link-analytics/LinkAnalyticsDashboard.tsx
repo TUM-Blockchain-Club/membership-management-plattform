@@ -14,6 +14,7 @@ import {
   ImageIcon,
   MapPinIcon,
   PencilIcon,
+  PlusIcon,
   QrCodeIcon,
   SaveIcon,
   SearchIcon,
@@ -30,6 +31,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import {
   Empty,
   EmptyContent,
@@ -65,13 +74,14 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
-import type { LinkAnalyticsData, LinkAnalyticsSummary } from '@/lib/server/linkAnalytics'
+import type { LinkAnalyticsData, LinkAnalyticsSummary, LinkDefinition } from '@/lib/server/linkAnalytics'
 import { cn } from '@/lib/utils'
 
 type QrBackground = 'white' | 'transparent'
 
 type MetadataFormState = {
   display_label: string
+  target_url: string
   deployment_region: string
   deployment_location: string
   deployment_notes: string
@@ -89,6 +99,7 @@ const formatMunichDateTime = (value: string) =>
 
 const toFormState = (link: LinkAnalyticsSummary): MetadataFormState => ({
   display_label: link.definition.display_label ?? '',
+  target_url: link.definition.target_url,
   deployment_region: link.definition.deployment_region ?? '',
   deployment_location: link.definition.deployment_location ?? '',
   deployment_notes: link.definition.deployment_notes ?? '',
@@ -97,6 +108,76 @@ const toFormState = (link: LinkAnalyticsSummary): MetadataFormState => ({
 
 const getLinkDisplayName = (link: LinkAnalyticsSummary) =>
   link.definition.display_label?.trim() || link.definition.label
+
+const getLinkImageUrl = (link: LinkAnalyticsSummary) =>
+  link.definition.image_path
+    ? `/api/link-redirects/${link.definition.year}/${link.definition.slug}/image?version=${encodeURIComponent(link.definition.updated_at ?? link.definition.image_path)}`
+    : null
+
+const isTargetMismatch = (link: LinkAnalyticsSummary) =>
+  link.definition.redirect_source === 'hardcoded' &&
+  Boolean(link.definition.hardcoded_target_url) &&
+  link.definition.hardcoded_target_url !== link.definition.target_url
+
+function LinkStatusBadge({ link }: { link: LinkAnalyticsSummary }) {
+  if (isTargetMismatch(link)) {
+    return <Badge variant="destructive">Needs promotion</Badge>
+  }
+
+  if (link.definition.redirect_source === 'hardcoded') {
+    return <Badge className="bg-blue-600 text-white hover:bg-blue-600">Hardlink</Badge>
+  }
+
+  return <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">Softlink</Badge>
+}
+
+const emptyWeekdayBuckets = () =>
+  ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((label, index) => ({
+    key: String(index),
+    label,
+    count: 0,
+  }))
+
+const emptyHourBuckets = () =>
+  Array.from({ length: 24 }, (_, hour) => ({
+    key: String(hour),
+    label: `${String(hour).padStart(2, '0')}:00`,
+    count: 0,
+  }))
+
+const emptyDailyBuckets = (windowDays: number) =>
+  Array.from({ length: windowDays }, (_, index) => {
+    const date = new Date()
+    date.setDate(date.getDate() - (windowDays - index - 1))
+    const key = date.toISOString().slice(0, 10)
+
+    return {
+      key,
+      label: key.slice(5),
+      count: 0,
+    }
+  })
+
+const createEmptyLinkSummary = (
+  definition: LinkDefinition,
+  windowDays: number
+): LinkAnalyticsSummary => ({
+  key: `${definition.year}/${definition.slug}`,
+  url: `https://link.tum-blockchain.com/q/${definition.year}/${definition.slug}`,
+  definition,
+  totalClicks: 0,
+  clicksLast7Days: 0,
+  averageClicksPerDay: 0,
+  bestWeekday: null,
+  bestHour: null,
+  weekdayBuckets: emptyWeekdayBuckets(),
+  hourlyBuckets: emptyHourBuckets(),
+  dailyBuckets: emptyDailyBuckets(windowDays),
+  countryBuckets: [],
+  deviceBuckets: [],
+  browserBuckets: [],
+  referrerBuckets: [],
+})
 
 function StatTile({
   label,
@@ -361,9 +442,9 @@ function LinkImageManager({
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border border-white/10 bg-white/[0.03]">
-          {link.definition.image_url ? (
+          {getLinkImageUrl(link) ? (
             <NextImage
-              src={link.definition.image_url}
+              src={getLinkImageUrl(link) ?? ''}
               alt={`Uploaded image for ${getLinkDisplayName(link)}`}
               fill
               unoptimized
@@ -395,7 +476,7 @@ function LinkImageManager({
           disabled={isPending}
         >
           {isPending ? <Spinner data-icon="inline-start" /> : <UploadIcon data-icon="inline-start" />}
-          {link.definition.image_url ? 'Replace Image' : 'Upload Image'}
+          {link.definition.image_path ? 'Replace Image' : 'Upload Image'}
         </Button>
       </CardContent>
     </Card>
@@ -468,6 +549,18 @@ function MetadataEditor({
             </FieldDescription>
           </Field>
           <Field>
+            <FieldLabel htmlFor="target_url">Destination URL</FieldLabel>
+            <Input
+              id="target_url"
+              value={form.target_url}
+              onChange={(event) => updateForm('target_url', event.target.value)}
+              placeholder="https://conference26.tum-blockchain.com/"
+            />
+            <FieldDescription>
+              Hardlinks keep redirecting to the hardcoded destination until `pnpm promote:links` is run in the redirect repo.
+            </FieldDescription>
+          </Field>
+          <Field>
             <FieldLabel htmlFor="deployment_region">Region</FieldLabel>
             <Input
               id="deployment_region"
@@ -517,7 +610,155 @@ function MetadataEditor({
   )
 }
 
+function SoftLinkCreator({
+  windowDays,
+  onCreated,
+}: {
+  windowDays: number
+  onCreated: (link: LinkAnalyticsSummary) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const [form, setForm] = useState({
+    year: '26',
+    slug: '',
+    label: '',
+    target_url: 'https://conference26.tum-blockchain.com/',
+    origin: 'flyer',
+    campaign: 'flyer-2026',
+    variant: '',
+  })
+  const [isPending, startTransition] = useTransition()
+
+  const updateForm = (key: keyof typeof form, value: string) => {
+    setForm((current) => ({ ...current, [key]: value }))
+  }
+
+  const create = () => {
+    startTransition(async () => {
+      const response = await fetch('/api/link-redirects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...form,
+          variant: form.variant || form.slug,
+        }),
+      })
+
+      const payload = (await response.json()) as {
+        definition?: LinkDefinition
+        error?: string
+      }
+
+      if (!response.ok || !payload.definition) {
+        toast.error(payload.error ?? 'Could not create soft link.')
+        return
+      }
+
+      onCreated(createEmptyLinkSummary(payload.definition, windowDays))
+      setOpen(false)
+      setForm((current) => ({
+        ...current,
+        slug: '',
+        label: '',
+        variant: '',
+      }))
+      toast.success('Soft link created.')
+    })
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button type="button" size="sm">
+          <PlusIcon data-icon="inline-start" />
+          New Softlink
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Create Softlink</DialogTitle>
+          <DialogDescription>
+            This path works immediately through Supabase fallback. Promoting it later keeps the exact same URL.
+          </DialogDescription>
+        </DialogHeader>
+        <FieldGroup>
+          <div className="grid gap-4 sm:grid-cols-[6rem_1fr]">
+            <Field>
+              <FieldLabel htmlFor="soft_year">Year</FieldLabel>
+              <Input
+                id="soft_year"
+                value={form.year}
+                onChange={(event) => updateForm('year', event.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="soft_slug">Slug</FieldLabel>
+              <Input
+                id="soft_slug"
+                value={form.slug}
+                onChange={(event) => updateForm('slug', event.target.value)}
+                placeholder="fly-21"
+              />
+            </Field>
+          </div>
+          <Field>
+            <FieldLabel htmlFor="soft_label">Name</FieldLabel>
+            <Input
+              id="soft_label"
+              value={form.label}
+              onChange={(event) => updateForm('label', event.target.value)}
+              placeholder="Flyer 21"
+            />
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="soft_target_url">Destination</FieldLabel>
+            <Input
+              id="soft_target_url"
+              value={form.target_url}
+              onChange={(event) => updateForm('target_url', event.target.value)}
+            />
+          </Field>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Field>
+              <FieldLabel htmlFor="soft_origin">Type</FieldLabel>
+              <Input
+                id="soft_origin"
+                value={form.origin}
+                onChange={(event) => updateForm('origin', event.target.value)}
+                placeholder="flyer"
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="soft_campaign">Campaign</FieldLabel>
+              <Input
+                id="soft_campaign"
+                value={form.campaign}
+                onChange={(event) => updateForm('campaign', event.target.value)}
+                placeholder="flyer-2026"
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="soft_variant">Variant</FieldLabel>
+              <Input
+                id="soft_variant"
+                value={form.variant}
+                onChange={(event) => updateForm('variant', event.target.value)}
+                placeholder="same as slug"
+              />
+            </Field>
+          </div>
+          <Button type="button" onClick={create} disabled={isPending}>
+            {isPending ? <Spinner data-icon="inline-start" /> : <SaveIcon data-icon="inline-start" />}
+            Create Softlink
+          </Button>
+        </FieldGroup>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyticsData }) {
+  const [links, setLinks] = useState(initialData.links)
   const [inputValue, setInputValue] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
@@ -533,14 +774,14 @@ export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyt
   const updateSortMode = (value: string) => startTransition(() => setSortMode(value as LinkSortMode))
 
   const uniqueTypes = useMemo(
-    () => [...new Set(initialData.links.map((link) => link.definition.origin))].sort(),
-    [initialData.links]
+    () => [...new Set(links.map((link) => link.definition.origin))].sort(),
+    [links]
   )
 
   const visibleLinks = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
 
-    return initialData.links
+    return links
       .filter((link) => {
         if (typeFilter !== 'all' && link.definition.origin !== typeFilter) return false
         if (!query) return true
@@ -563,7 +804,7 @@ export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyt
 
         return b.totalClicks - a.totalClicks || a.definition.slug.localeCompare(b.definition.slug)
       })
-  }, [initialData.links, searchQuery, sortMode, typeFilter])
+  }, [links, searchQuery, sortMode, typeFilter])
 
   const hasActiveFilters = typeFilter !== 'all' || sortMode !== 'engagement' || searchQuery
 
@@ -585,13 +826,13 @@ export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyt
       />
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Tracked Links" value={initialData.totals.links} />
+        <StatTile label="Tracked Links" value={links.length} />
         <StatTile label="60-Day Clicks" value={initialData.totals.clicks} />
         <StatTile label="Last 7 Days" value={initialData.totals.clicksLast7Days} />
         <StatTile label="Avg / Day" value={initialData.totals.averageClicksPerDay} />
       </div>
 
-      {initialData.links.length === 0 ? (
+      {links.length === 0 ? (
         <Empty className="rounded-2xl border border-white/10 bg-white/[0.03] py-20">
           <EmptyHeader>
             <EmptyMedia>
@@ -602,15 +843,32 @@ export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyt
               Sync link definitions from the redirect project first.
             </EmptyDescription>
           </EmptyHeader>
-          <EmptyContent />
+          <EmptyContent>
+            <SoftLinkCreator
+              windowDays={initialData.windowDays}
+              onCreated={(createdLink) => {
+                setLinks((current) => [...current, createdLink])
+              }}
+            />
+          </EmptyContent>
         </Empty>
       ) : (
         <Card className="border-white/10 bg-white/[0.03]">
           <CardHeader>
-            <CardTitle className="text-white">Most Active Links</CardTitle>
-            <CardDescription>
-              {visibleLinks.length} of {initialData.links.length} links. Engagement sort puts the most clicked link at the top.
-            </CardDescription>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle className="text-white">Most Active Links</CardTitle>
+                <CardDescription>
+                  {visibleLinks.length} of {links.length} links. Engagement sort puts the most clicked link at the top.
+                </CardDescription>
+              </div>
+              <SoftLinkCreator
+                windowDays={initialData.windowDays}
+                onCreated={(createdLink) => {
+                  setLinks((current) => [...current, createdLink])
+                }}
+              />
+            </div>
           </CardHeader>
           <CardContent className="flex flex-col gap-5">
             <div className="flex flex-wrap gap-2">
@@ -688,6 +946,7 @@ export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyt
                 <TableHeader>
                   <TableRow className="border-white/10 hover:bg-transparent">
                     <TableHead className="text-white/60">Link</TableHead>
+                    <TableHead className="text-white/60">Status</TableHead>
                     <TableHead className="text-right text-white/60">60 Days</TableHead>
                     <TableHead className="text-right text-white/60">7 Days</TableHead>
                     <TableHead className="text-right text-white/60">Avg / Day</TableHead>
@@ -710,6 +969,9 @@ export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyt
                             {getLinkDisplayName(link)} · {link.definition.origin}
                           </span>
                         </Link>
+                      </TableCell>
+                      <TableCell>
+                        <LinkStatusBadge link={link} />
                       </TableCell>
                       <TableCell className="text-right font-mono text-white">{link.totalClicks}</TableCell>
                       <TableCell className="text-right font-mono text-white">{link.clicksLast7Days}</TableCell>
@@ -759,6 +1021,7 @@ export function LinkAnalyticsDetail({
         <CardHeader className="gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <div className="mb-3 flex flex-wrap gap-2">
+              <LinkStatusBadge link={link} />
               <Badge>{link.definition.origin}</Badge>
               <Badge variant="outline">{link.definition.campaign}</Badge>
             </div>
@@ -783,6 +1046,13 @@ export function LinkAnalyticsDetail({
             <p className="mt-2 text-xs text-white/45">
               Destination: <span className="font-mono">{link.definition.target_url}</span>
             </p>
+            {isTargetMismatch(link) && (
+              <p className="mt-2 text-xs text-destructive">
+                Hardcoded destination still points to{' '}
+                <span className="font-mono">{link.definition.hardcoded_target_url}</span>. Run
+                `pnpm promote:links` in the redirect repo to make the hardcoded path match Supabase.
+              </p>
+            )}
           </div>
           <Button asChild variant="outline">
             <a href={link.url} target="_blank" rel="noreferrer">

@@ -22,7 +22,8 @@ For the live schema overview, table columns, relationships, RLS summary, storage
 
 - `link_redirect_assets.sql`
   - Adds board-managed display names and image references to `public.link_redirect_definitions`.
-  - Adds the `link-redirect-images` storage bucket and public read policy.
+  - Adds hardcoded-vs-soft link status metadata.
+  - Adds the private `link-redirect-images` storage bucket.
 
 - `nft_requests.sql`
   - Creates/updates `public.nft_requests`.

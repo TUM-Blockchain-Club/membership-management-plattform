@@ -15,11 +15,51 @@ type RouteContext = {
 const LINK_IMAGE_BUCKET = 'link-redirect-images'
 const MAX_IMAGE_SIZE = 8 * 1024 * 1024
 const LINK_DEFINITION_SELECT =
-  'year, slug, label, display_label, target_url, origin, campaign, variant, active, image_path, image_url, deployment_region, deployment_location, deployment_notes, deployed_at, updated_at'
+  'year, slug, label, display_label, target_url, origin, campaign, variant, active, redirect_source, hardcoded_target_url, hardcoded_synced_at, image_path, image_url, deployment_region, deployment_location, deployment_notes, deployed_at, updated_at'
 
 const fileExtension = (fileName: string) => {
   const extension = fileName.split('.').pop()?.toLowerCase().replace(/[^a-z0-9]/g, '')
   return extension || 'png'
+}
+
+export async function GET(request: Request, context: RouteContext) {
+  try {
+    const { year, slug } = await context.params
+    const supabase = await createSupabaseServerClient()
+    const { dataClient } = await requireLinkAnalyticsAdmin(supabase, request)
+    const { data: definition, error } = await dataClient
+      .from('link_redirect_definitions')
+      .select('image_path')
+      .eq('year', year)
+      .eq('slug', slug)
+      .single()
+
+    if (error || !definition?.image_path) {
+      return new NextResponse('Image not found.', { status: 404 })
+    }
+
+    const { data, error: downloadError } = await dataClient.storage
+      .from(LINK_IMAGE_BUCKET)
+      .download(definition.image_path)
+
+    if (downloadError || !data) {
+      return new NextResponse(downloadError?.message || 'Image not found.', { status: 404 })
+    }
+
+    return new NextResponse(data, {
+      headers: {
+        'Cache-Control': 'private, max-age=300',
+        'Content-Type': data.type || 'application/octet-stream',
+      },
+    })
+  } catch (error) {
+    if (error instanceof LinkAnalyticsAdminError) {
+      return new NextResponse(error.message, { status: error.status })
+    }
+
+    const message = error instanceof Error ? error.message : 'Could not load the link image.'
+    return new NextResponse(message, { status: 500 })
+  }
 }
 
 export async function POST(request: Request, context: RouteContext) {
@@ -69,11 +109,8 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({ error: uploadError.message }, { status: 500 })
     }
 
-    const {
-      data: { publicUrl },
-    } = dataClient.storage.from(LINK_IMAGE_BUCKET).getPublicUrl(objectPath)
-
-    const imageUrl = `${publicUrl}?t=${Date.now()}`
+    const version = Date.now()
+    const imageUrl = `/api/link-redirects/${year}/${slug}/image?version=${version}`
     const { data, error } = await dataClient
       .from('link_redirect_definitions')
       .update({

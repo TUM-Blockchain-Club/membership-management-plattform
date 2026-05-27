@@ -228,8 +228,11 @@ Canonical QR/link metadata mirrored from the `tbc-link-redirects` repository and
 | `campaign` | `text` | no | none | Campaign group. |
 | `variant` | `text` | no | none | Variant identifier. |
 | `active` | `boolean` | no | `true` | Metadata status; hardcoded `/q` redirects do not currently read this field. |
+| `redirect_source` | `text` | no | `'soft'` | `hardcoded` when synced from redirect code, otherwise `soft`. |
+| `hardcoded_target_url` | `text` | yes | none | Last target URL synced from the hardcoded redirect config. |
+| `hardcoded_synced_at` | `timestamptz` | yes | none | Last time hardcoded metadata was synced. |
 | `image_path` | `text` | yes | none | Supabase Storage object path for a board-uploaded link image. |
-| `image_url` | `text` | yes | none | Public URL for the board-uploaded link image. |
+| `image_url` | `text` | yes | none | Protected app proxy URL for the board-uploaded link image. |
 | `deployment_region` | `text` | yes | none | Board-editable placement region. |
 | `deployment_location` | `text` | yes | none | Board-editable placement location. |
 | `deployment_notes` | `text` | yes | none | Board-editable placement notes. |
@@ -333,7 +336,7 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 | `member-pictures` | yes | Member profile pictures. |
 | `event-images` | yes | External event card images. |
 | `event-qr-codes` | yes | Event check-in QR codes. |
-| `link-redirect-images` | yes | Board-uploaded visual references for QR/link placements. |
+| `link-redirect-images` | no | Private board-uploaded visual references for QR/link placements. |
 | `nft-images-picks` | yes | NFT request image uploads/picks. |
 
 ## Known Documentation And Type Gaps
