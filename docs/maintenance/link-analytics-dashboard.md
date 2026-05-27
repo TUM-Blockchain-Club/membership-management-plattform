@@ -18,6 +18,8 @@ The overview page shows a table sorted by 60-day clicks with:
 - average clicks per day
 - peak hour
 
+The overview includes debounced search, type filtering, and sort modes for engagement or alphabetical order.
+
 The detail page contains the deeper charts, deployment metadata editor, and QR generator.
 
 Weekday, daily, and hour-of-day charts are displayed in Munich local time (`Europe/Berlin`).

@@ -1,11 +1,12 @@
 'use client'
 
 import Link from 'next/link'
-import { useEffect, useRef, useState, useTransition } from 'react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import QRCode from 'qrcode'
 import {
   ArrowLeftIcon,
   CalendarDaysIcon,
+  CopyIcon,
   DownloadIcon,
   ExternalLinkIcon,
   Globe2Icon,
@@ -13,6 +14,8 @@ import {
   PencilIcon,
   QrCodeIcon,
   SaveIcon,
+  SearchIcon,
+  XIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
@@ -38,8 +41,16 @@ import {
   FieldGroup,
   FieldLabel,
 } from '@/components/ui/field'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import {
@@ -62,6 +73,8 @@ type MetadataFormState = {
   deployment_notes: string
   deployed_at: string
 }
+
+type LinkSortMode = 'engagement' | 'alphabetical'
 
 const formatMunichDateTime = (value: string) =>
   new Intl.DateTimeFormat('en-US', {
@@ -101,29 +114,21 @@ function AnalyticsHeader({
   title,
   description,
   generatedAt,
-  children,
 }: {
   title: string
   description: string
   generatedAt: string
-  children?: React.ReactNode
 }) {
   return (
     <section className="flex flex-col gap-5">
       <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
         <div>
-          <Badge variant="outline" className="mb-3 w-fit">
-            Board Only
-          </Badge>
           <h2 className="text-3xl font-semibold tracking-tight text-white">{title}</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">{description}</p>
         </div>
-        <div className="flex flex-col gap-2 md:items-end">
-          <p className="text-xs text-white/35">
-            Updated {formatMunichDateTime(generatedAt)} Munich time
-          </p>
-          {children}
-        </div>
+        <p className="text-xs text-white/35">
+          Updated {formatMunichDateTime(generatedAt)} Munich time
+        </p>
       </div>
     </section>
   )
@@ -398,6 +403,63 @@ function MetadataEditor({
 }
 
 export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyticsData }) {
+  const [inputValue, setInputValue] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [typeFilter, setTypeFilter] = useState('all')
+  const [sortMode, setSortMode] = useState<LinkSortMode>('engagement')
+  const [, startTransition] = useTransition()
+
+  useEffect(() => {
+    const id = setTimeout(() => startTransition(() => setSearchQuery(inputValue)), 300)
+    return () => clearTimeout(id)
+  }, [inputValue])
+
+  const updateTypeFilter = (value: string) => startTransition(() => setTypeFilter(value))
+  const updateSortMode = (value: string) => startTransition(() => setSortMode(value as LinkSortMode))
+
+  const uniqueTypes = useMemo(
+    () => [...new Set(initialData.links.map((link) => link.definition.origin))].sort(),
+    [initialData.links]
+  )
+
+  const visibleLinks = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase()
+
+    return initialData.links
+      .filter((link) => {
+        if (typeFilter !== 'all' && link.definition.origin !== typeFilter) return false
+        if (!query) return true
+
+        return [
+          link.definition.slug,
+          link.definition.label,
+          link.definition.origin,
+          link.definition.campaign,
+          link.definition.target_url,
+          link.definition.deployment_region,
+          link.definition.deployment_location,
+        ].some((value) => value?.toLowerCase().includes(query))
+      })
+      .sort((a, b) => {
+        if (sortMode === 'alphabetical') {
+          return a.definition.slug.localeCompare(b.definition.slug)
+        }
+
+        return b.totalClicks - a.totalClicks || a.definition.slug.localeCompare(b.definition.slug)
+      })
+  }, [initialData.links, searchQuery, sortMode, typeFilter])
+
+  const hasActiveFilters = typeFilter !== 'all' || sortMode !== 'engagement' || searchQuery
+
+  const clearFilters = () => {
+    setInputValue('')
+    startTransition(() => {
+      setSearchQuery('')
+      setTypeFilter('all')
+      setSortMode('engagement')
+    })
+  }
+
   return (
     <main className="flex flex-col gap-8">
       <AnalyticsHeader
@@ -430,46 +492,120 @@ export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyt
         <Card className="border-white/10 bg-white/[0.03]">
           <CardHeader>
             <CardTitle className="text-white">Most Active Links</CardTitle>
-            <CardDescription>Sorted by clicks in the last 60 days.</CardDescription>
+            <CardDescription>
+              {visibleLinks.length} of {initialData.links.length} links. Engagement sort puts the most clicked link at the top.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow className="border-white/10 hover:bg-transparent">
-                  <TableHead className="text-white/60">Link</TableHead>
-                  <TableHead className="text-right text-white/60">60 Days</TableHead>
-                  <TableHead className="text-right text-white/60">7 Days</TableHead>
-                  <TableHead className="text-right text-white/60">Avg / Day</TableHead>
-                  <TableHead className="text-right text-white/60">Peak Hour</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {initialData.links.map((link) => (
-                  <TableRow
-                    key={link.key}
-                    className="border-white/10 hover:bg-white/[0.04]"
-                  >
-                    <TableCell>
-                      <Link
-                        href={`/link-analytics/${link.definition.year}/${link.definition.slug}`}
-                        className="flex min-w-60 flex-col gap-1"
-                      >
-                        <span className="font-mono text-sm font-medium text-white">{link.definition.slug}</span>
-                        <span className="truncate text-xs text-white/45">
-                          {link.definition.label} · {link.definition.origin}
-                        </span>
-                      </Link>
-                    </TableCell>
-                    <TableCell className="text-right font-mono text-white">{link.totalClicks}</TableCell>
-                    <TableCell className="text-right font-mono text-white">{link.clicksLast7Days}</TableCell>
-                    <TableCell className="text-right font-mono text-white">{link.averageClicksPerDay}</TableCell>
-                    <TableCell className="text-right font-mono text-white">
-                      {link.bestHour?.label ?? 'n/a'}
-                    </TableCell>
+          <CardContent className="flex flex-col gap-5">
+            <div className="flex flex-wrap gap-2">
+              <InputGroup className="h-8 w-56">
+                <InputGroupAddon align="inline-start">
+                  <SearchIcon />
+                </InputGroupAddon>
+                <InputGroupInput
+                  type="text"
+                  placeholder="Search links..."
+                  value={inputValue}
+                  onChange={(event) => setInputValue(event.target.value)}
+                  className="text-sm"
+                />
+              </InputGroup>
+
+              <Select value={typeFilter} onValueChange={updateTypeFilter}>
+                <SelectTrigger size="sm" className="h-8 w-36">
+                  <SelectValue placeholder="Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">All Types</SelectItem>
+                    {uniqueTypes.map((type) => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+
+              <Select value={sortMode} onValueChange={updateSortMode}>
+                <SelectTrigger size="sm" className="h-8 w-44">
+                  <SelectValue placeholder="Sort" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="engagement">Sort by Engagement</SelectItem>
+                    <SelectItem value="alphabetical">Sort Alphabetically</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  className="h-8 text-muted-foreground hover:text-foreground"
+                >
+                  <XIcon data-icon="inline-start" />
+                  Clear
+                </Button>
+              )}
+            </div>
+
+            {visibleLinks.length === 0 ? (
+              <Empty className="border-dashed py-12">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <QrCodeIcon />
+                  </EmptyMedia>
+                  <EmptyTitle>No links found</EmptyTitle>
+                  <EmptyDescription>Try adjusting your search or filters.</EmptyDescription>
+                </EmptyHeader>
+                <EmptyContent>
+                  <Button variant="outline" size="sm" onClick={clearFilters}>
+                    Clear filters
+                  </Button>
+                </EmptyContent>
+              </Empty>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-white/10 hover:bg-transparent">
+                    <TableHead className="text-white/60">Link</TableHead>
+                    <TableHead className="text-right text-white/60">60 Days</TableHead>
+                    <TableHead className="text-right text-white/60">7 Days</TableHead>
+                    <TableHead className="text-right text-white/60">Avg / Day</TableHead>
+                    <TableHead className="text-right text-white/60">Peak Hour</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {visibleLinks.map((link) => (
+                    <TableRow
+                      key={link.key}
+                      className="border-white/10 hover:bg-white/[0.04]"
+                    >
+                      <TableCell>
+                        <Link
+                          href={`/link-analytics/${link.definition.year}/${link.definition.slug}`}
+                          className="flex min-w-60 flex-col gap-1"
+                        >
+                          <span className="font-mono text-sm font-medium text-white">{link.definition.slug}</span>
+                          <span className="truncate text-xs text-white/45">
+                            {link.definition.label} · {link.definition.origin}
+                          </span>
+                        </Link>
+                      </TableCell>
+                      <TableCell className="text-right font-mono text-white">{link.totalClicks}</TableCell>
+                      <TableCell className="text-right font-mono text-white">{link.clicksLast7Days}</TableCell>
+                      <TableCell className="text-right font-mono text-white">{link.averageClicksPerDay}</TableCell>
+                      <TableCell className="text-right font-mono text-white">
+                        {link.bestHour?.label ?? 'n/a'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       )}
@@ -492,14 +628,16 @@ export function LinkAnalyticsDetail({
         title={link.definition.label}
         description={`Detailed analytics for ${link.url}`}
         generatedAt={initialData.generatedAt}
-      >
+      />
+
+      <div>
         <Button asChild variant="outline" size="sm">
           <Link href="/link-analytics">
             <ArrowLeftIcon data-icon="inline-start" />
             Back to Table
           </Link>
         </Button>
-      </AnalyticsHeader>
+      </div>
 
       <Card className="border-white/10 bg-white/[0.03]">
         <CardHeader className="gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -509,7 +647,25 @@ export function LinkAnalyticsDetail({
               <Badge variant="outline">{link.definition.campaign}</Badge>
             </div>
             <CardTitle className="text-2xl text-white">{link.definition.slug}</CardTitle>
-            <CardDescription className="mt-2 font-mono">{link.url}</CardDescription>
+            <CardDescription className="mt-2 flex flex-wrap items-center gap-2 font-mono">
+              <span>{link.url}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7"
+                onClick={() => {
+                  void navigator.clipboard.writeText(link.url)
+                  toast.success('Link copied.')
+                }}
+              >
+                <CopyIcon data-icon="inline-start" />
+                Copy
+              </Button>
+            </CardDescription>
+            <p className="mt-2 text-xs text-white/45">
+              Destination: <span className="font-mono">{link.definition.target_url}</span>
+            </p>
           </div>
           <Button asChild variant="outline">
             <a href={link.url} target="_blank" rel="noreferrer">
@@ -561,6 +717,11 @@ export function LinkAnalyticsDetail({
           </div>
         </CardContent>
       </Card>
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_25rem]">
+        <MetadataEditor key={link.key} link={link} onUpdated={setLink} />
+        <QrGenerator link={link} />
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card className="border-white/10 bg-white/[0.03]">
@@ -629,12 +790,6 @@ export function LinkAnalyticsDetail({
         </Card>
       </div>
 
-      <Separator className="bg-white/10" />
-
-      <div className="grid gap-6 lg:grid-cols-[1fr_25rem]">
-        <MetadataEditor key={link.key} link={link} onUpdated={setLink} />
-        <QrGenerator link={link} />
-      </div>
     </main>
   )
 }
