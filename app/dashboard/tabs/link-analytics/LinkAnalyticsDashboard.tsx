@@ -558,9 +558,6 @@ function MetadataEditor({
           <PencilIcon data-icon="inline-start" />
           Deployment Metadata
         </CardTitle>
-        <CardDescription>
-          These fields live in Supabase and are not overwritten by `pnpm sync:links`.
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <FieldGroup>
