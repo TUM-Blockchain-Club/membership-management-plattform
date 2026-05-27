@@ -249,7 +249,8 @@ export function EventsPage({
                   currentAttendees={event.current_registrations || 0}
                   hasApplyButton={true}
                   isApplied={event.is_registered || false}
-                  onApply={() => handleEventRegistration(event.id, event.is_registered || false)}
+                  isPending={event.is_pending || false}
+                  onApply={() => handleEventRegistration(event.id, event.is_registered || false, (event as any).toBeApproved ?? (event as any).to_be_approved ?? false)}
                   showParticipantsButton={!!event.current_registrations && (member?.Role === 'Board Member' || hasSpecialAccess)}
                   onViewParticipants={() => handleViewParticipants(event.id, event.title)}
                 />

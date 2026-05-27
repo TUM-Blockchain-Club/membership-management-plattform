@@ -39,6 +39,7 @@ type InternalEventCardProps = {
   currentAttendees: number | null
   hasApplyButton: boolean
   isApplied: boolean
+  isPending?: boolean
   onApply?: () => void
   showParticipantsButton?: boolean
   onViewParticipants?: () => void
@@ -163,12 +164,12 @@ export function InternalEventCard({
           <span className="text-xs text-muted-foreground">No capacity limit</span>
         )}
 
-        {hasApplyButton && (
-          <Button variant={isApplied ? 'destructive' : 'default'} size="sm" onClick={onApply}>
-            <UserRoundCheckIcon data-icon="inline-start" />
-            {isApplied ? 'Deregister' : 'Apply'}
-          </Button>
-        )}
+              {hasApplyButton && (
+                <Button variant={isApplied ? 'destructive' : 'default'} size="sm" onClick={onApply}>
+                  <UserRoundCheckIcon data-icon="inline-start" />
+                  {isApplied ? 'Deregister' : isPending ? 'Pending' : 'Apply'}
+                </Button>
+              )}
       </CardFooter>
     </Card>
   )

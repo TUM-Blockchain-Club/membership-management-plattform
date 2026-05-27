@@ -131,7 +131,7 @@ const loadUpcomingEvents = async (
   const [registrationsResult, interestResult] = await Promise.all([
     supabase
       .from('event_registrations')
-      .select('event_id, member_id')
+      .select('event_id, member_id, status')
       .in('event_id', eventIds),
     supabase
       .from('event_interest')
@@ -176,10 +176,14 @@ const loadUpcomingEvents = async (
     const eventRegistrations = registrationsByEventId.get(String(event.id)) ?? []
     const eventInterests = interestByEventId.get(String(event.id)) ?? []
 
+    const approved = eventRegistrations.filter((r) => (r as any).status === undefined || (r as any).status === 'approved')
+    const isPending = eventRegistrations.some((r) => (r as any).status === 'pending' && r.member_id === memberId)
+
     return {
       ...event,
-      current_registrations: eventRegistrations.length,
-      is_registered: eventRegistrations.some((registration) => registration.member_id === memberId),
+      current_registrations: approved.length,
+      is_registered: approved.some((registration) => registration.member_id === memberId),
+      is_pending: isPending,
       interest_count: eventInterests.length,
       is_interested: eventInterests.some((row) => row.member_id === memberId),
     }

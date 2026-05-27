@@ -41,7 +41,7 @@ export function useDashboardEvents(
     setEvents(eventsData)
   }, [])
 
-  const handleEventRegistration = useCallback(async (eventId: string | number, isCurrentlyRegistered: boolean) => {
+  const handleEventRegistration = useCallback(async (eventId: string | number, isCurrentlyRegistered: boolean, requiresApproval?: boolean) => {
     if (!member) return
 
     try {
@@ -54,14 +54,24 @@ export function useDashboardEvents(
 
         if (error) throw error
       } else {
+        const insertPayload: Record<string, unknown> = {
+          event_id: eventId,
+          member_id: member.id,
+        }
+
+        // If this event requires approval, mark the registration as pending
+        if (requiresApproval) insertPayload.status = 'pending'
+
         const { error } = await supabase
           .from('event_registrations')
-          .insert({
-            event_id: eventId,
-            member_id: member.id,
-          })
+          .insert(insertPayload)
 
         if (error) throw error
+        // Provide immediate feedback for pending applications
+        if (requiresApproval) {
+          setMessage({ type: 'success', text: 'Application submitted — waiting for approval.' })
+          setTimeout(() => setMessage(null), 3000)
+        }
       }
 
       await loadEvents(member.id)

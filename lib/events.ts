@@ -27,6 +27,9 @@ export interface Event {
   is_registered?: boolean
   interest_count?: number
   is_interested?: boolean
+  // optional flag added in DB to require approval for registrations
+  toBeApproved?: boolean | null
+  to_be_approved?: boolean | null
 }
 
 export interface Participant {
@@ -73,6 +76,7 @@ type EventRow = {
 type EventRegistrationRow = {
   event_id: string | number
   member_id: number
+  status?: string | null
 }
 
 type EventInterestRow = {
@@ -114,7 +118,7 @@ export const eventService = {
       const [registrationsResult, interestResult] = await Promise.all([
         supabase
           .from('event_registrations')
-          .select('event_id, member_id')
+          .select('event_id, member_id, status')
           .in('event_id', eventIds),
         supabase
           .from('event_interest')
@@ -131,8 +135,13 @@ export const eventService = {
       const eventsWithData = typedEventsData.map(event => {
         const eventRegistrations = typedRegistrationsData.filter(reg => reg.event_id === event.id)
         const eventInterests = typedInterestData.filter(row => row.event_id === event.id)
-        const currentRegistrations = eventRegistrations.length
-        const isRegistered = memberId ? eventRegistrations.some(reg => reg.member_id === memberId) : false
+        // Count only approved registrations as current attendees
+        const approvedRegistrations = eventRegistrations.filter((r) => (r.status ?? 'approved') === 'approved')
+        const currentRegistrations = approvedRegistrations.length
+        // is_registered should reflect approved registration for the current member
+        const isRegistered = memberId ? approvedRegistrations.some(reg => reg.member_id === memberId) : false
+        // is_pending indicates the current member has a pending application
+        const isPending = memberId ? eventRegistrations.some(reg => reg.member_id === memberId && (reg.status ?? 'approved') === 'pending') : false
         const interestCount = eventInterests.length
         const isInterested = memberId ? eventInterests.some(row => row.member_id === memberId) : false
 
@@ -140,6 +149,7 @@ export const eventService = {
           ...event,
           current_registrations: currentRegistrations,
           is_registered: isRegistered,
+          is_pending: isPending,
           interest_count: interestCount,
           is_interested: isInterested,
         }
@@ -158,8 +168,9 @@ export const eventService = {
     try {
       const { data, error } = await supabase
         .from('event_registrations')
-        .select('member_id, members_main(id, Name)')
+        .select('member_id, members_main(id, Name), status')
         .eq('event_id', eventId)
+        .eq('status', 'approved')
 
       if (error) {
         return { data: null, error }
