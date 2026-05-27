@@ -20,7 +20,7 @@ The overview page shows a table sorted by 60-day clicks with:
 
 The overview includes debounced search, type filtering, and sort modes for engagement or alphabetical order.
 
-The detail page contains the deeper charts, deployment metadata editor, and QR generator.
+The detail page contains the deeper charts, deployment metadata editor, and QR generator. Daily trend rows are ranked by clicks descending so the strongest day appears first.
 
 Weekday, daily, and hour-of-day charts are displayed in Munich local time (`Europe/Berlin`).
 

@@ -737,10 +737,15 @@ export function LinkAnalyticsDetail({
         <Card className="border-white/10 bg-white/[0.03]">
           <CardHeader>
             <CardTitle className="text-white">Daily Trend</CardTitle>
-            <CardDescription>Recent click volume across the 60-day window.</CardDescription>
+            <CardDescription>Most active days in the last 60-day window.</CardDescription>
           </CardHeader>
           <CardContent>
-            <BarList buckets={link.dailyBuckets.slice(-14)} compact />
+            <BarList
+              buckets={[...link.dailyBuckets]
+                .sort((a, b) => b.count - a.count || b.key.localeCompare(a.key))
+                .slice(0, 14)}
+              compact
+            />
           </CardContent>
         </Card>
       </div>
