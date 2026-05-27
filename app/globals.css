@@ -1,21 +1,58 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #000000;
-  --foreground: #ffffff;
+  /* Pure neutral dark — no colour cast */
+  --background: #111111;
+  --foreground: #f2f2f2;
+  --card: #1c1c1c;
+  --card-foreground: #f2f2f2;
+  --popover: #252525;
+  --popover-foreground: #f2f2f2;
+  --primary: #3b82f6;
+  --primary-foreground: #ffffff;
+  --secondary: rgba(255, 255, 255, 0.06);
+  --secondary-foreground: #f2f2f2;
+  --muted: rgba(255, 255, 255, 0.06);
+  --muted-foreground: rgba(242, 242, 242, 0.45);
   --accent: #3b82f6;
+  --accent-foreground: #ffffff;
   --accent-hover: #2563eb;
-  --muted: #a1a1aa;
-  --border: rgba(255, 255, 255, 0.1);
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.07);
+  --ring: rgba(59, 130, 246, 0.4);
+  --radius: 0.5rem;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
   --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
   --color-accent-hover: var(--accent-hover);
   --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
   --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -29,15 +66,14 @@ html {
 }
 
 body {
-  background: linear-gradient(135deg, #0D0D0D 0%, #151525 50%, #1A1440 100%);
-  background-attachment: fixed;
+  background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   overflow-x: hidden;
 }
 
 .grid-background {
-  background: linear-gradient(135deg, #0D0D0D 0%, #151525 50%, #1A1440 100%);
+  background-color: var(--background);
 }
 
 .grid-pattern {
@@ -45,7 +81,6 @@ body {
     linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
     linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
   background-size: 50px 50px;
-  animation: gridMove 20s linear infinite;
 }
 
 .grid-glow {
@@ -55,7 +90,6 @@ body {
     rgba(59, 130, 246, 0.05) 30%,
     transparent 70%
   );
-  animation: pulseGlow 8s ease-in-out infinite;
 }
 
 @keyframes gridMove {
@@ -439,5 +473,3 @@ body {
     filter: none;
   }
 }
-
-

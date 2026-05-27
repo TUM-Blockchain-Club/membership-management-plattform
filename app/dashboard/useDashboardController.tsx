@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { formatEventDate, formatEventTime } from '@/app/dashboard/lib/eventFormatters'
 import {
   ADMIN_FIELDS,
+  getEditableMemberPayload,
   getPictureUrl,
   isDashboardMemberAdmin,
   makeEmptyMember,
@@ -65,17 +66,30 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
   const [forceMemberView, setForceMemberView] = useState(false)
   const {
     events,
+    handleCreateExternalEvent,
     handleEventRegistration,
+    handleUpdateExternalEvent,
+    handleUploadExternalEventImage,
     handleViewParticipants,
+    handleToggleInterest,
+    handleViewInterestedMembers,
+    interestedMembers,
+    interestedMembersLoading,
+    interestedModalTitle,
     modalEventTitle,
     participants,
     participantsLoading,
+    savingEvent,
+    setShowInterestedModal,
     setShowParticipantsModal,
+    showInterestedModal,
     showParticipantsModal,
+    uploadingEventImage,
   } = useDashboardEvents(member, setMessage, initialData.events)
 
   const effectiveHasSpecialAccess = hasSpecialAccess && !forceMemberView
   const effectiveIsBoardMember = member?.Role === 'Board Member' && !forceMemberView
+  const showLinkAnalyticsTab = (effectiveIsBoardMember || effectiveHasSpecialAccess) && !forceMemberView
   const showNftApprovalsTab = canManageNftRequests && !forceMemberView
 
   const activeTab = routeTab
@@ -97,6 +111,12 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
       router.replace(TAB_ROUTES['nft-status'])
     }
   }, [activeTab, loading, router, showNftApprovalsTab])
+
+  useEffect(() => {
+    if (!loading && activeTab === 'link-analytics' && !showLinkAnalyticsTab) {
+      router.replace(TAB_ROUTES.profile)
+    }
+  }, [activeTab, loading, router, showLinkAnalyticsTab])
 
   const handleSignOut = useCallback(async () => {
     await auth.signOut()
@@ -281,8 +301,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     setMessage(null)
 
     try {
-      const updatedData: EditableMember = { ...editedMember }
-      delete updatedData.Picture
+      const updatedData = getEditableMemberPayload(editedMember)
 
       if (selectedImageFile) {
         // reserved for future upload flow
@@ -406,7 +425,10 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     handleCancel,
     handleEditClick,
     handleEditOtherMember,
+    handleCreateExternalEvent,
     handleEventRegistration,
+    handleUpdateExternalEvent,
+    handleUploadExternalEventImage,
     handleInputChange,
     handleProfileTabSelected,
     handleSave,
@@ -414,18 +436,24 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     handleTabChange,
     handleTitleClick,
     handleViewParticipants,
+    handleToggleInterest,
+    handleViewInterestedMembers,
     hasSpecialAccess,
     loading,
     member,
     canUseMemberViewToggle: hasSpecialAccess || isDashboardMemberAdmin(member),
     membersVisibleByRole,
     message,
+    interestedMembers,
+    interestedMembersLoading,
+    interestedModalTitle,
     modalEventTitle,
     otherMembers,
     participants,
     participantsLoading,
     roleFilter,
     saving,
+    savingEvent,
     searchQuery,
     sections,
     setDepartmentFilter,
@@ -434,9 +462,12 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     setRoleFilter,
     setSearchQuery,
     setSelectedImageFile,
+    setShowInterestedModal,
     setShowParticipantsModal,
     setStatusFilter,
     setUploadingImage,
+    showInterestedModal,
+    showLinkAnalyticsTab,
     showMemberEditorModal,
     showNftApprovalsTab,
     showParticipantsModal,
@@ -446,6 +477,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     uniqueRoles,
     uniqueStatuses,
     uploadingImage,
+    uploadingEventImage,
     viewedMember,
   }
 }

@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },
+  allowedDevOrigins: ['178.105.221.156'],
   images: {
     remotePatterns: [
       {

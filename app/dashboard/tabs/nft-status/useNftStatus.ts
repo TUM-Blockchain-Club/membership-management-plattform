@@ -313,3 +313,5 @@ export function useNftStatus(member: DashboardMember | null) {
     walletAddress,
   }
 }
+
+export type NftStatusController = ReturnType<typeof useNftStatus>
