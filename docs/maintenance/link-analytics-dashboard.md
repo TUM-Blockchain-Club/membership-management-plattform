@@ -24,6 +24,8 @@ The detail page contains the deeper charts, deployment metadata editor, optional
 
 Board users can create soft links from the overview. Soft links use the exact same public URL shape as hardcoded links, for example `/q/26/fly-21`, but the redirect service resolves them through Supabase until they are promoted into the hardcoded redirect config.
 
+The softlink form sets `variant` automatically to the slug. `campaign` is the reporting group for related links, such as `conference-2026` or `flyer-2026`.
+
 Weekday, daily, and hour-of-day charts are displayed in Munich local time (`Europe/Berlin`).
 
 ## Data Sources

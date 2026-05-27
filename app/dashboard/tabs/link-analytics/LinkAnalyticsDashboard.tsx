@@ -622,10 +622,9 @@ function SoftLinkCreator({
     year: '26',
     slug: '',
     label: '',
-    target_url: 'https://conference26.tum-blockchain.com/',
+    target_url: '',
     origin: 'flyer',
-    campaign: 'flyer-2026',
-    variant: '',
+    campaign: '',
   })
   const [isPending, startTransition] = useTransition()
 
@@ -640,7 +639,7 @@ function SoftLinkCreator({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...form,
-          variant: form.variant || form.slug,
+          variant: form.slug,
         }),
       })
 
@@ -660,7 +659,7 @@ function SoftLinkCreator({
         ...current,
         slug: '',
         label: '',
-        variant: '',
+        target_url: '',
       }))
       toast.success('Soft link created.')
     })
@@ -716,9 +715,10 @@ function SoftLinkCreator({
               id="soft_target_url"
               value={form.target_url}
               onChange={(event) => updateForm('target_url', event.target.value)}
+              placeholder="https://conference26.tum-blockchain.com/"
             />
           </Field>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2">
             <Field>
               <FieldLabel htmlFor="soft_origin">Type</FieldLabel>
               <Input
@@ -727,6 +727,9 @@ function SoftLinkCreator({
                 onChange={(event) => updateForm('origin', event.target.value)}
                 placeholder="flyer"
               />
+              <FieldDescription>
+                The material or channel, for example flyer, roll-up, poster, or instagram.
+              </FieldDescription>
             </Field>
             <Field>
               <FieldLabel htmlFor="soft_campaign">Campaign</FieldLabel>
@@ -734,17 +737,11 @@ function SoftLinkCreator({
                 id="soft_campaign"
                 value={form.campaign}
                 onChange={(event) => updateForm('campaign', event.target.value)}
-                placeholder="flyer-2026"
+                placeholder="conference-2026"
               />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="soft_variant">Variant</FieldLabel>
-              <Input
-                id="soft_variant"
-                value={form.variant}
-                onChange={(event) => updateForm('variant', event.target.value)}
-                placeholder="same as slug"
-              />
+              <FieldDescription>
+                Groups related links for reporting, for example conference-2026 or flyer-2026.
+              </FieldDescription>
             </Field>
           </div>
           <Button type="button" onClick={create} disabled={isPending}>
@@ -964,9 +961,9 @@ export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyt
                           href={`/link-analytics/${link.definition.year}/${link.definition.slug}`}
                           className="flex min-w-60 flex-col gap-1"
                         >
-                          <span className="font-mono text-sm font-medium text-white">{link.definition.slug}</span>
-                          <span className="truncate text-xs text-white/45">
-                            {getLinkDisplayName(link)} · {link.definition.origin}
+                          <span className="text-sm font-medium text-white">{getLinkDisplayName(link)}</span>
+                          <span className="truncate font-mono text-xs text-white/45">
+                            {link.definition.slug} · {link.definition.origin}
                           </span>
                         </Link>
                       </TableCell>
