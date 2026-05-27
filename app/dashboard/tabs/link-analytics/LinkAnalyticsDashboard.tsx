@@ -95,6 +95,7 @@ const QR_PREVIEW_SIZE = 320
 const QR_LOGO_SIZE = QR_EXPORT_SIZE / 5
 const QR_LOGO_PADDING = QR_EXPORT_SIZE / 36
 const QR_LOGO_RADIUS = QR_EXPORT_SIZE / 20
+const getDefaultLinkYear = () => String(new Date().getFullYear()).slice(-2)
 
 const formatMunichDateTime = (value: string) =>
   new Intl.DateTimeFormat('en-US', {
@@ -386,14 +387,18 @@ function QrGenerator({ link }: { link: LinkAnalyticsSummary }) {
         </div>
 
         <div className="relative flex justify-center rounded-2xl border border-white/10 bg-[linear-gradient(45deg,rgba(255,255,255,0.06)_25%,transparent_25%),linear-gradient(-45deg,rgba(255,255,255,0.06)_25%,transparent_25%),linear-gradient(45deg,transparent_75%,rgba(255,255,255,0.06)_75%),linear-gradient(-45deg,transparent_75%,rgba(255,255,255,0.06)_75%)] bg-[length:18px_18px] bg-[position:0_0,0_9px,9px_-9px,-9px_0px] p-4">
-          {rendering && <Skeleton className="absolute size-80 rounded-xl" />}
-          <canvas
-            ref={canvasRef}
-            width={QR_EXPORT_SIZE}
-            height={QR_EXPORT_SIZE}
-            className="max-w-full rounded-xl"
-            style={{ width: QR_PREVIEW_SIZE, height: QR_PREVIEW_SIZE }}
-          />
+          <div
+            className="relative aspect-square w-full overflow-hidden rounded-xl"
+            style={{ maxWidth: QR_PREVIEW_SIZE }}
+          >
+            {rendering && <Skeleton className="absolute inset-0 rounded-xl" />}
+            <canvas
+              ref={canvasRef}
+              width={QR_EXPORT_SIZE}
+              height={QR_EXPORT_SIZE}
+              className="block size-full rounded-xl"
+            />
+          </div>
         </div>
 
         <Button type="button" onClick={download} disabled={rendering}>
@@ -636,7 +641,7 @@ function SoftLinkCreator({
 }) {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState({
-    year: '26',
+    year: getDefaultLinkYear(),
     slug: '',
     label: '',
     target_url: '',
@@ -674,6 +679,7 @@ function SoftLinkCreator({
       setOpen(false)
       setForm((current) => ({
         ...current,
+        year: getDefaultLinkYear(),
         slug: '',
         label: '',
         target_url: '',
