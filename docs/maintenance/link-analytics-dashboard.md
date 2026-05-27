@@ -2,7 +2,7 @@
 
 ## Summary
 
-The dashboard has a board-only link analytics page at `/link-analytics`.
+The dashboard has a board-only link analytics overview at `/link-analytics` and per-link detail pages at `/link-analytics/[year]/[slug]`.
 
 Access is enforced in two places:
 
@@ -10,6 +10,15 @@ Access is enforced in two places:
 - The page and metadata API route call `requireLinkAnalyticsAdmin()` server-side before reading or writing Supabase data.
 
 The client receives aggregate analytics only. Raw click rows are loaded and aggregated server-side in `lib/server/linkAnalytics.ts`.
+
+The overview page shows a table sorted by 60-day clicks with:
+
+- clicks in the last 60 days
+- clicks in the last 7 days
+- average clicks per day
+- peak hour
+
+The detail page contains the deeper charts, deployment metadata editor, and QR generator.
 
 ## Data Sources
 

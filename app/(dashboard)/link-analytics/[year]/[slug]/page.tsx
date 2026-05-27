@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { LinkAnalyticsOverview } from '@/app/dashboard/tabs/link-analytics/LinkAnalyticsDashboard'
+import { LinkAnalyticsDetail } from '@/app/dashboard/tabs/link-analytics/LinkAnalyticsDashboard'
 import { loadLinkAnalytics } from '@/lib/server/linkAnalytics'
 import {
   LinkAnalyticsAdminError,
@@ -7,7 +7,15 @@ import {
 } from '@/lib/server/linkAnalyticsAdmin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
-export default async function LinkAnalyticsPage() {
+type PageProps = {
+  params: Promise<{
+    year: string
+    slug: string
+  }>
+}
+
+export default async function LinkAnalyticsDetailPage({ params }: PageProps) {
+  const { year, slug } = await params
   const supabase = await createSupabaseServerClient()
   let analytics
 
@@ -22,5 +30,13 @@ export default async function LinkAnalyticsPage() {
     redirect('/profile')
   }
 
-  return <LinkAnalyticsOverview initialData={analytics} />
+  const link = analytics.links.find(
+    (candidate) => candidate.definition.year === year && candidate.definition.slug === slug
+  )
+
+  if (!link) {
+    redirect('/link-analytics')
+  }
+
+  return <LinkAnalyticsDetail initialData={analytics} initialLink={link} />
 }

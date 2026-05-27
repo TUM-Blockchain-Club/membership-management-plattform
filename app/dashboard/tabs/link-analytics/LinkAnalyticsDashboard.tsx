@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import Link from 'next/link'
+import { useEffect, useRef, useState, useTransition } from 'react'
 import QRCode from 'qrcode'
 import {
+  ArrowLeftIcon,
   CalendarDaysIcon,
   DownloadIcon,
   ExternalLinkIcon,
@@ -40,6 +42,14 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import type { LinkAnalyticsData, LinkAnalyticsSummary } from '@/lib/server/linkAnalytics'
 import { cn } from '@/lib/utils'
@@ -77,6 +87,38 @@ function StatTile({
         {detail && <p className="mt-1 text-xs text-white/45">{detail}</p>}
       </CardContent>
     </Card>
+  )
+}
+
+function AnalyticsHeader({
+  title,
+  description,
+  generatedAt,
+  children,
+}: {
+  title: string
+  description: string
+  generatedAt: string
+  children?: React.ReactNode
+}) {
+  return (
+    <section className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div>
+          <Badge variant="outline" className="mb-3 w-fit">
+            Board Only
+          </Badge>
+          <h2 className="text-3xl font-semibold tracking-tight text-white">{title}</h2>
+          <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">{description}</p>
+        </div>
+        <div className="flex flex-col gap-2 md:items-end">
+          <p className="text-xs text-white/35">
+            Updated {new Date(generatedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+          </p>
+          {children}
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -348,51 +390,23 @@ function MetadataEditor({
   )
 }
 
-export function LinkAnalyticsDashboard({ initialData }: { initialData: LinkAnalyticsData }) {
-  const [data, setData] = useState(initialData)
-  const [selectedKey, setSelectedKey] = useState(initialData.links[0]?.key ?? '')
-
-  const selectedLink = useMemo(
-    () => data.links.find((link) => link.key === selectedKey) ?? data.links[0] ?? null,
-    [data.links, selectedKey]
-  )
-
-  const maxClicks = Math.max(1, ...data.links.map((link) => link.totalClicks))
-
-  const updateSelectedLink = (updated: LinkAnalyticsSummary) => {
-    setData((current) => ({
-      ...current,
-      links: current.links.map((link) => (link.key === updated.key ? updated : link)),
-    }))
-  }
-
+export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyticsData }) {
   return (
     <main className="flex flex-col gap-8">
-      <section className="flex flex-col gap-5">
-        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-          <div>
-            <Badge variant="outline" className="mb-3 w-fit">
-              Board Only
-            </Badge>
-            <h2 className="text-3xl font-semibold tracking-tight text-white">Link Analytics</h2>
-            <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
-              Aggregated QR performance for the last {data.windowDays} days. Raw click rows stay server-side.
-            </p>
-          </div>
-          <p className="text-xs text-white/35">
-            Updated {new Date(data.generatedAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
-          </p>
-        </div>
+      <AnalyticsHeader
+        title="Link Analytics"
+        description={`Aggregated QR performance for the last ${initialData.windowDays} days. Open a link row for detailed patterns and QR generation.`}
+        generatedAt={initialData.generatedAt}
+      />
 
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <StatTile label="Tracked Links" value={data.totals.links} />
-          <StatTile label="60-Day Clicks" value={data.totals.clicks} />
-          <StatTile label="Last 7 Days" value={data.totals.clicksLast7Days} />
-          <StatTile label="Avg / Day" value={data.totals.averageClicksPerDay} />
-        </div>
-      </section>
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <StatTile label="Tracked Links" value={initialData.totals.links} />
+        <StatTile label="60-Day Clicks" value={initialData.totals.clicks} />
+        <StatTile label="Last 7 Days" value={initialData.totals.clicksLast7Days} />
+        <StatTile label="Avg / Day" value={initialData.totals.averageClicksPerDay} />
+      </div>
 
-      {data.links.length === 0 ? (
+      {initialData.links.length === 0 ? (
         <Empty className="rounded-2xl border border-white/10 bg-white/[0.03] py-20">
           <EmptyHeader>
             <EmptyMedia>
@@ -406,191 +420,214 @@ export function LinkAnalyticsDashboard({ initialData }: { initialData: LinkAnaly
           <EmptyContent />
         </Empty>
       ) : (
-        <div className="grid gap-6 xl:grid-cols-[26rem_1fr]">
-          <Card className="border-white/10 bg-white/[0.03]">
-            <CardHeader>
-              <CardTitle className="text-white">Most Active Links</CardTitle>
-              <CardDescription>Sorted by clicks in the last 60 days.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              {data.links.map((link, index) => (
-                <button
-                  key={link.key}
-                  type="button"
-                  onClick={() => setSelectedKey(link.key)}
-                  className={cn(
-                    'rounded-xl border px-4 py-3 text-left transition-colors',
-                    selectedLink?.key === link.key
-                      ? 'border-white/30 bg-white/10'
-                      : 'border-white/10 bg-white/[0.02] hover:bg-white/[0.06]'
-                  )}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <Badge variant="secondary">#{index + 1}</Badge>
-                        <p className="truncate font-mono text-sm text-white">{link.definition.slug}</p>
-                      </div>
-                      <p className="mt-1 truncate text-sm text-white/55">{link.definition.label}</p>
-                    </div>
-                    <p className="font-mono text-lg font-semibold text-white">{link.totalClicks}</p>
-                  </div>
-                  <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-white/10">
-                    <div
-                      className="h-full rounded-full bg-white"
-                      style={{ width: `${(link.totalClicks / maxClicks) * 100}%` }}
-                    />
-                  </div>
-                </button>
-              ))}
-            </CardContent>
-          </Card>
-
-          {selectedLink && (
-            <section className="flex flex-col gap-6">
-              <Card className="border-white/10 bg-white/[0.03]">
-                <CardHeader className="gap-4 lg:flex-row lg:items-start lg:justify-between">
-                  <div>
-                    <div className="mb-3 flex flex-wrap gap-2">
-                      <Badge>{selectedLink.definition.origin}</Badge>
-                      <Badge variant="outline">{selectedLink.definition.campaign}</Badge>
-                    </div>
-                    <CardTitle className="text-2xl text-white">{selectedLink.definition.label}</CardTitle>
-                    <CardDescription className="mt-2 font-mono">{selectedLink.url}</CardDescription>
-                  </div>
-                  <Button asChild variant="outline">
-                    <a href={selectedLink.url} target="_blank" rel="noreferrer">
-                      <ExternalLinkIcon data-icon="inline-start" />
-                      Open
-                    </a>
-                  </Button>
-                </CardHeader>
-                <CardContent className="flex flex-col gap-5">
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                    <StatTile label="Clicks" value={selectedLink.totalClicks} detail="last 60 days" />
-                    <StatTile label="Last 7 Days" value={selectedLink.clicksLast7Days} />
-                    <StatTile label="Avg / Day" value={selectedLink.averageClicksPerDay} />
-                    <StatTile
-                      label="Peak Hour"
-                      value={selectedLink.bestHour?.label ?? 'n/a'}
-                      detail={`${selectedLink.bestHour?.count ?? 0} clicks`}
-                    />
-                  </div>
-
-                  <div className="grid gap-4 md:grid-cols-3">
-                    <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                      <CalendarDaysIcon className="text-white/45" aria-hidden="true" />
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.16em] text-white/35">Best Weekday</p>
-                        <p className="mt-1 text-sm font-medium text-white">
-                          {selectedLink.bestWeekday?.label ?? 'n/a'} · {selectedLink.bestWeekday?.count ?? 0} clicks
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                      <Globe2Icon className="text-white/45" aria-hidden="true" />
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.16em] text-white/35">Top Country</p>
-                        <p className="mt-1 text-sm font-medium text-white">
-                          {selectedLink.countryBuckets[0]?.label ?? 'unknown'} ·{' '}
-                          {selectedLink.countryBuckets[0]?.count ?? 0}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                      <MapPinIcon className="text-white/45" aria-hidden="true" />
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.16em] text-white/35">Deployment</p>
-                        <p className="mt-1 truncate text-sm font-medium text-white">
-                          {selectedLink.definition.deployment_region || 'not set'}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <div className="grid gap-6 lg:grid-cols-2">
-                <Card className="border-white/10 bg-white/[0.03]">
-                  <CardHeader>
-                    <CardTitle className="text-white">Weekday Pattern</CardTitle>
-                    <CardDescription>Which day of the week performs best.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <BarList buckets={selectedLink.weekdayBuckets} />
-                  </CardContent>
-                </Card>
-
-                <Card className="border-white/10 bg-white/[0.03]">
-                  <CardHeader>
-                    <CardTitle className="text-white">Daily Trend</CardTitle>
-                    <CardDescription>Recent click volume across the 60-day window.</CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <BarList buckets={selectedLink.dailyBuckets.slice(-14)} compact />
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Card className="border-white/10 bg-white/[0.03]">
-                <CardHeader>
-                  <CardTitle className="text-white">Hour-of-Day Heatmap</CardTitle>
-                  <CardDescription>UTC hours, based on hour-rounded tracking timestamps.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <HourHeatmap buckets={selectedLink.hourlyBuckets} />
-                </CardContent>
-              </Card>
-
-              <div className="grid gap-6 lg:grid-cols-4">
-                <Card className="border-white/10 bg-white/[0.03]">
-                  <CardHeader>
-                    <CardTitle className="text-white">Countries</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <BarList buckets={selectedLink.countryBuckets} compact />
-                  </CardContent>
-                </Card>
-                <Card className="border-white/10 bg-white/[0.03]">
-                  <CardHeader>
-                    <CardTitle className="text-white">Devices</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <BarList buckets={selectedLink.deviceBuckets} compact />
-                  </CardContent>
-                </Card>
-                <Card className="border-white/10 bg-white/[0.03]">
-                  <CardHeader>
-                    <CardTitle className="text-white">Browsers</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <BarList buckets={selectedLink.browserBuckets} compact />
-                  </CardContent>
-                </Card>
-                <Card className="border-white/10 bg-white/[0.03]">
-                  <CardHeader>
-                    <CardTitle className="text-white">Referrers</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <BarList buckets={selectedLink.referrerBuckets} compact />
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Separator className="bg-white/10" />
-
-              <div className="grid gap-6 lg:grid-cols-[1fr_25rem]">
-                <MetadataEditor
-                  key={selectedLink.key}
-                  link={selectedLink}
-                  onUpdated={updateSelectedLink}
-                />
-                <QrGenerator link={selectedLink} />
-              </div>
-            </section>
-          )}
-        </div>
+        <Card className="border-white/10 bg-white/[0.03]">
+          <CardHeader>
+            <CardTitle className="text-white">Most Active Links</CardTitle>
+            <CardDescription>Sorted by clicks in the last 60 days.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow className="border-white/10 hover:bg-transparent">
+                  <TableHead className="text-white/60">Link</TableHead>
+                  <TableHead className="text-right text-white/60">60 Days</TableHead>
+                  <TableHead className="text-right text-white/60">7 Days</TableHead>
+                  <TableHead className="text-right text-white/60">Avg / Day</TableHead>
+                  <TableHead className="text-right text-white/60">Peak Hour</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {initialData.links.map((link) => (
+                  <TableRow
+                    key={link.key}
+                    className="border-white/10 hover:bg-white/[0.04]"
+                  >
+                    <TableCell>
+                      <Link
+                        href={`/link-analytics/${link.definition.year}/${link.definition.slug}`}
+                        className="flex min-w-60 flex-col gap-1"
+                      >
+                        <span className="font-mono text-sm font-medium text-white">{link.definition.slug}</span>
+                        <span className="truncate text-xs text-white/45">
+                          {link.definition.label} · {link.definition.origin}
+                        </span>
+                      </Link>
+                    </TableCell>
+                    <TableCell className="text-right font-mono text-white">{link.totalClicks}</TableCell>
+                    <TableCell className="text-right font-mono text-white">{link.clicksLast7Days}</TableCell>
+                    <TableCell className="text-right font-mono text-white">{link.averageClicksPerDay}</TableCell>
+                    <TableCell className="text-right font-mono text-white">
+                      {link.bestHour?.label ?? 'n/a'}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
+    </main>
+  )
+}
+
+export function LinkAnalyticsDetail({
+  initialData,
+  initialLink,
+}: {
+  initialData: LinkAnalyticsData
+  initialLink: LinkAnalyticsSummary
+}) {
+  const [link, setLink] = useState(initialLink)
+
+  return (
+    <main className="flex flex-col gap-8">
+      <AnalyticsHeader
+        title={link.definition.label}
+        description={`Detailed analytics for ${link.url}`}
+        generatedAt={initialData.generatedAt}
+      >
+        <Button asChild variant="outline" size="sm">
+          <Link href="/link-analytics">
+            <ArrowLeftIcon data-icon="inline-start" />
+            Back to Table
+          </Link>
+        </Button>
+      </AnalyticsHeader>
+
+      <Card className="border-white/10 bg-white/[0.03]">
+        <CardHeader className="gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="mb-3 flex flex-wrap gap-2">
+              <Badge>{link.definition.origin}</Badge>
+              <Badge variant="outline">{link.definition.campaign}</Badge>
+            </div>
+            <CardTitle className="text-2xl text-white">{link.definition.slug}</CardTitle>
+            <CardDescription className="mt-2 font-mono">{link.url}</CardDescription>
+          </div>
+          <Button asChild variant="outline">
+            <a href={link.url} target="_blank" rel="noreferrer">
+              <ExternalLinkIcon data-icon="inline-start" />
+              Open
+            </a>
+          </Button>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-5">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatTile label="Clicks" value={link.totalClicks} detail="last 60 days" />
+            <StatTile label="Last 7 Days" value={link.clicksLast7Days} />
+            <StatTile label="Avg / Day" value={link.averageClicksPerDay} />
+            <StatTile
+              label="Peak Hour"
+              value={link.bestHour?.label ?? 'n/a'}
+              detail={`${link.bestHour?.count ?? 0} clicks`}
+            />
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <CalendarDaysIcon className="text-white/45" aria-hidden="true" />
+              <div>
+                <p className="text-xs uppercase tracking-[0.16em] text-white/35">Best Weekday</p>
+                <p className="mt-1 text-sm font-medium text-white">
+                  {link.bestWeekday?.label ?? 'n/a'} · {link.bestWeekday?.count ?? 0} clicks
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <Globe2Icon className="text-white/45" aria-hidden="true" />
+              <div>
+                <p className="text-xs uppercase tracking-[0.16em] text-white/35">Top Country</p>
+                <p className="mt-1 text-sm font-medium text-white">
+                  {link.countryBuckets[0]?.label ?? 'unknown'} · {link.countryBuckets[0]?.count ?? 0}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+              <MapPinIcon className="text-white/45" aria-hidden="true" />
+              <div>
+                <p className="text-xs uppercase tracking-[0.16em] text-white/35">Deployment</p>
+                <p className="mt-1 truncate text-sm font-medium text-white">
+                  {link.definition.deployment_region || 'not set'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <Card className="border-white/10 bg-white/[0.03]">
+          <CardHeader>
+            <CardTitle className="text-white">Weekday Pattern</CardTitle>
+            <CardDescription>Which day of the week performs best.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BarList buckets={link.weekdayBuckets} />
+          </CardContent>
+        </Card>
+
+        <Card className="border-white/10 bg-white/[0.03]">
+          <CardHeader>
+            <CardTitle className="text-white">Daily Trend</CardTitle>
+            <CardDescription>Recent click volume across the 60-day window.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <BarList buckets={link.dailyBuckets.slice(-14)} compact />
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="border-white/10 bg-white/[0.03]">
+        <CardHeader>
+          <CardTitle className="text-white">Hour-of-Day Heatmap</CardTitle>
+          <CardDescription>UTC hours, based on hour-rounded tracking timestamps.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <HourHeatmap buckets={link.hourlyBuckets} />
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 lg:grid-cols-4">
+        <Card className="border-white/10 bg-white/[0.03]">
+          <CardHeader>
+            <CardTitle className="text-white">Countries</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BarList buckets={link.countryBuckets} compact />
+          </CardContent>
+        </Card>
+        <Card className="border-white/10 bg-white/[0.03]">
+          <CardHeader>
+            <CardTitle className="text-white">Devices</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BarList buckets={link.deviceBuckets} compact />
+          </CardContent>
+        </Card>
+        <Card className="border-white/10 bg-white/[0.03]">
+          <CardHeader>
+            <CardTitle className="text-white">Browsers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BarList buckets={link.browserBuckets} compact />
+          </CardContent>
+        </Card>
+        <Card className="border-white/10 bg-white/[0.03]">
+          <CardHeader>
+            <CardTitle className="text-white">Referrers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <BarList buckets={link.referrerBuckets} compact />
+          </CardContent>
+        </Card>
+      </div>
+
+      <Separator className="bg-white/10" />
+
+      <div className="grid gap-6 lg:grid-cols-[1fr_25rem]">
+        <MetadataEditor key={link.key} link={link} onUpdated={setLink} />
+        <QrGenerator link={link} />
+      </div>
     </main>
   )
 }
