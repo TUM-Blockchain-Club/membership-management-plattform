@@ -42,7 +42,8 @@ const emptyInitialData = (): DashboardInitialData => ({
 })
 
 const routeNeedsEvents = (tab: DashboardTab) => tab === 'events'
-const routeNeedsMembers = (tab: DashboardTab) => tab === 'members' || tab === 'stats'
+const routeNeedsMembers = (tab: DashboardTab) =>
+  tab === 'members' || tab === 'stats' || tab === 'attendance'
 
 const getRequestForCurrentHost = async () => {
   const headerStore = await headers()
