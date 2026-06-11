@@ -45,6 +45,10 @@ SUPABASE_SERVICE_ROLE_KEY=
 DATABASE_URL=
 ```
 
+`SUPABASE_SERVICE_ROLE_KEY` is the canonical server key name. Some older code paths
+also accept `SUPABASE_SERVICE_KEY` or `SERVICE_ROLE_KEY`, but new local and
+deployment configuration should use `SUPABASE_SERVICE_ROLE_KEY`.
+
 Do not commit `.env.local` or secret values.
 
 ## Auth Providers
