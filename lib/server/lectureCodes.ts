@@ -1,6 +1,6 @@
 import 'server-only'
 
-import { randomBytes } from 'crypto'
+import { randomInt } from 'crypto'
 
 export const LECTURE_ACTIVE_WINDOW_MS = 3 * 60 * 60 * 1000 // 3 hours
 export const CODE_VALIDITY_MS = 30 * 1000 // 30 seconds — covers one rotation plus grace
@@ -10,10 +10,9 @@ export const CODE_ROTATION_MS = 15 * 1000 // 15 seconds
 const CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 
 export const generateLectureCode = (length = 6): string => {
-  const bytes = randomBytes(length)
   let out = ''
   for (let i = 0; i < length; i += 1) {
-    out += CODE_ALPHABET[bytes[i] % CODE_ALPHABET.length]
+    out += CODE_ALPHABET[randomInt(CODE_ALPHABET.length)]
   }
   return out
 }
