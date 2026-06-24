@@ -44,3 +44,5 @@ next-env.d.ts
 
 # agent skills (local tooling, not part of the repo)
 .agents/
+
+.claude/
