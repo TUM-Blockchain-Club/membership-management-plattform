@@ -5,6 +5,7 @@ import {
   HexagonIcon,
   LinkIcon,
   LogOutIcon,
+  MailIcon,
   UserIcon,
   UsersIcon,
 } from 'lucide-react'
@@ -20,6 +21,7 @@ type DashboardHeaderProps = {
   canUseMemberViewToggle: boolean
   showLinkAnalyticsTab: boolean
   showNftApprovalsTab: boolean
+  showNewsletterTab: boolean
   forceMemberView: boolean
   onToggleMemberView: (enabled: boolean) => void
 }
@@ -72,6 +74,12 @@ const TABS: Array<{
     labelMobile: 'NFT',
     icon: HexagonIcon,
   },
+  {
+    key: 'newsletter',
+    labelDesktop: 'Newsletter',
+    labelMobile: 'Mail',
+    icon: MailIcon,
+  },
 ]
 
 export function DashboardHeader({
@@ -83,6 +91,7 @@ export function DashboardHeader({
   canUseMemberViewToggle,
   showLinkAnalyticsTab,
   showNftApprovalsTab,
+  showNewsletterTab,
   forceMemberView,
   onToggleMemberView,
 }: DashboardHeaderProps) {
@@ -133,6 +142,7 @@ export function DashboardHeader({
           {TABS.filter((tab) => {
             if (tab.key === 'nft-approvals') return showNftApprovalsTab
             if (tab.key === 'link-analytics') return showLinkAnalyticsTab
+            if (tab.key === 'newsletter') return true // TODO: restore showNewsletterTab after testing
             return true
           }).map((tab) => {
             const Icon = tab.icon

@@ -8,4 +8,5 @@ export const TAB_ROUTES: Record<DashboardTab, string> = {
   'link-analytics': '/link-analytics',
   'nft-approvals': '/nft-approvals',
   'nft-status': '/nft-status',
+  newsletter: '/newsletter',
 }

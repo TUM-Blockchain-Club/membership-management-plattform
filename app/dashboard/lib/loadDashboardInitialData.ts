@@ -220,6 +220,7 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'a
       return {
         ...emptyInitialData(),
         canManageNftRequests: isNftAdminMember(devMemberId),
+        hasSpecialAccess: hasLocalDevBypassSpecialAccess(),
         message: {
           type: 'error',
           text: `Local dev auth bypass could not load members_main.id=${devMemberId}.`,
@@ -352,7 +353,7 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'a
     allMembers,
     canManageNftRequests,
     events,
-    hasSpecialAccess: (specialAccessResult as AccessResponse) === true,
+    hasSpecialAccess: (specialAccessResult as AccessResponse) === true || hasLocalDevBypassSpecialAccess(),
     member,
     message: null,
     viewedMemberHasSpecialAccess: (viewedMemberAccessResult as AccessResponse) === true,
