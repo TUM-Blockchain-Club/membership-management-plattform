@@ -110,7 +110,7 @@ export function EventsPage({
   const [, startTransition] = useTransition()
   const internalEvents = events.filter((event) => event.event_kind === 'internal')
   const externalEvents = events.filter((event) => event.event_kind === 'external')
-  const showInternalEvents = false
+  const showInternalEvents = true
   const canManageEvents = hasSpecialAccess
   const recentPastCutoffMs = useMemo(() => {
     const now = new Date()

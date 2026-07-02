@@ -47,4 +47,4 @@ It also backfills the 19 imported CSV rows as `external` and preserves existing 
 - `tally_url` and `whatsapp_url` add application/WhatsApp actions without replacing the "I'm Interested" controls.
 - The page uses shadcn primitives (`Card`, `Badge`, `Button`, `Separator`, `Dialog`, `Empty`) and avoids the previous rainbow gradient event cards.
 - The dashboard header order now places Events before Statistics.
-- As of the latest UI pass, the internal "Our Events" section is hidden behind the local `showInternalEvents` flag in `EventsPage`. The internal card implementation remains in place for later re-enabling.
+- The internal "Our Events" section, previously hidden behind the local `showInternalEvents` flag in `EventsPage`, is re-enabled. Internal events are now fully manageable in-app (create/edit via the same event editor dialog as external events, with a "Require board approval to attend" toggle), and pending registrations for approval-gated events are reviewed at `/event-approvals` (board/special-access only).

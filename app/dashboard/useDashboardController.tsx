@@ -91,6 +91,8 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
   const effectiveIsBoardMember = member?.Role === 'Board Member' && !forceMemberView
   const showLinkAnalyticsTab = (effectiveIsBoardMember || effectiveHasSpecialAccess) && !forceMemberView
   const showNftApprovalsTab = canManageNftRequests && !forceMemberView
+  // Same gate as canManageEvents in EventsPage.tsx — special-access only, not Role.
+  const showEventApprovalsTab = effectiveHasSpecialAccess
 
   const activeTab = routeTab
 
@@ -117,6 +119,12 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
       router.replace(TAB_ROUTES.profile)
     }
   }, [activeTab, loading, router, showLinkAnalyticsTab])
+
+  useEffect(() => {
+    if (!loading && activeTab === 'event-approvals' && !showEventApprovalsTab) {
+      router.replace(TAB_ROUTES.events)
+    }
+  }, [activeTab, loading, router, showEventApprovalsTab])
 
   const handleSignOut = useCallback(async () => {
     await auth.signOut()
@@ -400,8 +408,13 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
       return
     }
 
+    if (tab === 'event-approvals' && !showEventApprovalsTab) {
+      router.push(TAB_ROUTES.events)
+      return
+    }
+
     router.push(TAB_ROUTES[tab])
-  }, [router, showNftApprovalsTab, handleProfileTabSelected])
+  }, [router, showNftApprovalsTab, showEventApprovalsTab, handleProfileTabSelected])
 
   const canViewRemovedMembers = effectiveIsBoardMember || effectiveHasSpecialAccess
 
@@ -500,6 +513,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     showInterestedModal,
     showLinkAnalyticsTab,
     showMemberEditorModal,
+    showEventApprovalsTab,
     showNftApprovalsTab,
     showParticipantsModal,
     stats,

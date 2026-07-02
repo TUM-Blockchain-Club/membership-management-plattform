@@ -173,7 +173,7 @@ export const eventService = {
     try {
       const { data, error } = await supabase
         .from('event_registrations')
-        .select('member_id, members_main(id, Name)')
+        .select('member_id, members_main!event_registrations_member_id_fkey(id, Name)')
         .eq('event_id', eventId)
         .eq('status', 'approved')
 

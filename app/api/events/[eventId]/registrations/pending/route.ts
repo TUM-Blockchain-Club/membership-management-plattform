@@ -21,7 +21,7 @@ export async function GET(_request: Request, context: RouteContext) {
     const eventIdNum = Number(eventId)
     const { data, error } = await dataClient
       .from("event_registrations")
-      .select("member_id, members_main(id, Name), created_at")
+      .select("member_id, members_main!event_registrations_member_id_fkey(id, Name), created_at")
       .eq("event_id", eventIdNum)
       .eq("status", "pending")
 

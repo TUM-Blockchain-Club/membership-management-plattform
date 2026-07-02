@@ -289,8 +289,8 @@ This table intentionally does not store IP addresses, full user agents, full ref
 | Function | Returns | Purpose |
 | --- | --- | --- |
 | `current_member_id()` | `integer` | Resolves current authenticated user to `members_main.id`. |
-| `has_special_access()` | `boolean` | Checks whether the current user has special admin access. |
-| `check_email_has_special_access(check_email text)` | `boolean` | Checks special access for a supplied email. |
+| `has_special_access()` | `boolean` | Checks whether the current user (`auth.jwt() ->> 'email'`) has special admin access. Gates `requireEventAdmin` (event create/edit, `/event-approvals` review routes) and `requireLinkAnalyticsAdmin`. |
+| `check_email_has_special_access(check_email text)` | `boolean` | Checks special access for a supplied email. Gates the newsletter RLS policies (`supabase/newsletter_projects.sql`) and client-side "does this member have special access" checks in `useDashboardController.tsx`. |
 | `can_manage_nft_requests()` | `boolean` | Checks NFT admin permissions. |
 | `allow_only_test_domain()` | `trigger` | Auth-related domain guard. |
 | `block_guest_core_updates_email()` | `trigger` | Prevents restricted email updates. |
@@ -310,7 +310,15 @@ This section summarizes the active policies. For exact SQL, inspect Supabase or 
 - Board members can update members in matching departments.
 - Special-access emails can insert members and update all members.
 
-Special-access emails are currently encoded in DB policies and app-side admin checks. Keep them synchronized if changing authorization behavior.
+**Special-access mechanism (verified 2026-07-02):** both `has_special_access()` and `check_email_has_special_access(check_email text)` are `plpgsql security definer` functions that return a hardcoded `IN (...)` list of email addresses — there is no `special_access` table or column, and neither function delegates to the other. They currently hold **two independent copies of the same email list**, maintained by hand as separate `CREATE OR REPLACE FUNCTION` statements; nothing enforces that the two stay in sync. Neither function lowercases the comparison (`auth.jwt() ->> 'email' IN (...)`, no `lower()`), unlike every other identity check in this codebase (`current_member_id()`, `can_manage_nft_requests()`, the `lectures.sql` board checks), which do case-fold. Actual email addresses are intentionally not listed here or in any committed SQL file — to view or change the list, pull the live definition first and reapply it as a full replacement:
+
+```sql
+select pg_get_functiondef(oid)
+from pg_proc
+where proname in ('has_special_access', 'check_email_has_special_access');
+```
+
+Then edit the returned body and reapply both as `CREATE OR REPLACE FUNCTION` — update **both** functions together, since neither one deriving from the other means an edit to just one silently leaves the other out of sync.
 
 ### Events And Registration
 

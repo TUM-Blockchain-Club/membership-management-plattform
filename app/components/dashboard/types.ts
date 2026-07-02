@@ -35,6 +35,7 @@ export type DashboardTab =
   | 'members'
   | 'stats'
   | 'events'
+  | 'event-approvals'
   | 'link-analytics'
   | 'nft-approvals'
   | 'nft-status'

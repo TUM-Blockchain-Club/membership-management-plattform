@@ -1,6 +1,7 @@
 import type { ComponentType, SVGProps } from 'react'
 import {
   BarChart3Icon,
+  CalendarCheckIcon,
   CalendarIcon,
   HexagonIcon,
   LinkIcon,
@@ -20,6 +21,7 @@ type DashboardHeaderProps = {
   canUseMemberViewToggle: boolean
   showLinkAnalyticsTab: boolean
   showNftApprovalsTab: boolean
+  showEventApprovalsTab: boolean
   forceMemberView: boolean
   onToggleMemberView: (enabled: boolean) => void
 }
@@ -47,6 +49,12 @@ const TABS: Array<{
     labelDesktop: 'Events',
     labelMobile: 'Events',
     icon: CalendarIcon,
+  },
+  {
+    key: 'event-approvals',
+    labelDesktop: 'Event Approvals',
+    labelMobile: 'Approvals',
+    icon: CalendarCheckIcon,
   },
   {
     key: 'stats',
@@ -83,6 +91,7 @@ export function DashboardHeader({
   canUseMemberViewToggle,
   showLinkAnalyticsTab,
   showNftApprovalsTab,
+  showEventApprovalsTab,
   forceMemberView,
   onToggleMemberView,
 }: DashboardHeaderProps) {
@@ -133,6 +142,7 @@ export function DashboardHeader({
           {TABS.filter((tab) => {
             if (tab.key === 'nft-approvals') return showNftApprovalsTab
             if (tab.key === 'link-analytics') return showLinkAnalyticsTab
+            if (tab.key === 'event-approvals') return showEventApprovalsTab
             return true
           }).map((tab) => {
             const Icon = tab.icon
