@@ -15,6 +15,7 @@ Last inspected against the live Supabase project: 2026-05-26.
   - `supabase/events_external_metadata.sql`
   - `supabase/event_interest.sql`
   - `supabase/nft_requests.sql`
+  - `supabase/event_approvals.sql` (pending application — aligns `events.to_be_approved` and `event_registrations.status`/`reviewed_at`/`reviewed_by`, which already exist on the live DB with the wrong type/default state; see that file for details)
 - Import tooling:
   - `scripts/import-external-events-csv.mjs`
 
@@ -82,6 +83,7 @@ Current live count: 29 rows.
 | `location` | `varchar` | yes | none | Location display fallback. |
 | `organizer_department` | `varchar` | yes | none | Internal organizer or external event type. |
 | `capacity_total` | `integer` | yes | none | Internal event capacity. |
+| `to_be_approved` | `boolean` | no | `false` | When `true`, new registrations for this event start as `pending` instead of `approved`. See `supabase/event_approvals.sql`. |
 | `check_in_token` | `uuid` | yes | `gen_random_uuid()` | Token for check-in flows. |
 | `check_in_enabled` | `boolean` | no | `false` | Enables event check-in. |
 | `event_kind` | `text` | no | `internal` | `internal` or `external`. |
@@ -136,7 +138,7 @@ Relationships:
 
 ### `public.event_registrations`
 
-Registration table for internal event attendance intent.
+Registration table for internal event attendance intent, with an approval workflow for events flagged `to_be_approved` on `public.events`. Schema aligned by `supabase/event_approvals.sql`.
 
 Current live count: 5 rows.
 
@@ -146,11 +148,23 @@ Current live count: 5 rows.
 | `created_at` | `timestamptz` | no | `now()` | Registration timestamp. |
 | `event_id` | `bigint` | yes | none | References `events.id`. |
 | `member_id` | `bigint` | yes | none | References `members_main.id`. |
+| `status` | `text` | no | `'approved'` | `pending`, `approved`, or `rejected`. Always set server-side by the `enforce_event_registration_status` trigger on insert — a client cannot set this directly. |
+| `reviewed_at` | `timestamptz` | yes | none | Set by the board review action. |
+| `reviewed_by` | `bigint` | yes | none | References `members_main.id`; the reviewing board member. |
+
+Constraints and indexes:
+
+- Check: `event_registrations_status_check`, restricts `status` to `pending`, `approved`, or `rejected`.
 
 Relationships:
 
 - `event_id` -> `events.id`
 - `member_id` -> `members_main.id`
+- `reviewed_by` -> `members_main.id` (`on delete set null`)
+
+Trigger:
+
+- `enforce_event_registration_status` (`before insert`, `security definer`): sets `new.status` to `pending` when the target event's `to_be_approved` is `true`, otherwise `approved`. This runs regardless of what the insert payload contains, so a member cannot self-approve into an approval-gated event. Approve/reject afterwards happens via `UPDATE`, which this trigger does not touch.
 
 ### `public.attendance`
 
@@ -282,6 +296,7 @@ This table intentionally does not store IP addresses, full user agents, full ref
 | `block_guest_core_updates_email()` | `trigger` | Prevents restricted email updates. |
 | `handle_new_user_members_main()` | `trigger` | Auth/member sync helper. |
 | `handle_new_user_test()` | `trigger` | Test/new-user helper. |
+| `enforce_event_registration_status()` | `trigger` | Forces `event_registrations.status` to `pending`/`approved` on insert based on `events.to_be_approved`. See `supabase/event_approvals.sql`. |
 
 ## Row Level Security And Policies
 
@@ -302,9 +317,12 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 - `events` is publicly readable.
 - Board members can update `events` through RLS.
 - Event admin create/update API routes additionally guard writes with server-side special access checks and use the service-role client when available.
-- `event_registrations` is publicly readable.
-- Authenticated users can insert registrations.
-- Authenticated users can delete their own registration rows.
+- `event_registrations` policies (replaced by `supabase/event_approvals.sql`):
+  - Members can read their own registrations (`member_id = current_member_id()`).
+  - Board members can read all registrations.
+  - Members can insert only their own registration; the resulting `status` is decided server-side by the `enforce_event_registration_status` trigger, not the client.
+  - Members can delete their own registration.
+  - Only board members can `UPDATE` a registration (the approve/reject gate) — regular members have no update policy at all.
 - `event_interest` is readable by authenticated users.
 - Authenticated users can insert their own interest rows (`member_id = current_member_id()`).
 - Authenticated users can delete their own interest rows.
