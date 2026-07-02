@@ -20,15 +20,26 @@ type EventUpdatePayload = {
   event_link_url?: string | null
   tally_url?: string | null
   whatsapp_url?: string | null
+  description?: string | null
+  location?: string | null
+  organizer_department?: string | null
+  capacity_total?: number | null
+  to_be_approved?: boolean | null
 }
 
 const EVENT_COLUMNS =
-  "id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, image_url, event_link_url, tally_url, whatsapp_url, is_hackathon, attending_names, all_day"
+  "id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, image_url, event_link_url, tally_url, whatsapp_url, is_hackathon, attending_names, all_day, to_be_approved"
 
 const nullableString = (value: unknown) => {
   if (typeof value !== "string") return null
   const trimmed = value.trim()
   return trimmed || null
+}
+
+export const nullableNumber = (value: unknown) => {
+  if (value === null || value === undefined || value === "") return null
+  const num = typeof value === "number" ? value : Number(value)
+  return Number.isFinite(num) && num >= 0 ? Math.trunc(num) : null
 }
 
 export const optionalStringArray = (value: unknown) => {
@@ -60,11 +71,6 @@ export async function PATCH(request: Request, context: RouteContext) {
     const { dataClient } = await requireEventAdmin(supabase)
 
     const title = nullableString(payload.title)
-    const eventTypes = optionalStringArray(payload.event_types)
-    const eventType = eventTypes.join(", ") || null
-    const formats = optionalStringArray(payload.formats)
-    const format = formats.join(", ") || null
-    const city = nullableString(payload.city)
     const dates = dateRange(payload.start_date, payload.end_date)
 
     if (!title) {
@@ -75,29 +81,63 @@ export async function PATCH(request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Valid start and end dates are required." }, { status: 400 })
     }
 
-    const updates = {
-      title,
-      start_at: dates.start_at,
-      end_at: dates.end_at,
-      event_type: eventType,
-      priority: nullableString(payload.priority),
-      external_status: nullableString(payload.external_status),
-      city,
-      format,
-      event_link_url: nullableString(payload.event_link_url),
-      tally_url: nullableString(payload.tally_url),
-      whatsapp_url: nullableString(payload.whatsapp_url),
-      location: city,
-      organizer_department: eventType,
-      is_hackathon: eventTypes.includes("Hackathon"),
-      all_day: true,
+    // The event's kind is fixed at creation and is never taken from the
+    // client payload here — it's read back from the row itself so a PATCH
+    // request can't switch an event between internal and external.
+    const { data: existingEvent, error: existingEventError } = await dataClient
+      .from("events")
+      .select("event_kind")
+      .eq("id", eventId)
+      .maybeSingle()
+
+    if (existingEventError || !existingEvent) {
+      return NextResponse.json({ error: existingEventError?.message || "Event not found." }, { status: 404 })
     }
+
+    const isInternal = existingEvent.event_kind === "internal"
+
+    const updates = isInternal
+      ? {
+          title,
+          description: nullableString(payload.description),
+          start_at: dates.start_at,
+          end_at: dates.end_at,
+          location: nullableString(payload.location),
+          organizer_department: nullableString(payload.organizer_department),
+          capacity_total: nullableNumber(payload.capacity_total),
+          to_be_approved: payload.to_be_approved === true,
+          all_day: true,
+        }
+      : (() => {
+          const eventTypes = optionalStringArray(payload.event_types)
+          const eventType = eventTypes.join(", ") || null
+          const formats = optionalStringArray(payload.formats)
+          const format = formats.join(", ") || null
+          const city = nullableString(payload.city)
+
+          return {
+            title,
+            start_at: dates.start_at,
+            end_at: dates.end_at,
+            event_type: eventType,
+            priority: nullableString(payload.priority),
+            external_status: nullableString(payload.external_status),
+            city,
+            format,
+            event_link_url: nullableString(payload.event_link_url),
+            tally_url: nullableString(payload.tally_url),
+            whatsapp_url: nullableString(payload.whatsapp_url),
+            location: city,
+            organizer_department: eventType,
+            is_hackathon: eventTypes.includes("Hackathon"),
+            all_day: true,
+          }
+        })()
 
     const { data, error } = await dataClient
       .from("events")
       .update(updates)
       .eq("id", eventId)
-      .eq("event_kind", "external")
       .select(EVENT_COLUMNS)
       .single()
 

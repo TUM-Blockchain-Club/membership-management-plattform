@@ -23,8 +23,13 @@ export interface Event {
   is_hackathon: boolean
   attending_names: string[]
   all_day: boolean
+  to_be_approved: boolean
+  // Optional camelCase alias for parity with older client code; the DB only
+  // ever returns the snake_case `to_be_approved` column.
+  toBeApproved?: boolean
   current_registrations?: number
   is_registered?: boolean
+  is_pending?: boolean
   interest_count?: number
   is_interested?: boolean
 }
@@ -68,11 +73,13 @@ type EventRow = {
   is_hackathon: boolean
   attending_names: string[]
   all_day: boolean
+  to_be_approved: boolean
 }
 
 type EventRegistrationRow = {
   event_id: string | number
   member_id: number
+  status?: string | null
 }
 
 type EventInterestRow = {
@@ -114,7 +121,7 @@ export const eventService = {
       const [registrationsResult, interestResult] = await Promise.all([
         supabase
           .from('event_registrations')
-          .select('event_id, member_id')
+          .select('event_id, member_id, status')
           .in('event_id', eventIds),
         supabase
           .from('event_interest')
@@ -131,8 +138,15 @@ export const eventService = {
       const eventsWithData = typedEventsData.map(event => {
         const eventRegistrations = typedRegistrationsData.filter(reg => reg.event_id === event.id)
         const eventInterests = typedInterestData.filter(row => row.event_id === event.id)
-        const currentRegistrations = eventRegistrations.length
-        const isRegistered = memberId ? eventRegistrations.some(reg => reg.member_id === memberId) : false
+        // A row's status is only meaningful once the enforce_event_registration_status
+        // trigger has run on it. Older rows predate the trigger and have no status
+        // set, which counts as legacy-approved.
+        const approvedRegistrations = eventRegistrations.filter(reg => (reg.status ?? 'approved') === 'approved')
+        const currentRegistrations = approvedRegistrations.length
+        const isRegistered = memberId ? approvedRegistrations.some(reg => reg.member_id === memberId) : false
+        const isPending = memberId
+          ? eventRegistrations.some(reg => reg.member_id === memberId && (reg.status ?? 'approved') === 'pending')
+          : false
         const interestCount = eventInterests.length
         const isInterested = memberId ? eventInterests.some(row => row.member_id === memberId) : false
 
@@ -140,6 +154,7 @@ export const eventService = {
           ...event,
           current_registrations: currentRegistrations,
           is_registered: isRegistered,
+          is_pending: isPending,
           interest_count: interestCount,
           is_interested: isInterested,
         }
@@ -160,6 +175,7 @@ export const eventService = {
         .from('event_registrations')
         .select('member_id, members_main(id, Name)')
         .eq('event_id', eventId)
+        .eq('status', 'approved')
 
       if (error) {
         return { data: null, error }

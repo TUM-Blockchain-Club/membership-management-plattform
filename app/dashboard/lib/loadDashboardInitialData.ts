@@ -36,11 +36,13 @@ type EventRow = {
   is_hackathon: boolean
   attending_names: string[]
   all_day: boolean
+  to_be_approved: boolean
 }
 
 type EventRegistrationRow = {
   event_id: string | number
   member_id: number
+  status?: string | null
 }
 
 type EventInterestRow = {
@@ -52,7 +54,7 @@ const NFT_ADMIN_MEMBER_IDS = new Set([0, 99, 107, 26, 126])
 const EVENTS_FETCH_LIMIT = 500
 const MEMBER_COLUMNS =
   'id, created_at, Name, Role, Status, Department, "Project/Task", "Area of Expertise", Picture, Uni, "Semester Joined", Degree, Phone, "Private Email", "TBC Email", Linkedin, Telegram, Discord, Instagram, Twitter, "Size Merch"'
-const EVENT_COLUMNS = 'id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, image_url, event_link_url, tally_url, whatsapp_url, is_hackathon, attending_names, all_day'
+const EVENT_COLUMNS = 'id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, image_url, event_link_url, tally_url, whatsapp_url, is_hackathon, attending_names, all_day, to_be_approved'
 
 const emptyInitialData = (): DashboardInitialData => ({
   allMembers: [],
@@ -131,7 +133,7 @@ const loadUpcomingEvents = async (
   const [registrationsResult, interestResult] = await Promise.all([
     supabase
       .from('event_registrations')
-      .select('event_id, member_id')
+      .select('event_id, member_id, status')
       .in('event_id', eventIds),
     supabase
       .from('event_interest')
@@ -175,11 +177,20 @@ const loadUpcomingEvents = async (
   return typedEventsData.map((event) => {
     const eventRegistrations = registrationsByEventId.get(String(event.id)) ?? []
     const eventInterests = interestByEventId.get(String(event.id)) ?? []
+    // Rows predating the enforce_event_registration_status trigger have no
+    // status set, which counts as legacy-approved.
+    const approvedRegistrations = eventRegistrations.filter(
+      (registration) => (registration.status ?? 'approved') === 'approved'
+    )
+    const isPending = eventRegistrations.some(
+      (registration) => registration.member_id === memberId && (registration.status ?? 'approved') === 'pending'
+    )
 
     return {
       ...event,
-      current_registrations: eventRegistrations.length,
-      is_registered: eventRegistrations.some((registration) => registration.member_id === memberId),
+      current_registrations: approvedRegistrations.length,
+      is_registered: approvedRegistrations.some((registration) => registration.member_id === memberId),
+      is_pending: isPending,
       interest_count: eventInterests.length,
       is_interested: eventInterests.some((row) => row.member_id === memberId),
     }

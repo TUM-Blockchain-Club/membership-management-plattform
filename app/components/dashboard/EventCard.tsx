@@ -39,7 +39,10 @@ type InternalEventCardProps = {
   currentAttendees: number | null
   hasApplyButton: boolean
   isApplied: boolean
+  isPending?: boolean
   onApply?: () => void
+  canEdit?: boolean
+  onEdit?: () => void
   showParticipantsButton?: boolean
   onViewParticipants?: () => void
 }
@@ -117,7 +120,10 @@ export function InternalEventCard({
   currentAttendees,
   hasApplyButton,
   isApplied,
+  isPending,
   onApply,
+  canEdit,
+  onEdit,
   showParticipantsButton,
   onViewParticipants,
 }: InternalEventCardProps) {
@@ -133,12 +139,22 @@ export function InternalEventCard({
             <CardDescription className="truncate">{organizer}</CardDescription>
           </div>
         </div>
-        {showParticipantsButton && onViewParticipants && (
+        {((showParticipantsButton && onViewParticipants) || (canEdit && onEdit)) && (
           <CardAction>
-            <Button variant="ghost" size="icon-sm" onClick={onViewParticipants} title="View participants">
-              <EyeIcon />
-              <span className="sr-only">View participants</span>
-            </Button>
+            <div className="flex items-center gap-0.5">
+              {canEdit && onEdit && (
+                <Button variant="ghost" size="icon-sm" onClick={onEdit} title="Edit event">
+                  <PencilIcon />
+                  <span className="sr-only">Edit event</span>
+                </Button>
+              )}
+              {showParticipantsButton && onViewParticipants && (
+                <Button variant="ghost" size="icon-sm" onClick={onViewParticipants} title="View participants">
+                  <EyeIcon />
+                  <span className="sr-only">View participants</span>
+                </Button>
+              )}
+            </div>
           </CardAction>
         )}
       </CardHeader>
@@ -164,9 +180,14 @@ export function InternalEventCard({
         )}
 
         {hasApplyButton && (
-          <Button variant={isApplied ? 'destructive' : 'default'} size="sm" onClick={onApply}>
+          <Button
+            variant={isApplied ? 'destructive' : isPending ? 'secondary' : 'default'}
+            size="sm"
+            onClick={onApply}
+            disabled={isPending}
+          >
             <UserRoundCheckIcon data-icon="inline-start" />
-            {isApplied ? 'Deregister' : 'Apply'}
+            {isApplied ? 'Registered' : isPending ? 'Pending' : 'Apply'}
           </Button>
         )}
       </CardFooter>

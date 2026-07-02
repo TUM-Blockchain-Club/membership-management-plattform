@@ -79,7 +79,7 @@ export function EventsPage({
   formatEventDate: (startAt: string, endAt: string) => string
   formatEventTime: (startAt: string, endAt: string) => string
   handleCreateExternalEvent: (draft: EventEditorDraft) => Promise<DashboardEvent | null>
-  handleEventRegistration: (eventId: string | number, isCurrentlyRegistered: boolean) => void
+  handleEventRegistration: (eventId: string | number, isCurrentlyRegistered: boolean, requiresApproval?: boolean) => void
   handleUpdateExternalEvent: (eventId: string | number, draft: EventEditorDraft) => Promise<DashboardEvent | null>
   handleUploadExternalEventImage: (eventId: string | number, file: File) => Promise<string | null>
   handleToggleInterest: (eventId: string | number) => void
@@ -249,7 +249,10 @@ export function EventsPage({
                   currentAttendees={event.current_registrations || 0}
                   hasApplyButton={true}
                   isApplied={event.is_registered || false}
-                  onApply={() => handleEventRegistration(event.id, event.is_registered || false)}
+                  isPending={event.is_pending || false}
+                  onApply={() => handleEventRegistration(event.id, event.is_registered || false, event.to_be_approved)}
+                  canEdit={canManageEvents}
+                  onEdit={() => setEditingEvent(event)}
                   showParticipantsButton={!!event.current_registrations && (member?.Role === 'Board Member' || hasSpecialAccess)}
                   onViewParticipants={() => handleViewParticipants(event.id, event.title)}
                 />

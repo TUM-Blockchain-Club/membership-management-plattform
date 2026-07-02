@@ -54,7 +54,6 @@ export async function POST(request: Request, context: RouteContext) {
       .from("events")
       .update({ image_url: imageUrl })
       .eq("id", eventId)
-      .eq("event_kind", "external")
       .select("image_url")
       .single()
 

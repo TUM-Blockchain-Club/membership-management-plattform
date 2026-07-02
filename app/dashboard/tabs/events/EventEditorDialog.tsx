@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
+import { Textarea } from '@/components/ui/textarea'
 
 export type EventEditorDraft = {
   title: string
@@ -38,6 +39,14 @@ export type EventEditorDraft = {
   event_link_url: string
   tally_url: string
   whatsapp_url: string
+  // Internal-event fields. event_kind is only user-choosable in create mode;
+  // in edit mode it's derived from the event being edited and read-only.
+  event_kind: 'internal' | 'external'
+  description: string
+  location: string
+  organizer_department: string
+  capacity_total: number | null
+  to_be_approved: boolean
 }
 
 type EventEditorDialogProps = {
@@ -90,6 +99,12 @@ const emptyDraft = (): EventEditorDraft => ({
   event_link_url: '',
   tally_url: '',
   whatsapp_url: '',
+  event_kind: 'external',
+  description: '',
+  location: '',
+  organizer_department: '',
+  capacity_total: null,
+  to_be_approved: false,
 })
 
 const toDraft = (event: DashboardEvent | null): EventEditorDraft => {
@@ -108,6 +123,12 @@ const toDraft = (event: DashboardEvent | null): EventEditorDraft => {
     event_link_url: event.event_link_url ?? '',
     tally_url: event.tally_url ?? '',
     whatsapp_url: event.whatsapp_url ?? '',
+    event_kind: event.event_kind,
+    description: event.description ?? '',
+    location: event.location ?? '',
+    organizer_department: event.organizer_department ?? '',
+    capacity_total: event.capacity_total ?? null,
+    to_be_approved: event.to_be_approved ?? false,
   }
 }
 
@@ -170,6 +191,8 @@ export function EventEditorDialog({
   const [draft, setDraft] = useState<EventEditorDraft>(() => toDraft(event))
   const [pendingImageFile, setPendingImageFile] = useState<File | null>(null)
   const isCreate = mode === 'create'
+  const isInternal = draft.event_kind === 'internal'
+  const kindLabel = isInternal ? 'internal' : 'external'
 
   const updateDraft = <FieldName extends keyof EventEditorDraft>(field: FieldName, value: EventEditorDraft[FieldName]) => {
     setDraft((current) => ({ ...current, [field]: value }))
@@ -196,152 +219,250 @@ export function EventEditorDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
         <DialogHeader className="border-b px-6 py-5">
-          <DialogTitle>{isCreate ? 'Create external event' : 'Edit external event'}</DialogTitle>
-          <DialogDescription>{isCreate ? 'Add a new conference or hackathon.' : event?.title ?? 'External event'}</DialogDescription>
+          <DialogTitle>{isCreate ? `Create ${kindLabel} event` : `Edit ${kindLabel} event`}</DialogTitle>
+          <DialogDescription>
+            {isCreate
+              ? (isInternal ? 'Add a new club-organized event.' : 'Add a new conference or hackathon.')
+              : event?.title ?? (isInternal ? 'Internal event' : 'External event')}
+          </DialogDescription>
         </DialogHeader>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
           <FieldGroup>
-            <div className="relative mx-auto flex aspect-square w-full max-w-72 items-center justify-center overflow-hidden rounded-xl border bg-muted sm:max-w-80">
-              {draft.image_url ? (
-                <Image
-                  src={draft.image_url}
-                  alt=""
-                  fill
-                  sizes="(min-width: 640px) 320px, 288px"
-                  className="object-contain p-3"
-                  unoptimized
-                />
-              ) : (
-                <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                  <ImageIcon />
-                  <span className="text-sm">No image selected</span>
-                </div>
-              )}
-            </div>
+            {isCreate && (
+              <Field>
+                <FieldLabel>Event kind</FieldLabel>
+                <Select
+                  value={draft.event_kind}
+                  onValueChange={(value) => updateDraft('event_kind', value as EventEditorDraft['event_kind'])}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="external">External (ecosystem event)</SelectItem>
+                      <SelectItem value="internal">Internal (club-organized)</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+                <FieldDescription>
+                  Internal events use registration and capacity. External events use interest and application links.
+                </FieldDescription>
+              </Field>
+            )}
 
-            <div className="flex flex-wrap justify-center gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={uploading}
-                onClick={() => fileInputRef.current?.click()}
-              >
-                {uploading ? <Spinner data-icon="inline-start" /> : <CameraIcon data-icon="inline-start" />}
-                {uploading ? 'Uploading...' : pendingImageFile ? 'Image selected' : 'Upload image'}
-              </Button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="sr-only"
-                disabled={uploading}
-                onChange={(event) => {
-                  const file = event.target.files?.[0]
-                  event.target.value = ''
-                  if (file) void handleUpload(file)
-                }}
-              />
-            </div>
+            {!isInternal && (
+              <div className="relative mx-auto flex aspect-square w-full max-w-72 items-center justify-center overflow-hidden rounded-xl border bg-muted sm:max-w-80">
+                {draft.image_url ? (
+                  <Image
+                    src={draft.image_url}
+                    alt=""
+                    fill
+                    sizes="(min-width: 640px) 320px, 288px"
+                    className="object-contain p-3"
+                    unoptimized
+                  />
+                ) : (
+                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                    <ImageIcon />
+                    <span className="text-sm">No image selected</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {!isInternal && (
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={uploading}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  {uploading ? <Spinner data-icon="inline-start" /> : <CameraIcon data-icon="inline-start" />}
+                  {uploading ? 'Uploading...' : pendingImageFile ? 'Image selected' : 'Upload image'}
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="sr-only"
+                  disabled={uploading}
+                  onChange={(event) => {
+                    const file = event.target.files?.[0]
+                    event.target.value = ''
+                    if (file) void handleUpload(file)
+                  }}
+                />
+              </div>
+            )}
 
             <Field>
               <FieldLabel htmlFor="event-title">Title</FieldLabel>
               <Input id="event-title" value={draft.title} onChange={(event) => updateDraft('title', event.target.value)} />
             </Field>
 
-            <div className="grid gap-4 sm:grid-cols-3">
-              <Field>
-                <FieldLabel htmlFor="event-start-date">Start date</FieldLabel>
-                <Input id="event-start-date" type="date" value={draft.start_date} onChange={(event) => updateDraft('start_date', event.target.value)} />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="event-end-date">End date</FieldLabel>
-                <Input id="event-end-date" type="date" value={draft.end_date} onChange={(event) => updateDraft('end_date', event.target.value)} />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="event-city">City</FieldLabel>
-                <Input id="event-city" value={draft.city} onChange={(event) => updateDraft('city', event.target.value)} />
-              </Field>
-            </div>
+            {isInternal ? (
+              <>
+                <Field>
+                  <FieldLabel htmlFor="event-description">Description</FieldLabel>
+                  <Textarea
+                    id="event-description"
+                    value={draft.description}
+                    onChange={(event) => updateDraft('description', event.target.value)}
+                  />
+                </Field>
 
-            <MultiChoiceField
-              label="Type"
-              description="Choose conference, hackathon, both, or leave empty."
-              options={TYPE_OPTIONS}
-              value={draft.event_types}
-              onChange={(next) => updateDraft('event_types', next)}
-            />
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Field>
+                    <FieldLabel htmlFor="event-start-date">Start date</FieldLabel>
+                    <Input id="event-start-date" type="date" value={draft.start_date} onChange={(event) => updateDraft('start_date', event.target.value)} />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="event-end-date">End date</FieldLabel>
+                    <Input id="event-end-date" type="date" value={draft.end_date} onChange={(event) => updateDraft('end_date', event.target.value)} />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="event-location">Location</FieldLabel>
+                    <Input id="event-location" value={draft.location} onChange={(event) => updateDraft('location', event.target.value)} />
+                  </Field>
+                </div>
 
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field>
-                <FieldLabel>Status</FieldLabel>
-                <Select value={draft.external_status} onValueChange={(value) => updateDraft('external_status', value)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="none">None</SelectItem>
-                      {STATUS_OPTIONS.map((status) => (
-                        <SelectItem key={status} value={status}>{status}</SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </Field>
-              <Field>
-                <FieldLabel>Priority</FieldLabel>
-                <Select value={draft.priority} onValueChange={(value) => updateDraft('priority', value)}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="none">None</SelectItem>
-                      {PRIORITY_OPTIONS.map((priority) => (
-                        <SelectItem key={priority.value} value={priority.value}>{priority.label}</SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              </Field>
-            </div>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field>
+                    <FieldLabel htmlFor="event-organizer">Organizer</FieldLabel>
+                    <Input
+                      id="event-organizer"
+                      value={draft.organizer_department}
+                      onChange={(event) => updateDraft('organizer_department', event.target.value)}
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="event-capacity">Capacity</FieldLabel>
+                    <FieldDescription>Leave empty for no capacity limit.</FieldDescription>
+                    <Input
+                      id="event-capacity"
+                      type="number"
+                      min={0}
+                      value={draft.capacity_total ?? ''}
+                      onChange={(event) =>
+                        updateDraft('capacity_total', event.target.value === '' ? null : Number(event.target.value))
+                      }
+                    />
+                  </Field>
+                </div>
 
-            <MultiChoiceField
-              label="Format"
-              description="Choose one or more formats, or leave empty."
-              options={FORMAT_OPTIONS}
-              value={draft.formats}
-              onChange={(next) => updateDraft('formats', next)}
-            />
+                <Field orientation="horizontal" className="rounded-lg border p-3">
+                  <Checkbox
+                    checked={draft.to_be_approved}
+                    onCheckedChange={(checked) => updateDraft('to_be_approved', checked === true)}
+                  />
+                  <FieldContent>
+                    <FieldLabel>Require board approval to attend</FieldLabel>
+                    <FieldDescription>
+                      When enabled, new registrations start as pending until a board member approves them.
+                    </FieldDescription>
+                  </FieldContent>
+                </Field>
+              </>
+            ) : (
+              <>
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <Field>
+                    <FieldLabel htmlFor="event-start-date">Start date</FieldLabel>
+                    <Input id="event-start-date" type="date" value={draft.start_date} onChange={(event) => updateDraft('start_date', event.target.value)} />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="event-end-date">End date</FieldLabel>
+                    <Input id="event-end-date" type="date" value={draft.end_date} onChange={(event) => updateDraft('end_date', event.target.value)} />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="event-city">City</FieldLabel>
+                    <Input id="event-city" value={draft.city} onChange={(event) => updateDraft('city', event.target.value)} />
+                  </Field>
+                </div>
 
-            <Field>
-              <FieldLabel htmlFor="event-link">Event link</FieldLabel>
-              <Input id="event-link" value={draft.event_link_url} onChange={(event) => updateDraft('event_link_url', event.target.value)} />
-            </Field>
+                <MultiChoiceField
+                  label="Type"
+                  description="Choose conference, hackathon, both, or leave empty."
+                  options={TYPE_OPTIONS}
+                  value={draft.event_types}
+                  onChange={(next) => updateDraft('event_types', next)}
+                />
 
-            <Field>
-              <FieldLabel htmlFor="event-tally-url">Application form URL (Tally)</FieldLabel>
-              <FieldDescription>When set, shows an &ldquo;Apply&rdquo; button on the event card.</FieldDescription>
-              <Input
-                id="event-tally-url"
-                value={draft.tally_url}
-                onChange={(event) => updateDraft('tally_url', event.target.value)}
-                placeholder="https://tally.so/r/..."
-              />
-            </Field>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field>
+                    <FieldLabel>Status</FieldLabel>
+                    <Select value={draft.external_status} onValueChange={(value) => updateDraft('external_status', value)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value="none">None</SelectItem>
+                          {STATUS_OPTIONS.map((status) => (
+                            <SelectItem key={status} value={status}>{status}</SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                  <Field>
+                    <FieldLabel>Priority</FieldLabel>
+                    <Select value={draft.priority} onValueChange={(value) => updateDraft('priority', value)}>
+                      <SelectTrigger className="w-full">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value="none">None</SelectItem>
+                          {PRIORITY_OPTIONS.map((priority) => (
+                            <SelectItem key={priority.value} value={priority.value}>{priority.label}</SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </div>
 
-            <Field>
-              <FieldLabel htmlFor="event-whatsapp-url">WhatsApp group URL</FieldLabel>
-              <FieldDescription>Shown alongside &ldquo;Apply&rdquo; when an application link is set.</FieldDescription>
-              <Input
-                id="event-whatsapp-url"
-                value={draft.whatsapp_url}
-                onChange={(event) => updateDraft('whatsapp_url', event.target.value)}
-                placeholder="https://chat.whatsapp.com/..."
-              />
-            </Field>
+                <MultiChoiceField
+                  label="Format"
+                  description="Choose one or more formats, or leave empty."
+                  options={FORMAT_OPTIONS}
+                  value={draft.formats}
+                  onChange={(next) => updateDraft('formats', next)}
+                />
+
+                <Field>
+                  <FieldLabel htmlFor="event-link">Event link</FieldLabel>
+                  <Input id="event-link" value={draft.event_link_url} onChange={(event) => updateDraft('event_link_url', event.target.value)} />
+                </Field>
+
+                <Field>
+                  <FieldLabel htmlFor="event-tally-url">Application form URL (Tally)</FieldLabel>
+                  <FieldDescription>When set, shows an &ldquo;Apply&rdquo; button on the event card.</FieldDescription>
+                  <Input
+                    id="event-tally-url"
+                    value={draft.tally_url}
+                    onChange={(event) => updateDraft('tally_url', event.target.value)}
+                    placeholder="https://tally.so/r/..."
+                  />
+                </Field>
+
+                <Field>
+                  <FieldLabel htmlFor="event-whatsapp-url">WhatsApp group URL</FieldLabel>
+                  <FieldDescription>Shown alongside &ldquo;Apply&rdquo; when an application link is set.</FieldDescription>
+                  <Input
+                    id="event-whatsapp-url"
+                    value={draft.whatsapp_url}
+                    onChange={(event) => updateDraft('whatsapp_url', event.target.value)}
+                    placeholder="https://chat.whatsapp.com/..."
+                  />
+                </Field>
+              </>
+            )}
           </FieldGroup>
         </div>
 

@@ -41,7 +41,11 @@ export function useDashboardEvents(
     setEvents(eventsData)
   }, [])
 
-  const handleEventRegistration = useCallback(async (eventId: string | number, isCurrentlyRegistered: boolean) => {
+  const handleEventRegistration = useCallback(async (
+    eventId: string | number,
+    isCurrentlyRegistered: boolean,
+    requiresApproval?: boolean
+  ) => {
     if (!member) return
 
     try {
@@ -54,6 +58,9 @@ export function useDashboardEvents(
 
         if (error) throw error
       } else {
+        // The DB trigger (enforce_event_registration_status) decides the
+        // resulting status from the event's to_be_approved flag — the client
+        // never sends status.
         const { error } = await supabase
           .from('event_registrations')
           .insert({
@@ -62,6 +69,11 @@ export function useDashboardEvents(
           })
 
         if (error) throw error
+
+        if (requiresApproval) {
+          setMessage({ type: 'success', text: 'Registration request submitted — awaiting board approval.' })
+          setTimeout(() => setMessage(null), 3000)
+        }
       }
 
       await loadEvents(member.id)
@@ -156,6 +168,11 @@ export function useDashboardEvents(
           event_link_url: draft.event_link_url,
           tally_url: draft.tally_url,
           whatsapp_url: draft.whatsapp_url,
+          description: draft.description,
+          location: draft.location,
+          organizer_department: draft.organizer_department,
+          capacity_total: draft.capacity_total,
+          to_be_approved: draft.to_be_approved,
         }),
       })
 
@@ -198,6 +215,12 @@ export function useDashboardEvents(
           event_link_url: draft.event_link_url,
           tally_url: draft.tally_url,
           whatsapp_url: draft.whatsapp_url,
+          event_kind: draft.event_kind,
+          description: draft.description,
+          location: draft.location,
+          organizer_department: draft.organizer_department,
+          capacity_total: draft.capacity_total,
+          to_be_approved: draft.to_be_approved,
         }),
       })
 
