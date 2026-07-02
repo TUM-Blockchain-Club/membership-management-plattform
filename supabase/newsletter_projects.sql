@@ -47,6 +47,7 @@ alter table public.newsletter_projects enable row level security;
 
 drop policy if exists "special access users can manage newsletter projects" on public.newsletter_projects;
 
+drop policy if exists "special access users can read newsletter projects" on public.newsletter_projects;
 create policy "special access users can read newsletter projects"
 on public.newsletter_projects
 for select
