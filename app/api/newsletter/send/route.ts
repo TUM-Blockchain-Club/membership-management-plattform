@@ -5,8 +5,8 @@ import { requireNewsletterAccess } from '@/lib/newsletter/auth'
 export async function POST(request: Request) {
   try {
     const supabase = await createSupabaseServerClient()
-    const auth = await requireNewsletterAccess(supabase)
-    if (auth.error) {
+    const auth = await requireNewsletterAccess(supabase, request)
+    if (auth.status !== 200) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 

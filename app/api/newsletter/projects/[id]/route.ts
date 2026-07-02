@@ -3,22 +3,21 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireNewsletterAccess } from '@/lib/newsletter/auth'
 
 export async function DELETE(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params
     const supabase = await createSupabaseServerClient()
-    const auth = await requireNewsletterAccess(supabase)
-    if (auth.error) {
+    const auth = await requireNewsletterAccess(supabase, request)
+    if (auth.status !== 200) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
-    const { error } = await supabase
+    const { error } = await auth.dataClient
       .from('newsletter_projects')
       .delete()
       .eq('id', id)
-      .eq('created_by', auth.user!.id)
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 })

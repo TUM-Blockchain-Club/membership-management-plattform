@@ -142,7 +142,7 @@ export function DashboardHeader({
           {TABS.filter((tab) => {
             if (tab.key === 'nft-approvals') return showNftApprovalsTab
             if (tab.key === 'link-analytics') return showLinkAnalyticsTab
-            if (tab.key === 'newsletter') return true // TODO: restore showNewsletterTab after testing
+            if (tab.key === 'newsletter') return showNewsletterTab
             return true
           }).map((tab) => {
             const Icon = tab.icon

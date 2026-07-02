@@ -15,22 +15,11 @@ type MailgunListsResponse = {
   message?: string
 }
 
-type MailgunMember = {
-  address: string
-  name?: string
-  subscribed?: boolean
-}
-
-type MailgunMembersResponse = {
-  items?: MailgunMember[]
-  message?: string
-}
-
 export async function GET(request: Request) {
   try {
     const supabase = await createSupabaseServerClient()
-    const auth = await requireNewsletterAccess(supabase)
-    if (auth.error) {
+    const auth = await requireNewsletterAccess(supabase, request)
+    if (auth.status !== 200) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
@@ -43,26 +32,6 @@ export async function GET(request: Request) {
 
     const base = region === 'eu' ? 'https://api.eu.mailgun.net' : 'https://api.mailgun.net'
     const authHeader = 'Basic ' + Buffer.from(`api:${apiKey}`).toString('base64')
-
-    const { searchParams } = new URL(request.url)
-    const listAddress = searchParams.get('address')
-
-    if (listAddress) {
-      const r = await fetch(
-        `${base}/v3/lists/${encodeURIComponent(listAddress)}/members/pages?limit=25&subscribed=yes`,
-        { headers: { Authorization: authHeader } }
-      )
-      const data = await r.json() as MailgunMembersResponse
-      if (!r.ok) {
-        return NextResponse.json({ error: data.message || `Mailgun members ${r.status}` }, { status: r.status })
-      }
-      const members = (data.items ?? []).map((m) => ({
-        address: m.address,
-        name: m.name ?? '',
-        subscribed: m.subscribed,
-      }))
-      return NextResponse.json({ members })
-    }
 
     const r = await fetch(`${base}/v3/lists/pages?limit=100`, { headers: { Authorization: authHeader } })
     const data = await r.json() as MailgunListsResponse

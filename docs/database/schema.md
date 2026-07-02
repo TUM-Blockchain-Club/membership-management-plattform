@@ -15,6 +15,7 @@ Last inspected against the live Supabase project: 2026-05-26.
   - `supabase/events_external_metadata.sql`
   - `supabase/event_interest.sql`
   - `supabase/nft_requests.sql`
+  - `supabase/newsletter_projects.sql`
 - Import tooling:
   - `scripts/import-external-events-csv.mjs`
 
@@ -270,6 +271,29 @@ Privacy-preserving click events written by the `tbc-link-redirects` app after re
 
 This table intentionally does not store IP addresses, full user agents, full referrer URLs, city-level geo fields, or exact timestamps.
 
+### `public.newsletter_projects`
+
+Stores GrapesJS newsletter campaigns for the guarded newsletter builder.
+
+| Column | Type | Null | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | no | `gen_random_uuid()` | Primary key. |
+| `name` | `text` | no | `Untitled` | Campaign name shown in the dashboard. |
+| `subject` | `text` | yes | none | Mail subject draft. |
+| `from_name` | `text` | yes | none | Sender display name draft. |
+| `from_email` | `text` | yes | none | Sender email draft. |
+| `to_address` | `text` | yes | none | Mailing list address draft. |
+| `html` | `text` | yes | none | Inlined email HTML snapshot. |
+| `gjs_data` | `jsonb` | yes | none | GrapesJS project data. |
+| `created_by` | `uuid` | yes | none | References `auth.users(id)` for audit. |
+| `created_at` | `timestamptz` | no | `now()` | Creation timestamp. |
+| `updated_at` | `timestamptz` | no | `now()` | Maintained by `set_newsletter_projects_updated_at`. |
+
+Constraints and indexes:
+
+- Primary key on `id`.
+- Indexes on `created_by` and `updated_at desc`.
+
 ## Functions
 
 | Function | Returns | Purpose |
@@ -321,6 +345,12 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 - `link_redirect_definitions` and `link_redirect_clicks` are protected by RLS for service-role access.
 - The membership dashboard reads aggregate analytics server-side for board members and special-access users.
 - Board members and special-access users can update deployment metadata through the server-side API route.
+
+### Newsletter Projects
+
+- Authenticated special-access users can read, insert, update, and delete newsletter projects.
+- Inserts require `created_by = auth.uid()` in normal authenticated sessions.
+- Updates and deletes are shared across special-access users; `created_by` is audit metadata, not ownership enforcement.
 
 ### Storage
 

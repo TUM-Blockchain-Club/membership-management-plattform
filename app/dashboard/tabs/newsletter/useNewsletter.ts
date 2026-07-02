@@ -1,402 +1,292 @@
 'use client'
 
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
+import type { RefObject } from 'react'
 import type { GrapesEditorHandle } from './components/GrapesEditor'
-import type { NewsletterProject, CompatIssue, LogEntry, Asset, MailingList, DeliveryEvent } from './components/types'
-import { runCompatCheck } from './components/compat-checks'
+import type { MailingList, NewsletterProject } from './components/types'
 
-export type SendStep = 'idle' | 'test-sent' | 'confirmed'
+export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
-export function useNewsletter() {
-  const editorRef = useRef<GrapesEditorHandle>(null)
-
-  // Project state
+export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
   const [projects, setProjects] = useState<NewsletterProject[]>([])
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
   const [campaignName, setCampaignName] = useState('')
   const [subject, setSubject] = useState('')
-  const [fromName, setFromName] = useState('')
-  const [fromEmail, setFromEmail] = useState(`newsletter@newsletter.tum-blockchain.com`)
+  const [fromName, setFromName] = useState('TUM Blockchain Club')
+  const [fromEmail, setFromEmail] = useState('newsletter@newsletter.tum-blockchain.com')
   const [toAddress, setToAddress] = useState('')
   const [testEmail, setTestEmail] = useState('')
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle')
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const checkTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  // Compat
-  const [compatIssues, setCompatIssues] = useState<CompatIssue[]>([])
-
-  // Logs
-  const [logs, setLogs] = useState<LogEntry[]>([])
-
-  // Sending
-  const [sending, setSending] = useState(false)
-  const [sendStep, setSendStep] = useState<SendStep>('idle')
-  const [lastMessageId, setLastMessageId] = useState<string | null>(null)
-  const [deliveryEvents, setDeliveryEvents] = useState<DeliveryEvent[]>([])
-
-  // Mailing lists
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
+  const [dirty, setDirty] = useState(false)
+  const [previewHtml, setPreviewHtml] = useState('')
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [sendingTest, setSendingTest] = useState(false)
+  const [sendingCampaign, setSendingCampaign] = useState(false)
+  const [testSent, setTestSent] = useState(false)
   const [mailingLists, setMailingLists] = useState<MailingList[]>([])
   const [loadingLists, setLoadingLists] = useState(false)
+  const [loadingProjects, setLoadingProjects] = useState(false)
 
-  // Assets
-  const [assets, setAssets] = useState<Asset[]>([])
-  const [uploadingAsset, setUploadingAsset] = useState(false)
+  const getEmailHtml = useCallback(async () => {
+    const editor = editorRef.current
+    if (!editor) return ''
 
-  // Modals
-  type ModalName = 'projects' | 'templates' | 'preview' | 'compat' | 'send' | 'settings' | 'assets' | null
-  const [activeModal, setActiveModal] = useState<ModalName>(null)
+    const html = editor.getHtml()
+    const css = editor.getCss()
 
-  // Preview state
-  const [previewHtml, setPreviewHtml] = useState('')
-  const [previewMode, setPreviewMode] = useState<'light' | 'dark'>('light')
-  const [previewWidth, setPreviewWidth] = useState<'desktop' | 'mobile'>('desktop')
+    if (!css.trim()) return html
 
-  const addLog = useCallback((type: LogEntry['type'], message: string) => {
-    setLogs((prev) => [
-      { id: `${Date.now()}-${Math.random()}`, type, message, timestamp: Date.now() },
-      ...prev.slice(0, 19),
-    ])
-  }, [])
+    const response = await fetch('/api/newsletter/inline-css', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ html, css }),
+    })
+    const data = await response.json() as { html?: string; error?: string }
 
-  const runCheck = useCallback(() => {
-    if (!editorRef.current) return
-    const html = editorRef.current.getHtml() + '<style>' + editorRef.current.getCss() + '</style>'
-    const issues = runCompatCheck(html)
-    setCompatIssues(issues)
-  }, [])
-
-  const scheduleCheck = useCallback(() => {
-    if (checkTimerRef.current) clearTimeout(checkTimerRef.current)
-    checkTimerRef.current = setTimeout(runCheck, 800)
-  }, [runCheck])
-
-  const getEmailHtml = useCallback(async (): Promise<string> => {
-    if (!editorRef.current) return ''
-    const html = editorRef.current.getHtml()
-    const css = editorRef.current.getCss()
-    if (!css?.trim()) return html
-    try {
-      const r = await fetch('/api/newsletter/inline-css', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ html, css }),
-      })
-      const d = await r.json() as { html?: string }
-      return d.html ?? html
-    } catch {
-      return html
+    if (!response.ok) {
+      throw new Error(data.error ?? 'Could not inline CSS.')
     }
-  }, [])
+
+    return data.html ?? html
+  }, [editorRef])
 
   const fetchProjects = useCallback(async () => {
+    setLoadingProjects(true)
     try {
-      const r = await fetch('/api/newsletter/projects')
-      const d = await r.json() as { projects?: NewsletterProject[]; error?: string }
-      if (!r.ok) throw new Error(d.error ?? 'Failed to load projects')
-      setProjects(d.projects ?? [])
-      return d.projects ?? []
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to load projects'
-      addLog('error', msg)
-      return []
+      const response = await fetch('/api/newsletter/projects')
+      const data = await response.json() as { projects?: NewsletterProject[]; error?: string }
+
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Could not load newsletter projects.')
+      }
+
+      setProjects(data.projects ?? [])
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not load newsletter projects.')
+    } finally {
+      setLoadingProjects(false)
     }
-  }, [addLog])
+  }, [])
 
   const loadProject = useCallback((project: NewsletterProject) => {
     setCurrentProjectId(project.id)
     setCampaignName(project.name)
     setSubject(project.subject ?? '')
-    if (!editorRef.current) return
-    if (project.gjs_data) {
-      try {
-        editorRef.current.loadProjectData(project.gjs_data)
-        return
-      } catch {}
-    }
-    if (project.html) {
-      editorRef.current.setComponents(project.html)
-    }
-  }, [])
+    setFromName(project.from_name ?? 'TUM Blockchain Club')
+    setFromEmail(project.from_email ?? 'newsletter@newsletter.tum-blockchain.com')
+    setToAddress(project.to_address ?? '')
 
-  const saveProject = useCallback(async (silent = false) => {
-    if (!editorRef.current) return
-    setSaveStatus('saving')
     try {
-      const html = await getEmailHtml()
-      const gjsData = editorRef.current.getProjectData()
-      const r = await fetch('/api/newsletter/projects', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: currentProjectId,
-          name: campaignName || 'Untitled',
-          subject,
-          from_name: fromName,
-          from_email: fromEmail,
-          to_address: toAddress,
-          html,
-          gjs_data: gjsData,
-        }),
-      })
-      const d = await r.json() as { project?: NewsletterProject; error?: string }
-      if (!r.ok) throw new Error(d.error ?? 'Save failed')
-      if (d.project && !currentProjectId) {
-        setCurrentProjectId(d.project.id)
+      if (project.gjs_data) {
+        editorRef.current?.loadProjectData(project.gjs_data)
+      } else if (project.html) {
+        editorRef.current?.setComponents(project.html)
       }
-      setSaveStatus('saved')
-      if (!silent) addLog('success', 'Project saved')
-      setTimeout(() => setSaveStatus('idle'), 2000)
-      await fetchProjects()
-    } catch (err) {
-      setSaveStatus('error')
-      const msg = err instanceof Error ? err.message : 'Save failed'
-      addLog('error', msg)
-      setTimeout(() => setSaveStatus('idle'), 3000)
+      setDirty(false)
+      toast.success(`Loaded "${project.name}"`)
+    } catch {
+      toast.error('Could not load project into the editor.')
     }
-  }, [addLog, campaignName, currentProjectId, fetchProjects, fromEmail, fromName, getEmailHtml, subject, toAddress])
-
-  const saveProjectRef = useRef(saveProject)
-  saveProjectRef.current = saveProject
-
-  const scheduleSave = useCallback(() => {
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-    setSaveStatus('saving')
-    saveTimerRef.current = setTimeout(() => saveProjectRef.current(true), 2500)
-  }, [])
-
-  const handleEditorChange = useCallback(() => {
-    scheduleCheck()
-    scheduleSave()
-  }, [scheduleCheck, scheduleSave])
-
-  const deleteProject = useCallback(async (id: string) => {
-    try {
-      const r = await fetch(`/api/newsletter/projects/${id}`, { method: 'DELETE' })
-      if (!r.ok) {
-        const d = await r.json() as { error?: string }
-        throw new Error(d.error ?? 'Delete failed')
-      }
-      if (currentProjectId === id) {
-        setCurrentProjectId(null)
-        setCampaignName('')
-        setSubject('')
-        editorRef.current?.setComponents('')
-      }
-      await fetchProjects()
-      addLog('info', 'Project deleted')
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Delete failed'
-      toast.error(msg)
-      addLog('error', msg)
-    }
-  }, [addLog, currentProjectId, fetchProjects])
+  }, [editorRef])
 
   const newProject = useCallback(() => {
     setCurrentProjectId(null)
     setCampaignName('')
     setSubject('')
+    setToAddress('')
+    setTestSent(false)
+    setDirty(false)
     editorRef.current?.setComponents('')
-    setActiveModal(null)
-    toast.info('New campaign — choose a template or start blank.')
-  }, [])
+  }, [editorRef])
 
   const loadTemplate = useCallback((html: string, label: string) => {
     editorRef.current?.setComponents(html)
-    setActiveModal(null)
-    toast.success(`Template "${label}" loaded`)
-    scheduleCheck()
-  }, [scheduleCheck])
+    setDirty(true)
+    setTestSent(false)
+    toast.success(`Loaded "${label}"`)
+  }, [editorRef])
+
+  const saveProject = useCallback(async () => {
+    if (!editorRef.current) {
+      toast.error('The editor is still loading.')
+      return
+    }
+
+    setSaveStatus('saving')
+    try {
+      const html = await getEmailHtml()
+      const response = await fetch('/api/newsletter/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: currentProjectId,
+          name: campaignName.trim() || 'Untitled campaign',
+          subject,
+          from_name: fromName,
+          from_email: fromEmail,
+          to_address: toAddress,
+          html,
+          gjs_data: editorRef.current.getProjectData(),
+        }),
+      })
+      const data = await response.json() as { project?: NewsletterProject; error?: string }
+
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Could not save newsletter project.')
+      }
+
+      if (data.project) {
+        setCurrentProjectId(data.project.id)
+      }
+      setDirty(false)
+      setSaveStatus('saved')
+      toast.success('Newsletter project saved.')
+      await fetchProjects()
+    } catch (error) {
+      setSaveStatus('error')
+      toast.error(error instanceof Error ? error.message : 'Could not save newsletter project.')
+    } finally {
+      window.setTimeout(() => setSaveStatus('idle'), 1800)
+    }
+  }, [campaignName, currentProjectId, editorRef, fetchProjects, fromEmail, fromName, getEmailHtml, subject, toAddress])
+
+  const deleteProject = useCallback(async (project: NewsletterProject) => {
+    const response = await fetch(`/api/newsletter/projects/${project.id}`, { method: 'DELETE' })
+
+    if (!response.ok) {
+      const data = await response.json() as { error?: string }
+      toast.error(data.error ?? 'Could not delete project.')
+      return
+    }
+
+    if (currentProjectId === project.id) {
+      newProject()
+    }
+
+    await fetchProjects()
+    toast.success(`Deleted "${project.name}"`)
+  }, [currentProjectId, fetchProjects, newProject])
 
   const openPreview = useCallback(async () => {
-    const html = await getEmailHtml()
-    setPreviewHtml(html)
-    setActiveModal('preview')
+    try {
+      const html = await getEmailHtml()
+      setPreviewHtml(html)
+      setPreviewOpen(true)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not prepare preview.')
+    }
   }, [getEmailHtml])
-
-  const sendTest = useCallback(async (): Promise<boolean> => {
-    if (!testEmail) {
-      toast.error('Enter a test email address first')
-      return false
-    }
-    setSending(true)
-    try {
-      const html = await getEmailHtml()
-      const r = await fetch('/api/newsletter/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fromName, fromEmail, subject, html, testEmail }),
-      })
-      const d = await r.json() as { ok?: boolean; id?: string; error?: string }
-      if (!r.ok) throw new Error(d.error ?? 'Send failed')
-      setSendStep('test-sent')
-      if (d.id) setLastMessageId(d.id)
-      addLog('success', `Test sent to ${testEmail}`)
-      toast.success(`Test email sent to ${testEmail}`)
-      return true
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Send failed'
-      toast.error(msg)
-      addLog('error', msg)
-      return false
-    } finally {
-      setSending(false)
-    }
-  }, [addLog, fromEmail, fromName, getEmailHtml, subject, testEmail])
-
-  const sendToList = useCallback(async (): Promise<boolean> => {
-    if (!toAddress) {
-      toast.error('Enter a mailing list address first')
-      return false
-    }
-    setSending(true)
-    try {
-      const html = await getEmailHtml()
-      const r = await fetch('/api/newsletter/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fromName, fromEmail, toAddress, subject, html }),
-      })
-      const d = await r.json() as { ok?: boolean; id?: string; error?: string }
-      if (!r.ok) throw new Error(d.error ?? 'Send failed')
-      if (d.id) setLastMessageId(d.id)
-      addLog('success', `Sent to list: ${toAddress}`)
-      toast.success(`Campaign sent to ${toAddress}`)
-      setSendStep('idle')
-      setActiveModal(null)
-      return true
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Send failed'
-      toast.error(msg)
-      addLog('error', msg)
-      return false
-    } finally {
-      setSending(false)
-    }
-  }, [addLog, fromEmail, fromName, getEmailHtml, subject, toAddress])
-
-  const checkDelivery = useCallback(async (messageId: string) => {
-    try {
-      const r = await fetch(`/api/newsletter/delivery-status?messageId=${encodeURIComponent(messageId)}`)
-      const d = await r.json() as { items?: DeliveryEvent[]; error?: string }
-      if (!r.ok) throw new Error(d.error ?? 'Failed')
-      setDeliveryEvents(d.items ?? [])
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to get delivery status'
-      addLog('error', msg)
-    }
-  }, [addLog])
 
   const fetchMailingLists = useCallback(async () => {
     setLoadingLists(true)
     try {
-      const r = await fetch('/api/newsletter/mailing-lists')
-      const d = await r.json() as { lists?: MailingList[]; error?: string }
-      if (!r.ok) throw new Error(d.error ?? 'Failed')
-      setMailingLists(d.lists ?? [])
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Failed to load lists'
-      toast.error(msg)
-      addLog('error', msg)
+      const response = await fetch('/api/newsletter/mailing-lists')
+      const data = await response.json() as { lists?: MailingList[]; error?: string }
+
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Could not load Mailgun lists.')
+      }
+
+      setMailingLists(data.lists ?? [])
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not load Mailgun lists.')
     } finally {
       setLoadingLists(false)
     }
-  }, [addLog])
-
-  const fetchAssets = useCallback(async () => {
-    try {
-      const r = await fetch('/api/newsletter/assets')
-      const d = await r.json() as { assets?: Asset[]; error?: string }
-      if (!r.ok) throw new Error(d.error ?? 'Failed')
-      setAssets(d.assets ?? [])
-    } catch (err) {
-      addLog('error', err instanceof Error ? err.message : 'Failed to load assets')
-    }
-  }, [addLog])
-
-  const uploadAsset = useCallback(async (file: File): Promise<Asset | null> => {
-    setUploadingAsset(true)
-    try {
-      const form = new FormData()
-      form.append('image', file)
-      const r = await fetch('/api/newsletter/assets', { method: 'POST', body: form })
-      const d = await r.json() as { name?: string; src?: string; error?: string }
-      if (!r.ok) throw new Error(d.error ?? 'Upload failed')
-      const asset: Asset = { name: d.name ?? file.name, src: d.src ?? '' }
-      setAssets((prev) => [asset, ...prev])
-      addLog('success', `Uploaded: ${file.name}`)
-      return asset
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Upload failed'
-      toast.error(msg)
-      addLog('error', msg)
-      return null
-    } finally {
-      setUploadingAsset(false)
-    }
-  }, [addLog])
-
-  const openSendModal = useCallback(() => {
-    setSendStep('idle')
-    setActiveModal('send')
   }, [])
 
+  const send = useCallback(async (payload: { testEmail?: string; toAddress?: string }) => {
+    const html = await getEmailHtml()
+    const response = await fetch('/api/newsletter/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fromName, fromEmail, subject, html, ...payload }),
+    })
+    const data = await response.json() as { error?: string }
 
-  useEffect(() => {
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current)
-      if (checkTimerRef.current) clearTimeout(checkTimerRef.current)
+    if (!response.ok) {
+      throw new Error(data.error ?? 'Could not send newsletter.')
     }
+  }, [fromEmail, fromName, getEmailHtml, subject])
+
+  const sendTest = useCallback(async () => {
+    if (!testEmail.trim()) {
+      toast.error('Enter a test recipient first.')
+      return
+    }
+
+    setSendingTest(true)
+    try {
+      await send({ testEmail })
+      setTestSent(true)
+      toast.success(`Test email sent to ${testEmail}`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not send test email.')
+    } finally {
+      setSendingTest(false)
+    }
+  }, [send, testEmail])
+
+  const sendCampaign = useCallback(async () => {
+    if (!toAddress.trim()) {
+      toast.error('Select or enter a mailing list address first.')
+      return
+    }
+
+    setSendingCampaign(true)
+    try {
+      await send({ toAddress })
+      setTestSent(false)
+      toast.success(`Newsletter sent to ${toAddress}`)
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not send newsletter.')
+    } finally {
+      setSendingCampaign(false)
+    }
+  }, [send, toAddress])
+
+  const markDirty = useCallback(() => {
+    setDirty(true)
+    setTestSent(false)
   }, [])
 
   return {
-    editorRef,
-    // project
-    projects, currentProjectId,
-    campaignName, setCampaignName,
-    subject, setSubject,
-    fromName, setFromName,
-    fromEmail, setFromEmail,
-    toAddress, setToAddress,
-    testEmail, setTestEmail,
-    saveStatus,
-    // compat
-    compatIssues,
-    // logs
-    logs,
-    // sending
-    sending, sendStep, setSendStep,
-    lastMessageId,
-    deliveryEvents,
-    // mailing lists
-    mailingLists, loadingLists,
-    // assets
-    assets, uploadingAsset,
-    // modals
-    activeModal, setActiveModal,
-    // preview
+    campaignName,
+    currentProjectId,
+    dirty,
+    fromEmail,
+    fromName,
+    loadingLists,
+    loadingProjects,
+    mailingLists,
     previewHtml,
-    previewMode, setPreviewMode,
-    previewWidth, setPreviewWidth,
-    // actions
-    addLog,
-    runCheck,
+    previewOpen,
+    projects,
+    saveStatus,
+    sendingCampaign,
+    sendingTest,
+    subject,
+    testEmail,
+    testSent,
+    toAddress,
+    deleteProject,
+    fetchMailingLists,
     fetchProjects,
     loadProject,
-    saveProject,
-    deleteProject,
-    newProject,
     loadTemplate,
+    markDirty,
+    newProject,
     openPreview,
+    saveProject,
+    sendCampaign,
     sendTest,
-    sendToList,
-    checkDelivery,
-    fetchMailingLists,
-    fetchAssets,
-    uploadAsset,
-    handleEditorChange,
-    openSendModal,
-    scheduleSave,
+    setCampaignName,
+    setFromEmail,
+    setFromName,
+    setPreviewOpen,
+    setSubject,
+    setTestEmail,
+    setToAddress,
   }
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import type { Editor } from 'grapesjs'
+import { Spinner } from '@/components/ui/spinner'
 
 export type GrapesEditorHandle = {
   getHtml: () => string
@@ -23,11 +24,16 @@ export const GrapesEditor = forwardRef<GrapesEditorHandle, Props>(function Grape
   const containerRef = useRef<HTMLDivElement>(null)
   const editorRef = useRef<Editor | null>(null)
   const [loading, setLoading] = useState(true)
-  // Refs so event handlers always call the latest prop without re-creating the editor
-  const onChangeRef = useRef(onChange)
-  const onEditorReadyRef = useRef(onEditorReady)
-  onChangeRef.current = onChange
-  onEditorReadyRef.current = onEditorReady
+  const onChangeRef = useRef<Props['onChange']>(undefined)
+  const onEditorReadyRef = useRef<Props['onEditorReady']>(undefined)
+
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
+
+  useEffect(() => {
+    onEditorReadyRef.current = onEditorReady
+  }, [onEditorReady])
 
   useImperativeHandle(ref, () => ({
     getHtml: () => editorRef.current?.getHtml() ?? '',
@@ -49,14 +55,19 @@ export const GrapesEditor = forwardRef<GrapesEditorHandle, Props>(function Grape
         import('grapesjs-preset-newsletter'),
       ])
 
-      // grapesjs is a CJS module; handle both ESM default and CommonJS shapes
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const grapesjs = (gjsMod as any).default ?? gjsMod
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const preset: ((ed: Editor, opts?: Record<string, unknown>) => void) =
-        typeof (presetMod as any).default === 'function'
-          ? (presetMod as any).default
-          : (presetMod as any)
+      type GrapesModule = { init(options: import('grapesjs').InitOptions): Editor }
+      type NewsletterPreset = (ed: Editor, opts?: Record<string, unknown>) => void
+      type PresetModule = { default?: NewsletterPreset } | NewsletterPreset
+
+      const grapesjs = (
+        'default' in gjsMod ? gjsMod.default : gjsMod
+      ) as GrapesModule
+      const presetModule = presetMod as PresetModule
+      const preset = typeof presetModule === 'function' ? presetModule : presetModule.default
+
+      if (!preset) {
+        throw new Error('Could not load GrapesJS newsletter preset.')
+      }
 
       editor = grapesjs.init({
         container: containerRef.current!,
@@ -126,8 +137,8 @@ export const GrapesEditor = forwardRef<GrapesEditorHandle, Props>(function Grape
   return (
     <div style={{ height: '100%', width: '100%', position: 'relative' }}>
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-[#0d0d14] z-10">
-          <div className="text-[#8080a0] text-sm animate-pulse">Loading editor…</div>
+        <div className="absolute inset-0 flex items-center justify-center bg-muted/30">
+          <Spinner />
         </div>
       )}
       <div

@@ -53,6 +53,20 @@ export interface Member {
   nickname?: string | null;
 }
 
+export interface NewsletterProject {
+  id: string
+  name: string
+  subject: string | null
+  from_name: string | null
+  from_email: string | null
+  to_address: string | null
+  html: string | null
+  gjs_data: Record<string, unknown> | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
+
 export interface Database {
   public: {
     Tables: {
@@ -60,6 +74,14 @@ export interface Database {
         Row: Member
         Insert: Omit<Member, 'id' | 'created_at'>
         Update: Partial<Omit<Member, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      newsletter_projects: {
+        Row: NewsletterProject
+        Insert: Partial<Pick<NewsletterProject, 'id' | 'created_at' | 'updated_at'>> &
+          Pick<NewsletterProject, 'name'> &
+          Partial<Omit<NewsletterProject, 'id' | 'name' | 'created_at' | 'updated_at'>>
+        Update: Partial<Omit<NewsletterProject, 'id' | 'created_at' | 'updated_at'>>
         Relationships: []
       }
     }

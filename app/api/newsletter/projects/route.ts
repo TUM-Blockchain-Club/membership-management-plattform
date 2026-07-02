@@ -2,15 +2,15 @@ import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireNewsletterAccess } from '@/lib/newsletter/auth'
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const supabase = await createSupabaseServerClient()
-    const auth = await requireNewsletterAccess(supabase)
-    if (auth.error) {
+    const auth = await requireNewsletterAccess(supabase, request)
+    if (auth.status !== 200) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await auth.dataClient
       .from('newsletter_projects')
       .select('id, name, subject, from_name, from_email, to_address, gjs_data, created_at, updated_at')
       .order('updated_at', { ascending: false })
@@ -29,8 +29,8 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const supabase = await createSupabaseServerClient()
-    const auth = await requireNewsletterAccess(supabase)
-    if (auth.error) {
+    const auth = await requireNewsletterAccess(supabase, request)
+    if (auth.status !== 200) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
@@ -53,25 +53,23 @@ export async function POST(request: Request) {
       to_address: body.to_address ?? null,
       html: body.html ?? null,
       gjs_data: body.gjs_data ?? null,
-      created_by: auth.user!.id,
     }
 
     let data, error
 
     if (body.id) {
-      const result = await supabase
+      const result = await auth.dataClient
         .from('newsletter_projects')
         .update(payload)
         .eq('id', body.id)
-        .eq('created_by', auth.user!.id)
         .select()
         .single()
       data = result.data
       error = result.error
     } else {
-      const result = await supabase
+      const result = await auth.dataClient
         .from('newsletter_projects')
-        .insert(payload)
+        .insert({ ...payload, created_by: auth.ownerId })
         .select()
         .single()
       data = result.data

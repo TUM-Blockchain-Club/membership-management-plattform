@@ -119,6 +119,12 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     }
   }, [activeTab, loading, router, showLinkAnalyticsTab])
 
+  useEffect(() => {
+    if (!loading && activeTab === 'newsletter' && !showNewsletterTab) {
+      router.replace(TAB_ROUTES.profile)
+    }
+  }, [activeTab, loading, router, showNewsletterTab])
+
   const handleSignOut = useCallback(async () => {
     await auth.signOut()
     router.push('/signin')
