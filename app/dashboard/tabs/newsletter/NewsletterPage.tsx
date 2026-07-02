@@ -6,12 +6,14 @@ import {
   CheckCircle2Icon,
   EyeIcon,
   FilePlus2Icon,
+  ImageIcon,
   LayoutTemplateIcon,
   MailIcon,
   RefreshCwIcon,
   SaveIcon,
   SendIcon,
   Trash2Icon,
+  UploadIcon,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -43,7 +45,7 @@ import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 import type { GrapesEditorHandle } from './components/GrapesEditor'
-import type { NewsletterProject } from './components/types'
+import type { NewsletterAsset, NewsletterDelivery, NewsletterProject } from './components/types'
 import { TEMPLATES } from './components/templates'
 import { useNewsletter } from './useNewsletter'
 import 'grapesjs/dist/css/grapes.min.css'
@@ -72,6 +74,12 @@ const formatUpdatedAt = (value: string) =>
     hour: '2-digit',
     minute: '2-digit',
   }).format(new Date(value))
+
+const formatBytes = (value?: number) => {
+  if (!value) return 'Unknown size'
+  if (value < 1024 * 1024) return `${Math.round(value / 1024)} KB`
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`
+}
 
 function SaveStatusBadge({
   dirty,
@@ -168,18 +176,203 @@ function ProjectList({
   )
 }
 
+function AssetLibrary({
+  assets,
+  loading,
+  uploading,
+  onDelete,
+  onInsert,
+  onRefresh,
+  onUpload,
+}: {
+  assets: NewsletterAsset[]
+  loading: boolean
+  uploading: boolean
+  onDelete: (asset: NewsletterAsset) => void
+  onInsert: (asset: NewsletterAsset) => void
+  onRefresh: () => void
+  onUpload: (file: File) => void
+}) {
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex gap-2">
+        <Button type="button" variant="outline" disabled={uploading} onClick={() => fileRef.current?.click()}>
+          {uploading ? <Spinner data-icon="inline-start" /> : <UploadIcon data-icon="inline-start" />}
+          Upload
+        </Button>
+        <Button type="button" variant="ghost" size="icon-sm" disabled={loading} onClick={onRefresh}>
+          {loading ? <Spinner /> : <RefreshCwIcon />}
+          <span className="sr-only">Refresh assets</span>
+        </Button>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/jpeg,image/png,image/gif,image/webp"
+          className="hidden"
+          onChange={(event) => {
+            const file = event.target.files?.[0]
+            if (file) onUpload(file)
+            event.target.value = ''
+          }}
+        />
+      </div>
+
+      {loading && assets.length === 0 ? (
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Spinner />
+          Loading assets
+        </div>
+      ) : assets.length === 0 ? (
+        <Empty className="min-h-32">
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <ImageIcon />
+            </EmptyMedia>
+            <EmptyTitle>No images yet</EmptyTitle>
+            <EmptyDescription>Upload email-ready images for reuse in campaigns.</EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      ) : (
+        <div className="grid max-h-80 grid-cols-2 gap-2 overflow-y-auto">
+          {assets.map((asset) => (
+            <div key={asset.path} className="overflow-hidden rounded-lg border bg-muted/20">
+              <button
+                type="button"
+                className="block w-full bg-background p-2"
+                onClick={() => onInsert(asset)}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={asset.src}
+                  alt={asset.name}
+                  className="h-20 w-full rounded-md object-contain"
+                />
+              </button>
+              <div className="flex items-start justify-between gap-1 p-2">
+                <div className="min-w-0">
+                  <p className="truncate text-xs font-medium">{asset.name}</p>
+                  <p className="text-xs text-muted-foreground">{formatBytes(asset.size)}</p>
+                </div>
+                <Button type="button" variant="ghost" size="icon-sm" onClick={() => onDelete(asset)}>
+                  <Trash2Icon />
+                  <span className="sr-only">Delete asset</span>
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function DeliveryBadge({ status }: { status: NewsletterDelivery['status'] }) {
+  if (status === 'failed') return <Badge variant="destructive">Failed</Badge>
+  if (status === 'delivered') return <Badge variant="secondary">Delivered</Badge>
+  return <Badge variant="outline">Sent</Badge>
+}
+
+function DeliveryHistory({
+  deliveries,
+  loading,
+  onRefresh,
+  onRefreshDelivery,
+}: {
+  deliveries: NewsletterDelivery[]
+  loading: boolean
+  onRefresh: () => void
+  onRefreshDelivery: (delivery: NewsletterDelivery) => void
+}) {
+  if (loading && deliveries.length === 0) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <Spinner />
+        Loading delivery history
+      </div>
+    )
+  }
+
+  if (deliveries.length === 0) {
+    return (
+      <Empty className="min-h-32">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <MailIcon />
+          </EmptyMedia>
+          <EmptyTitle>No sends yet</EmptyTitle>
+          <EmptyDescription>Test and campaign sends will appear here.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex justify-end">
+        <Button type="button" variant="ghost" size="icon-sm" disabled={loading} onClick={onRefresh}>
+          {loading ? <Spinner /> : <RefreshCwIcon />}
+          <span className="sr-only">Refresh delivery history</span>
+        </Button>
+      </div>
+      {deliveries.map((delivery) => {
+        const opened = delivery.event_summary.opened ?? 0
+        const clicked = delivery.event_summary.clicked ?? 0
+        const failed = delivery.event_summary.failed ?? 0
+
+        return (
+          <div key={delivery.id} className="rounded-lg border bg-muted/20 p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <DeliveryBadge status={delivery.status} />
+                  <Badge variant="outline">{delivery.delivery_type === 'test' ? 'Test' : 'Campaign'}</Badge>
+                </div>
+                <p className="mt-2 truncate text-sm font-medium">{delivery.subject}</p>
+                <p className="truncate text-xs text-muted-foreground">{delivery.recipient}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{formatUpdatedAt(delivery.created_at)}</p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                disabled={loading || !delivery.mailgun_message_id}
+                onClick={() => onRefreshDelivery(delivery)}
+              >
+                <RefreshCwIcon />
+                <span className="sr-only">Refresh delivery status</span>
+              </Button>
+            </div>
+            {(opened > 0 || clicked > 0 || failed > 0 || delivery.last_event) && (
+              <div className="mt-3 flex flex-wrap gap-2">
+                {delivery.last_event && <Badge variant="secondary">{delivery.last_event}</Badge>}
+                {opened > 0 && <Badge variant="outline">{opened} opened</Badge>}
+                {clicked > 0 && <Badge variant="outline">{clicked} clicked</Badge>}
+                {failed > 0 && <Badge variant="destructive">{failed} failed</Badge>}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export function NewsletterPage({ effectiveHasSpecialAccess }: Props) {
   const editorRef = useRef<GrapesEditorHandle>(null)
   const [sendConfirmed, setSendConfirmed] = useState(false)
   const newsletter = useNewsletter(editorRef)
-  const { fetchMailingLists, fetchProjects } = newsletter
+  const { fetchAssets, fetchDeliveries, fetchMailingLists, fetchProjects } = newsletter
 
   useEffect(() => {
     if (!effectiveHasSpecialAccess) return
 
+    void fetchAssets()
+    void fetchDeliveries()
     void fetchProjects()
     void fetchMailingLists()
-  }, [effectiveHasSpecialAccess, fetchMailingLists, fetchProjects])
+  }, [effectiveHasSpecialAccess, fetchAssets, fetchDeliveries, fetchMailingLists, fetchProjects])
 
   if (!effectiveHasSpecialAccess) {
     return (
@@ -327,6 +520,24 @@ export function NewsletterPage({ effectiveHasSpecialAccess }: Props) {
 
           <Card>
             <CardHeader>
+              <CardTitle>Assets</CardTitle>
+              <CardDescription>Upload reusable images and insert them into the editor.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <AssetLibrary
+                assets={newsletter.assets}
+                loading={newsletter.loadingAssets}
+                uploading={newsletter.uploadingAsset}
+                onDelete={(asset) => void newsletter.deleteAsset(asset)}
+                onInsert={newsletter.insertAsset}
+                onRefresh={() => void newsletter.fetchAssets()}
+                onUpload={(file) => void newsletter.uploadAsset(file)}
+              />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
               <CardTitle>Projects</CardTitle>
               <CardDescription>Saved campaigns are shared across special-access users.</CardDescription>
               <CardAction>
@@ -423,6 +634,21 @@ export function NewsletterPage({ effectiveHasSpecialAccess }: Props) {
                   Send campaign
                 </Button>
               </FieldGroup>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Delivery tracking</CardTitle>
+              <CardDescription>Recent Mailgun sends and refreshed event status.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <DeliveryHistory
+                deliveries={newsletter.deliveries}
+                loading={newsletter.loadingDeliveries}
+                onRefresh={() => void newsletter.fetchDeliveries()}
+                onRefreshDelivery={(delivery) => void newsletter.refreshDelivery(delivery)}
+              />
             </CardContent>
           </Card>
         </aside>

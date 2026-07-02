@@ -17,3 +17,27 @@ export type MailingList = {
   description: string
   membersCount: number
 }
+
+export type NewsletterAsset = {
+  name: string
+  path: string
+  src: string
+  size?: number
+  updatedAt?: string | null
+}
+
+export type NewsletterDelivery = {
+  id: string
+  project_id: string | null
+  delivery_type: 'test' | 'campaign'
+  status: 'sent' | 'delivered' | 'failed'
+  subject: string
+  recipient: string
+  mailgun_message_id: string | null
+  mailgun_message: string | null
+  last_event: string | null
+  last_event_at: string | null
+  event_summary: Record<string, number>
+  created_at: string
+  updated_at: string
+}

@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import type { RefObject } from 'react'
 import type { GrapesEditorHandle } from './components/GrapesEditor'
-import type { MailingList, NewsletterProject } from './components/types'
+import type { MailingList, NewsletterAsset, NewsletterDelivery, NewsletterProject } from './components/types'
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -25,8 +25,13 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
   const [sendingCampaign, setSendingCampaign] = useState(false)
   const [testSent, setTestSent] = useState(false)
   const [mailingLists, setMailingLists] = useState<MailingList[]>([])
+  const [assets, setAssets] = useState<NewsletterAsset[]>([])
+  const [deliveries, setDeliveries] = useState<NewsletterDelivery[]>([])
+  const [uploadingAsset, setUploadingAsset] = useState(false)
   const [loadingLists, setLoadingLists] = useState(false)
   const [loadingProjects, setLoadingProjects] = useState(false)
+  const [loadingAssets, setLoadingAssets] = useState(false)
+  const [loadingDeliveries, setLoadingDeliveries] = useState(false)
 
   const getEmailHtml = useCallback(async () => {
     const editor = editorRef.current
@@ -196,19 +201,136 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
     }
   }, [])
 
+  const fetchAssets = useCallback(async () => {
+    setLoadingAssets(true)
+    try {
+      const response = await fetch('/api/newsletter/assets')
+      const data = await response.json() as { assets?: NewsletterAsset[]; error?: string }
+
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Could not load newsletter assets.')
+      }
+
+      setAssets(data.assets ?? [])
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not load newsletter assets.')
+    } finally {
+      setLoadingAssets(false)
+    }
+  }, [])
+
+  const uploadAsset = useCallback(async (file: File) => {
+    setUploadingAsset(true)
+    try {
+      const formData = new FormData()
+      formData.append('image', file)
+
+      const response = await fetch('/api/newsletter/assets', {
+        method: 'POST',
+        body: formData,
+      })
+      const data = await response.json() as { asset?: NewsletterAsset; error?: string }
+
+      if (!response.ok || !data.asset) {
+        throw new Error(data.error ?? 'Could not upload newsletter asset.')
+      }
+
+      setAssets((current) => [data.asset!, ...current])
+      toast.success('Image uploaded.')
+      return data.asset
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not upload newsletter asset.')
+      return null
+    } finally {
+      setUploadingAsset(false)
+    }
+  }, [])
+
+  const deleteAsset = useCallback(async (asset: NewsletterAsset) => {
+    const response = await fetch(`/api/newsletter/assets?${new URLSearchParams({ path: asset.path })}`, {
+      method: 'DELETE',
+    })
+
+    if (!response.ok) {
+      const data = await response.json() as { error?: string }
+      toast.error(data.error ?? 'Could not delete newsletter asset.')
+      return
+    }
+
+    setAssets((current) => current.filter((item) => item.path !== asset.path))
+    toast.success('Image deleted.')
+  }, [])
+
+  const insertAsset = useCallback((asset: NewsletterAsset) => {
+    editorRef.current?.insertImage(asset.src, asset.name)
+    setDirty(true)
+    setTestSent(false)
+    toast.success('Image inserted into the newsletter.')
+  }, [editorRef])
+
+  const fetchDeliveries = useCallback(async () => {
+    setLoadingDeliveries(true)
+    try {
+      const response = await fetch('/api/newsletter/delivery-status')
+      const data = await response.json() as { deliveries?: NewsletterDelivery[]; error?: string }
+
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Could not load delivery history.')
+      }
+
+      setDeliveries(data.deliveries ?? [])
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not load delivery history.')
+    } finally {
+      setLoadingDeliveries(false)
+    }
+  }, [])
+
+  const refreshDelivery = useCallback(async (delivery: NewsletterDelivery) => {
+    if (!delivery.mailgun_message_id) {
+      toast.error('This delivery has no Mailgun message id.')
+      return
+    }
+
+    setLoadingDeliveries(true)
+    try {
+      const response = await fetch(`/api/newsletter/delivery-status?${new URLSearchParams({
+        messageId: delivery.mailgun_message_id,
+      })}`)
+      const data = await response.json() as { error?: string }
+
+      if (!response.ok) {
+        throw new Error(data.error ?? 'Could not refresh delivery status.')
+      }
+
+      await fetchDeliveries()
+      toast.success('Delivery status refreshed.')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not refresh delivery status.')
+    } finally {
+      setLoadingDeliveries(false)
+    }
+  }, [fetchDeliveries])
+
   const send = useCallback(async (payload: { testEmail?: string; toAddress?: string }) => {
     const html = await getEmailHtml()
     const response = await fetch('/api/newsletter/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fromName, fromEmail, subject, html, ...payload }),
+      body: JSON.stringify({ fromName, fromEmail, projectId: currentProjectId, subject, html, ...payload }),
     })
-    const data = await response.json() as { error?: string }
+    const data = await response.json() as { error?: string; trackingError?: string }
 
     if (!response.ok) {
       throw new Error(data.error ?? 'Could not send newsletter.')
     }
-  }, [fromEmail, fromName, getEmailHtml, subject])
+
+    if (data.trackingError) {
+      toast.error(`Email sent, but tracking was not stored: ${data.trackingError}`)
+    } else {
+      await fetchDeliveries()
+    }
+  }, [currentProjectId, fetchDeliveries, fromEmail, fromName, getEmailHtml, subject])
 
   const sendTest = useCallback(async () => {
     if (!testEmail.trim()) {
@@ -258,8 +380,12 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
     fromEmail,
     fromName,
     loadingLists,
+    loadingAssets,
+    loadingDeliveries,
     loadingProjects,
     mailingLists,
+    assets,
+    deliveries,
     previewHtml,
     previewOpen,
     projects,
@@ -271,8 +397,12 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
     testSent,
     toAddress,
     deleteProject,
+    deleteAsset,
+    fetchAssets,
+    fetchDeliveries,
     fetchMailingLists,
     fetchProjects,
+    insertAsset,
     loadProject,
     loadTemplate,
     markDirty,
@@ -281,6 +411,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
     saveProject,
     sendCampaign,
     sendTest,
+    refreshDelivery,
     setCampaignName,
     setFromEmail,
     setFromName,
@@ -288,5 +419,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
     setSubject,
     setTestEmail,
     setToAddress,
+    uploadAsset,
+    uploadingAsset,
   }
 }

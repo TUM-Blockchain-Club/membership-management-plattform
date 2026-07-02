@@ -8,6 +8,7 @@ export type GrapesEditorHandle = {
   getHtml: () => string
   getCss: () => string
   getProjectData: () => Record<string, unknown>
+  insertImage: (src: string, alt?: string) => void
   loadProjectData: (data: Record<string, unknown>) => void
   setComponents: (html: string) => void
 }
@@ -16,6 +17,13 @@ type Props = {
   onEditorReady?: (editor: Editor) => void
   onChange?: () => void
 }
+
+const escapeAttribute = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
 
 export const GrapesEditor = forwardRef<GrapesEditorHandle, Props>(function GrapesEditor(
   { onEditorReady, onChange },
@@ -39,6 +47,22 @@ export const GrapesEditor = forwardRef<GrapesEditorHandle, Props>(function Grape
     getHtml: () => editorRef.current?.getHtml() ?? '',
     getCss: () => editorRef.current?.getCss() ?? '',
     getProjectData: () => editorRef.current?.getProjectData() ?? {},
+    insertImage: (src, alt = 'Newsletter image') => {
+      const editor = editorRef.current
+      if (!editor) return
+
+      editor.AssetManager.add({ src, name: alt })
+
+      const selected = editor.getSelected()
+      if (selected?.get('type') === 'image') {
+        selected.addAttributes({ src, alt })
+        return
+      }
+
+      editor.addComponents(
+        `<img src="${escapeAttribute(src)}" alt="${escapeAttribute(alt)}" style="display:block;max-width:100%;height:auto;margin:0 auto;" />`
+      )
+    },
     loadProjectData: (data) => editorRef.current?.loadProjectData(data),
     setComponents: (html) => editorRef.current?.setComponents(html),
   }))

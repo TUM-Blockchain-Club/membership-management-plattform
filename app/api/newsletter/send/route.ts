@@ -10,13 +10,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
-    const { fromName, fromEmail, toAddress, subject, html, testEmail } = await request.json() as {
+    const { fromName, fromEmail, toAddress, subject, html, testEmail, projectId } = await request.json() as {
       fromName?: string
       fromEmail?: string
       toAddress?: string
       subject?: string
       html?: string
       testEmail?: string
+      projectId?: string | null
     }
 
     const sanitize = (s: string | undefined) => s?.replace(/[\r\n]/g, '') ?? ''
@@ -70,7 +71,31 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: data.message || 'Mailgun error' }, { status: response.status })
     }
 
-    return NextResponse.json({ ok: true, id: data.id, message: data.message })
+    const mailgunMessageId = data.id?.replace(/^<|>$/g, '') ?? null
+    const { data: delivery, error: deliveryError } = await auth.dataClient
+      .from('newsletter_deliveries')
+      .insert({
+        project_id: projectId ?? null,
+        delivery_type: testEmail ? 'test' : 'campaign',
+        status: 'sent',
+        subject: cleanSubject,
+        from_name: cleanFromName || null,
+        from_email: cleanFromEmail,
+        recipient,
+        mailgun_message_id: mailgunMessageId,
+        mailgun_message: data.message ?? null,
+        created_by: auth.ownerId,
+      })
+      .select()
+      .single()
+
+    return NextResponse.json({
+      ok: true,
+      id: data.id,
+      message: data.message,
+      delivery: delivery ?? null,
+      trackingError: deliveryError?.message,
+    })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Send failed'
     return NextResponse.json({ error: message }, { status: 500 })

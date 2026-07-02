@@ -1,14 +1,21 @@
 declare module 'grapesjs' {
+  export interface Component {
+    addAttributes(attributes: Record<string, string>): void
+    get(key: string): unknown
+  }
+
   export interface Editor {
+    addComponents(html: string): void
     getHtml(): string
     getCss(): string
     getProjectData(): Record<string, unknown>
+    getSelected(): Component | null
     loadProjectData(data: Record<string, unknown>): void
     setComponents(html: string): void
     destroy(): void
     on(event: string, cb: () => void): void
     AssetManager: {
-      add(assets: Array<{ src: string; name: string }>): void
+      add(assets: { src: string; name: string } | Array<{ src: string; name: string }>): void
     }
     BlockManager: {
       add(id: string, opts: {
