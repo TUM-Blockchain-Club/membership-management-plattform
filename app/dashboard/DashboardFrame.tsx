@@ -50,6 +50,7 @@ export function DashboardFrame({
           onTitleClick={dashboard.handleTitleClick}
           canUseMemberViewToggle={dashboard.canUseMemberViewToggle}
           showLinkAnalyticsTab={dashboard.showLinkAnalyticsTab}
+          showNewsletterTab={dashboard.showNewsletterTab}
           showNftApprovalsTab={dashboard.showNftApprovalsTab}
           forceMemberView={dashboard.forceMemberView}
           onToggleMemberView={dashboard.setForceMemberView}

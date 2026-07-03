@@ -15,6 +15,7 @@ Last inspected against the live Supabase project: 2026-05-26.
   - `supabase/events_external_metadata.sql`
   - `supabase/event_interest.sql`
   - `supabase/nft_requests.sql`
+  - `supabase/newsletter_projects.sql`
 - Import tooling:
   - `scripts/import-external-events-csv.mjs`
 
@@ -270,6 +271,81 @@ Privacy-preserving click events written by the `tbc-link-redirects` app after re
 
 This table intentionally does not store IP addresses, full user agents, full referrer URLs, city-level geo fields, or exact timestamps.
 
+### `public.newsletter_projects`
+
+Stores GrapesJS newsletter campaigns for the guarded newsletter builder.
+
+| Column | Type | Null | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | no | `gen_random_uuid()` | Primary key. |
+| `name` | `text` | no | `Untitled` | Campaign name shown in the dashboard. |
+| `subject` | `text` | yes | none | Mail subject draft. |
+| `from_name` | `text` | yes | none | Sender display name draft. |
+| `from_email` | `text` | yes | none | Sender email draft. |
+| `to_address` | `text` | yes | none | Mailing list address draft. |
+| `html` | `text` | yes | none | Inlined email HTML snapshot. |
+| `gjs_data` | `jsonb` | yes | none | GrapesJS project data. |
+| `created_by` | `uuid` | yes | none | References `auth.users(id)` for audit. |
+| `created_at` | `timestamptz` | no | `now()` | Creation timestamp. |
+| `updated_at` | `timestamptz` | no | `now()` | Maintained by `set_newsletter_projects_updated_at`. |
+
+Constraints and indexes:
+
+- Primary key on `id`.
+- Indexes on `created_by` and `updated_at desc`.
+
+### `public.newsletter_deliveries`
+
+Stores Mailgun send records created by the guarded newsletter builder. Test and campaign sends are both tracked so the dashboard can show recent delivery state.
+
+| Column | Type | Null | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | no | `gen_random_uuid()` | Primary key. |
+| `project_id` | `uuid` | yes | none | References `newsletter_projects(id)`; set null when a project is deleted. |
+| `delivery_type` | `text` | no | `campaign` | Check-constrained to `test` or `campaign`. |
+| `status` | `text` | no | `sent` | Check-constrained to `sent`, `delivered`, or `failed`. |
+| `subject` | `text` | no | none | Subject sent to Mailgun. |
+| `from_name` | `text` | yes | none | Sender display name. |
+| `from_email` | `text` | no | none | Sender email. |
+| `recipient` | `text` | no | none | Test recipient or mailing list address. |
+| `mailgun_message_id` | `text` | yes | none | Mailgun message id without angle brackets. |
+| `mailgun_message` | `text` | yes | none | Mailgun API response message. |
+| `last_event` | `text` | yes | none | Most recent synced Mailgun event. |
+| `last_event_at` | `timestamptz` | yes | none | Timestamp of the most recent synced event. |
+| `event_summary` | `jsonb` | no | `{}` | Event counts keyed by Mailgun event name. |
+| `created_by` | `uuid` | yes | none | References `auth.users(id)` for audit. |
+| `created_at` | `timestamptz` | no | `now()` | Creation timestamp. |
+| `updated_at` | `timestamptz` | no | `now()` | Maintained by `set_newsletter_deliveries_updated_at`. |
+
+Constraints and indexes:
+
+- Primary key on `id`.
+- Foreign keys on `project_id` and `created_by`.
+- Check constraints on `delivery_type` and `status`.
+- Unique partial index on `mailgun_message_id where mailgun_message_id is not null`.
+- Indexes on `project_id`, `created_by`, and `created_at desc`.
+
+### `public.newsletter_delivery_events`
+
+Stores Mailgun delivery events synced on demand from the delivery tracking panel.
+
+| Column | Type | Null | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `id` | `uuid` | no | `gen_random_uuid()` | Primary key. |
+| `delivery_id` | `uuid` | no | none | References `newsletter_deliveries(id)` and cascades delete. |
+| `event` | `text` | no | none | Mailgun event name such as `delivered`, `opened`, `clicked`, or `failed`. |
+| `recipient` | `text` | no | none | Recipient reported by Mailgun. |
+| `event_timestamp` | `timestamptz` | no | none | Mailgun event timestamp. |
+| `raw_payload` | `jsonb` | no | `{}` | Raw Mailgun event payload for later debugging. |
+| `created_at` | `timestamptz` | no | `now()` | Sync timestamp. |
+
+Constraints and indexes:
+
+- Primary key on `id`.
+- Foreign key on `delivery_id`.
+- Unique index on `(delivery_id, event, recipient, event_timestamp)`.
+- Indexes on `delivery_id` and `event_timestamp desc`.
+
 ## Functions
 
 | Function | Returns | Purpose |
@@ -277,6 +353,7 @@ This table intentionally does not store IP addresses, full user agents, full ref
 | `current_member_id()` | `integer` | Resolves current authenticated user to `members_main.id`. |
 | `has_special_access()` | `boolean` | Checks whether the current user has special admin access. |
 | `check_email_has_special_access(check_email text)` | `boolean` | Checks special access for a supplied email. |
+| `check_email_can_manage_newsletter(check_email text)` | `boolean` | Checks newsletter manager access for board members or special-access users. |
 | `can_manage_nft_requests()` | `boolean` | Checks NFT admin permissions. |
 | `allow_only_test_domain()` | `trigger` | Auth-related domain guard. |
 | `block_guest_core_updates_email()` | `trigger` | Prevents restricted email updates. |
@@ -296,6 +373,12 @@ This section summarizes the active policies. For exact SQL, inspect Supabase or 
 - Special-access emails can insert members and update all members.
 
 Special-access emails are currently encoded in DB policies and app-side admin checks. Keep them synchronized if changing authorization behavior.
+
+### Newsletter
+
+- Newsletter projects, assets, deliveries, and delivery events are managed by newsletter managers.
+- Newsletter managers are members with `Role = 'Board Member'` or users accepted by `check_email_has_special_access(check_email text)`.
+- API routes verify the same access through `check_email_can_manage_newsletter(check_email text)` before calling Mailgun or mutating newsletter data.
 
 ### Events And Registration
 
@@ -322,11 +405,24 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 - The membership dashboard reads aggregate analytics server-side for board members and special-access users.
 - Board members and special-access users can update deployment metadata through the server-side API route.
 
+### Newsletter Projects
+
+- Authenticated special-access users can read, insert, update, and delete newsletter projects.
+- Inserts require `created_by = auth.uid()` in normal authenticated sessions.
+- Updates and deletes are shared across special-access users; `created_by` is audit metadata, not ownership enforcement.
+
+### Newsletter Deliveries
+
+- Authenticated special-access users can read, insert, update, and delete newsletter delivery rows.
+- Inserts require `created_by = auth.uid()` in normal authenticated sessions.
+- Authenticated special-access users can read, insert, and delete synced newsletter delivery events.
+
 ### Storage
 
 - `member-pictures`: authenticated users can view; users can upload/update their own object path.
 - `event-images`: public read access.
 - `event-qr-codes`: public read access; board members can upload/update.
+- `newsletter-assets`: public read access; authenticated special-access users can upload, update, and delete objects.
 - `nft-images-picks`: open policy for anon/authenticated users named `dev_open_nft_images`; review this before production hardening.
 
 ## Storage Buckets
@@ -337,11 +433,12 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 | `event-images` | yes | External event card images. |
 | `event-qr-codes` | yes | Event check-in QR codes. |
 | `link-redirect-images` | no | Private board-uploaded visual references for QR/link placements. |
+| `newsletter-assets` | yes | Public reusable images inserted into Mailgun newsletter campaigns. |
 | `nft-images-picks` | yes | NFT request image uploads/picks. |
 
 ## Known Documentation And Type Gaps
 
-- `lib/types/database.types.ts` currently models `members_main` only. It is not a full generated Supabase type map.
+- `lib/types/database.types.ts` is a hand-written partial Supabase type map for member and newsletter tables. It is not a full generated schema.
 - `events`, `event_registrations`, `attendance`, `nft_requests`, and link redirect analytics tables are modeled locally in feature files where needed.
 - If you regenerate Supabase types, include all `public` tables and update imports that currently rely on hand-written interfaces.
 

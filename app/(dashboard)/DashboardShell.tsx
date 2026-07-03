@@ -16,6 +16,7 @@ const PATHNAME_TO_TAB: Record<string, DashboardTab> = {
   '/link-analytics': 'link-analytics',
   '/nft-approvals': 'nft-approvals',
   '/nft-status':    'nft-status',
+  '/newsletter':    'newsletter',
 }
 
 export function DashboardShell({
