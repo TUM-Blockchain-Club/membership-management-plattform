@@ -17,6 +17,8 @@ Scope: PR 23 newsletter builder cleanup.
 - Newsletter API response handling accepts plain-text upstream errors, including Mailgun `Forbidden` responses, so the UI surfaces the real error instead of failing with a JSON parse message.
 - The OAuth callback now writes Supabase session cookies onto the returned redirect response, which keeps server API routes authenticated on preview domains.
 - Newsletter client requests also send the current Supabase access token as a Bearer header. Server routes validate that token with Supabase before applying the same newsletter-manager access check, which covers preview deployments where SSR cookies are unavailable or stale.
+- Mailgun sends and delivery tracking use the active EU Mailgun domain `mg.tum-blockchain.com`. Set `MAILGUN_DOMAIN=mg.tum-blockchain.com` and `MAILGUN_REGION=eu` in Vercel; `newsletter.tum-blockchain.com` is not a Mailgun domain for this API key.
+- Newsletter API routes log warning details for auth and Mailgun failures. Set `NEWSLETTER_DEBUG_LOGS=true` temporarily for verbose success-path logs when debugging preview deployments.
 - Newsletter workspace controls are grouped around the editor: Templates, Assets, and Projects above it; Send and Delivery Tracking below it. The editor intentionally uses the full content width with a bounded responsive height.
 
 - Apply `supabase/newsletter_projects.sql` before deploying the newsletter builder.

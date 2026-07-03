@@ -589,7 +589,7 @@ export function NewsletterPage({ effectiveHasSpecialAccess }: Props) {
                     id="newsletter-list"
                     value={newsletter.toAddress}
                     onChange={(event) => newsletter.setToAddress(event.target.value)}
-                    placeholder="list@newsletter.tum-blockchain.com"
+                    placeholder="list@mg.tum-blockchain.com"
                   />
                   <FieldDescription>Load Mailgun lists or enter a list address manually.</FieldDescription>
                 </Field>

@@ -13,11 +13,26 @@ async function readMailgunResponse(response: Response) {
   }
 }
 
+const shouldLogMailgunInfo = () =>
+  process.env.NODE_ENV !== 'production' || process.env.NEWSLETTER_DEBUG_LOGS === 'true'
+
+const logMailgunInfo = (event: string, data: Record<string, unknown>) => {
+  if (!shouldLogMailgunInfo()) return
+  console.info('[newsletter-mailgun]', { event, ...data })
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createSupabaseServerClient()
     const auth = await requireNewsletterAccess(supabase, request)
+    const debugId = request.headers.get('x-newsletter-request-id') ?? crypto.randomUUID()
     if (auth.status !== 200) {
+      console.warn('[newsletter-mailgun]', {
+        event: 'send-auth-rejected',
+        debugId,
+        status: auth.status,
+        error: auth.error,
+      })
       return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
@@ -39,22 +54,46 @@ export async function POST(request: Request) {
     const cleanSubject = sanitize(subject)
 
     const apiKey = process.env.MAILGUN_API_KEY
-    const domain = process.env.MAILGUN_DOMAIN || 'newsletter.tum-blockchain.com'
+    const domain = process.env.MAILGUN_DOMAIN || 'mg.tum-blockchain.com'
     const region = process.env.MAILGUN_REGION || 'eu'
 
     if (!apiKey) {
+      console.warn('[newsletter-mailgun]', {
+        event: 'send-not-configured',
+        debugId,
+        hasApiKey: false,
+        domain,
+        region,
+      })
       return NextResponse.json({ error: 'Mailgun API key not configured on server.' }, { status: 500 })
     }
 
     if (!cleanFromEmail || !emailRegex.test(cleanFromEmail)) {
+      console.warn('[newsletter-mailgun]', {
+        event: 'send-invalid-from',
+        debugId,
+        fromEmailPresent: Boolean(cleanFromEmail),
+      })
       return NextResponse.json({ error: 'Valid fromEmail is required.' }, { status: 400 })
     }
     if (!cleanSubject || !html) {
+      console.warn('[newsletter-mailgun]', {
+        event: 'send-invalid-content',
+        debugId,
+        hasSubject: Boolean(cleanSubject),
+        hasHtml: Boolean(html),
+      })
       return NextResponse.json({ error: 'subject and html are required.' }, { status: 400 })
     }
 
     const recipient = testEmail ? sanitize(testEmail) : toAddress ? sanitize(toAddress) : ''
     if (!recipient || !emailRegex.test(recipient)) {
+      console.warn('[newsletter-mailgun]', {
+        event: 'send-invalid-recipient',
+        debugId,
+        recipientPresent: Boolean(recipient),
+        type: testEmail ? 'test' : 'campaign',
+      })
       return NextResponse.json({ error: 'Valid recipient email is required.' }, { status: 400 })
     }
 
@@ -68,6 +107,17 @@ export async function POST(request: Request) {
 
     const authHeader = 'Basic ' + Buffer.from(`api:${apiKey}`).toString('base64')
 
+    logMailgunInfo('send-request', {
+      debugId,
+      domain,
+      region,
+      type: testEmail ? 'test' : 'campaign',
+      fromEmail: cleanFromEmail,
+      recipient,
+      subjectLength: cleanSubject.length,
+      htmlLength: html.length,
+    })
+
     const response = await fetch(`${base}/v3/${domain}/messages`, {
       method: 'POST',
       headers: {
@@ -78,6 +128,20 @@ export async function POST(request: Request) {
     })
 
     const data = await readMailgunResponse(response)
+    const responseLog = {
+      debugId,
+      status: response.status,
+      ok: response.ok,
+      message: data.message ?? null,
+      hasMessageId: Boolean(data.id),
+    }
+
+    if (response.ok) {
+      logMailgunInfo('send-response', responseLog)
+    } else {
+      console.warn('[newsletter-mailgun]', { event: 'send-response', ...responseLog })
+    }
+
     if (!response.ok) {
       return NextResponse.json({ error: data.message || 'Mailgun error' }, { status: response.status })
     }
@@ -100,6 +164,14 @@ export async function POST(request: Request) {
       .select()
       .single()
 
+    if (deliveryError) {
+      console.warn('[newsletter-mailgun]', {
+        event: 'send-tracking-error',
+        debugId,
+        message: deliveryError.message,
+      })
+    }
+
     return NextResponse.json({
       ok: true,
       id: data.id,
@@ -109,6 +181,10 @@ export async function POST(request: Request) {
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Send failed'
+    console.warn('[newsletter-mailgun]', {
+      event: 'send-exception',
+      message,
+    })
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

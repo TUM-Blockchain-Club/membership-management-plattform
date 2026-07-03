@@ -40,7 +40,7 @@ const summarizeEvents = (events: Array<{ event: string }>) =>
 
 async function fetchMailgunEvents(messageId: string) {
   const apiKey = process.env.MAILGUN_API_KEY
-  const domain = process.env.MAILGUN_DOMAIN || 'newsletter.tum-blockchain.com'
+  const domain = process.env.MAILGUN_DOMAIN || 'mg.tum-blockchain.com'
 
   if (!apiKey) {
     throw new Error('Mailgun not configured.')

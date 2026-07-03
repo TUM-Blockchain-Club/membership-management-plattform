@@ -22,12 +22,27 @@ async function readApiResponse<T extends { error?: string }>(response: Response)
 
 async function newsletterFetch(input: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers)
+  const debugId = crypto.randomUUID()
   const {
     data: { session },
+    error,
   } = await supabase.auth.getSession()
 
   if (session?.access_token && !headers.has('Authorization')) {
     headers.set('Authorization', `Bearer ${session.access_token}`)
+  }
+
+  headers.set('X-Newsletter-Request-Id', debugId)
+
+  if (process.env.NODE_ENV !== 'production') {
+    console.info('[newsletter-client]', {
+      debugId,
+      input,
+      hasSession: Boolean(session?.access_token),
+      sessionUser: session?.user?.email ? `${session.user.email.slice(0, 2)}***` : null,
+      sessionError: error?.message ?? null,
+      sendsAuthorization: headers.has('Authorization'),
+    })
   }
 
   return fetch(input, { ...init, headers })
@@ -39,7 +54,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
   const [campaignName, setCampaignName] = useState('')
   const [subject, setSubject] = useState('')
   const [fromName, setFromName] = useState('TUM Blockchain Club')
-  const [fromEmail, setFromEmail] = useState('newsletter@newsletter.tum-blockchain.com')
+  const [fromEmail, setFromEmail] = useState('newsletter@mg.tum-blockchain.com')
   const [toAddress, setToAddress] = useState('')
   const [testEmail, setTestEmail] = useState('')
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle')
@@ -104,7 +119,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
     setCampaignName(project.name)
     setSubject(project.subject ?? '')
     setFromName(project.from_name ?? 'TUM Blockchain Club')
-    setFromEmail(project.from_email ?? 'newsletter@newsletter.tum-blockchain.com')
+    setFromEmail(project.from_email ?? 'newsletter@mg.tum-blockchain.com')
     setToAddress(project.to_address ?? '')
 
     try {
