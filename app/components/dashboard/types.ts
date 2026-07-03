@@ -38,6 +38,7 @@ export type DashboardTab =
   | 'link-analytics'
   | 'nft-approvals'
   | 'nft-status'
+  | 'newsletter'
 
 export type DashboardMessage = {
   type: 'success' | 'error'

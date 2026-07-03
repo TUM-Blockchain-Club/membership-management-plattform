@@ -91,6 +91,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
   const effectiveIsBoardMember = member?.Role === 'Board Member' && !forceMemberView
   const showLinkAnalyticsTab = (effectiveIsBoardMember || effectiveHasSpecialAccess) && !forceMemberView
   const showNftApprovalsTab = canManageNftRequests && !forceMemberView
+  const showNewsletterTab = effectiveIsBoardMember || effectiveHasSpecialAccess
 
   const activeTab = routeTab
 
@@ -117,6 +118,12 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
       router.replace(TAB_ROUTES.profile)
     }
   }, [activeTab, loading, router, showLinkAnalyticsTab])
+
+  useEffect(() => {
+    if (!loading && activeTab === 'newsletter' && !showNewsletterTab) {
+      router.replace(TAB_ROUTES.profile)
+    }
+  }, [activeTab, loading, router, showNewsletterTab])
 
   const handleSignOut = useCallback(async () => {
     await auth.signOut()
@@ -500,6 +507,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     showInterestedModal,
     showLinkAnalyticsTab,
     showMemberEditorModal,
+    showNewsletterTab,
     showNftApprovalsTab,
     showParticipantsModal,
     stats,
