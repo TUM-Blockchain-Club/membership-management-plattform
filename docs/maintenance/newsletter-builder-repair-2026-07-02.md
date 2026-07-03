@@ -15,6 +15,7 @@ Scope: PR 23 newsletter builder cleanup.
 - Newsletter manager access now includes all members with `Role = 'Board Member'` plus explicit special-access users via `check_email_can_manage_newsletter(check_email text)`.
 - Mailgun sends now write a delivery row after a successful API response. The delivery-status route can list recent sends and refresh events for a specific Mailgun message id.
 - Newsletter API response handling accepts plain-text upstream errors, including Mailgun `Forbidden` responses, so the UI surfaces the real error instead of failing with a JSON parse message.
+- The OAuth callback now writes Supabase session cookies onto the returned redirect response, which keeps server API routes authenticated on preview domains.
 - Newsletter workspace controls are grouped around the editor: Templates, Assets, and Projects above it; Send and Delivery Tracking below it. The editor intentionally uses the full content width with a bounded responsive height.
 
 - Apply `supabase/newsletter_projects.sql` before deploying the newsletter builder.
