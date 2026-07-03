@@ -353,6 +353,7 @@ Constraints and indexes:
 | `current_member_id()` | `integer` | Resolves current authenticated user to `members_main.id`. |
 | `has_special_access()` | `boolean` | Checks whether the current user has special admin access. |
 | `check_email_has_special_access(check_email text)` | `boolean` | Checks special access for a supplied email. |
+| `check_email_can_manage_newsletter(check_email text)` | `boolean` | Checks newsletter manager access for board members or special-access users. |
 | `can_manage_nft_requests()` | `boolean` | Checks NFT admin permissions. |
 | `allow_only_test_domain()` | `trigger` | Auth-related domain guard. |
 | `block_guest_core_updates_email()` | `trigger` | Prevents restricted email updates. |
@@ -372,6 +373,12 @@ This section summarizes the active policies. For exact SQL, inspect Supabase or 
 - Special-access emails can insert members and update all members.
 
 Special-access emails are currently encoded in DB policies and app-side admin checks. Keep them synchronized if changing authorization behavior.
+
+### Newsletter
+
+- Newsletter projects, assets, deliveries, and delivery events are managed by newsletter managers.
+- Newsletter managers are members with `Role = 'Board Member'` or users accepted by `check_email_has_special_access(check_email text)`.
+- API routes verify the same access through `check_email_can_manage_newsletter(check_email text)` before calling Mailgun or mutating newsletter data.
 
 ### Events And Registration
 

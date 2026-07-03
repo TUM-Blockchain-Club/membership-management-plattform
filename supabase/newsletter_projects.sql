@@ -1,10 +1,31 @@
 -- Newsletter projects schema.
 --
 -- Stores GrapeJS-based email campaigns created in the Newsletter tab.
--- Access is restricted to special-access users via RLS using the
--- check_email_has_special_access RPC (same pattern as other admin features).
+-- Access is restricted to newsletter managers: board members or users with
+-- explicit special access.
 
 create extension if not exists pgcrypto;
+
+create index if not exists members_main_tbc_email_lower_idx
+  on public.members_main (lower("TBC Email"));
+
+create or replace function public.check_email_can_manage_newsletter(check_email text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select coalesce(public.check_email_has_special_access(check_email), false)
+    or exists (
+      select 1
+      from public.members_main
+      where lower("TBC Email") = lower(check_email)
+        and btrim("Role") = 'Board Member'
+    );
+$$;
+
+grant execute on function public.check_email_can_manage_newsletter(text) to authenticated;
 
 create table if not exists public.newsletter_projects (
   id uuid primary key default gen_random_uuid(),
@@ -52,7 +73,7 @@ create policy "special access users can read newsletter projects"
 on public.newsletter_projects
 for select
 to authenticated
-using (public.check_email_has_special_access((select auth.jwt()) ->> 'email'));
+using (public.check_email_can_manage_newsletter((select auth.jwt()) ->> 'email'));
 
 drop policy if exists "special access users can create newsletter projects" on public.newsletter_projects;
 create policy "special access users can create newsletter projects"
@@ -60,7 +81,7 @@ on public.newsletter_projects
 for insert
 to authenticated
 with check (
-  public.check_email_has_special_access((select auth.jwt()) ->> 'email')
+  public.check_email_can_manage_newsletter((select auth.jwt()) ->> 'email')
   and created_by = (select auth.uid())
 );
 
@@ -70,8 +91,8 @@ create policy "special access users can update newsletter projects"
 on public.newsletter_projects
 for update
 to authenticated
-using (public.check_email_has_special_access((select auth.jwt()) ->> 'email'))
-with check (public.check_email_has_special_access((select auth.jwt()) ->> 'email'));
+using (public.check_email_can_manage_newsletter((select auth.jwt()) ->> 'email'))
+with check (public.check_email_can_manage_newsletter((select auth.jwt()) ->> 'email'));
 
 drop policy if exists "special access users can delete own newsletter projects" on public.newsletter_projects;
 drop policy if exists "special access users can delete newsletter projects" on public.newsletter_projects;
@@ -79,7 +100,7 @@ create policy "special access users can delete newsletter projects"
 on public.newsletter_projects
 for delete
 to authenticated
-using (public.check_email_has_special_access((select auth.jwt()) ->> 'email'));
+using (public.check_email_can_manage_newsletter((select auth.jwt()) ->> 'email'));
 
 grant select, insert, update, delete on public.newsletter_projects to authenticated;
 
@@ -157,7 +178,7 @@ create policy "special access users can read newsletter deliveries"
 on public.newsletter_deliveries
 for select
 to authenticated
-using (public.check_email_has_special_access((select auth.jwt()) ->> 'email'));
+using (public.check_email_can_manage_newsletter((select auth.jwt()) ->> 'email'));
 
 drop policy if exists "special access users can create newsletter deliveries" on public.newsletter_deliveries;
 create policy "special access users can create newsletter deliveries"
@@ -165,7 +186,7 @@ on public.newsletter_deliveries
 for insert
 to authenticated
 with check (
-  public.check_email_has_special_access((select auth.jwt()) ->> 'email')
+  public.check_email_can_manage_newsletter((select auth.jwt()) ->> 'email')
   and created_by = (select auth.uid())
 );
 
@@ -174,15 +195,15 @@ create policy "special access users can update newsletter deliveries"
 on public.newsletter_deliveries
 for update
 to authenticated
-using (public.check_email_has_special_access((select auth.jwt()) ->> 'email'))
-with check (public.check_email_has_special_access((select auth.jwt()) ->> 'email'));
+using (public.check_email_can_manage_newsletter((select auth.jwt()) ->> 'email'))
+with check (public.check_email_can_manage_newsletter((select auth.jwt()) ->> 'email'));
 
 drop policy if exists "special access users can delete newsletter deliveries" on public.newsletter_deliveries;
 create policy "special access users can delete newsletter deliveries"
 on public.newsletter_deliveries
 for delete
 to authenticated
-using (public.check_email_has_special_access((select auth.jwt()) ->> 'email'));
+using (public.check_email_can_manage_newsletter((select auth.jwt()) ->> 'email'));
 
 grant select, insert, update, delete on public.newsletter_deliveries to authenticated;
 
@@ -212,21 +233,21 @@ create policy "special access users can read newsletter delivery events"
 on public.newsletter_delivery_events
 for select
 to authenticated
-using (public.check_email_has_special_access((select auth.jwt()) ->> 'email'));
+using (public.check_email_can_manage_newsletter((select auth.jwt()) ->> 'email'));
 
 drop policy if exists "special access users can create newsletter delivery events" on public.newsletter_delivery_events;
 create policy "special access users can create newsletter delivery events"
 on public.newsletter_delivery_events
 for insert
 to authenticated
-with check (public.check_email_has_special_access((select auth.jwt()) ->> 'email'));
+with check (public.check_email_can_manage_newsletter((select auth.jwt()) ->> 'email'));
 
 drop policy if exists "special access users can delete newsletter delivery events" on public.newsletter_delivery_events;
 create policy "special access users can delete newsletter delivery events"
 on public.newsletter_delivery_events
 for delete
 to authenticated
-using (public.check_email_has_special_access((select auth.jwt()) ->> 'email'));
+using (public.check_email_can_manage_newsletter((select auth.jwt()) ->> 'email'));
 
 grant select, insert, delete on public.newsletter_delivery_events to authenticated;
 
@@ -249,7 +270,7 @@ for insert
 to authenticated
 with check (
   bucket_id = 'newsletter-assets'
-  and public.check_email_has_special_access((select auth.jwt()) ->> 'email')
+  and public.check_email_can_manage_newsletter((select auth.jwt()) ->> 'email')
 );
 
 drop policy if exists "special access users can update newsletter assets" on storage.objects;
@@ -259,11 +280,11 @@ for update
 to authenticated
 using (
   bucket_id = 'newsletter-assets'
-  and public.check_email_has_special_access((select auth.jwt()) ->> 'email')
+  and public.check_email_can_manage_newsletter((select auth.jwt()) ->> 'email')
 )
 with check (
   bucket_id = 'newsletter-assets'
-  and public.check_email_has_special_access((select auth.jwt()) ->> 'email')
+  and public.check_email_can_manage_newsletter((select auth.jwt()) ->> 'email')
 );
 
 drop policy if exists "special access users can delete newsletter assets" on storage.objects;
@@ -273,5 +294,5 @@ for delete
 to authenticated
 using (
   bucket_id = 'newsletter-assets'
-  and public.check_email_has_special_access((select auth.jwt()) ->> 'email')
+  and public.check_email_can_manage_newsletter((select auth.jwt()) ->> 'email')
 );

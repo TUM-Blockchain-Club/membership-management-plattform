@@ -91,7 +91,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
   const effectiveIsBoardMember = member?.Role === 'Board Member' && !forceMemberView
   const showLinkAnalyticsTab = (effectiveIsBoardMember || effectiveHasSpecialAccess) && !forceMemberView
   const showNftApprovalsTab = canManageNftRequests && !forceMemberView
-  const showNewsletterTab = effectiveHasSpecialAccess
+  const showNewsletterTab = effectiveIsBoardMember || effectiveHasSpecialAccess
 
   const activeTab = routeTab
 

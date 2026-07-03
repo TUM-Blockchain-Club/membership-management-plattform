@@ -133,7 +133,10 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      check_email_can_manage_newsletter: {
+        Args: { check_email: string }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

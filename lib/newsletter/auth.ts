@@ -56,7 +56,7 @@ export async function requireNewsletterAccess(
     }
   }
 
-  const { data: hasAccess, error: accessError } = await supabase.rpc('check_email_has_special_access', {
+  const { data: hasAccess, error: accessError } = await supabase.rpc('check_email_can_manage_newsletter', {
     check_email: user.email,
   })
 
