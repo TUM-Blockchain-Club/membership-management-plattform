@@ -112,7 +112,7 @@ export const memberService = {
     const { error } = await supabase.storage
       .from('member-pictures')
       .upload(fileName, file, {
-        cacheControl: '3600',
+        cacheControl: '1209600',
         upsert: true
       })
     
