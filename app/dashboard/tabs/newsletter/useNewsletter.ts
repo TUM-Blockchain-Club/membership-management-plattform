@@ -2,6 +2,7 @@
 
 import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
+import { supabase } from '@/lib/supabase'
 import type { RefObject } from 'react'
 import type { GrapesEditorHandle } from './components/GrapesEditor'
 import type { MailingList, NewsletterAsset, NewsletterDelivery, NewsletterProject } from './components/types'
@@ -17,6 +18,19 @@ async function readApiResponse<T extends { error?: string }>(response: Response)
   } catch {
     return { error: text } as T
   }
+}
+
+async function newsletterFetch(input: string, init: RequestInit = {}) {
+  const headers = new Headers(init.headers)
+  const {
+    data: { session },
+  } = await supabase.auth.getSession()
+
+  if (session?.access_token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${session.access_token}`)
+  }
+
+  return fetch(input, { ...init, headers })
 }
 
 export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
@@ -53,7 +67,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
 
     if (!css.trim()) return html
 
-    const response = await fetch('/api/newsletter/inline-css', {
+    const response = await newsletterFetch('/api/newsletter/inline-css', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ html, css }),
@@ -70,7 +84,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
   const fetchProjects = useCallback(async () => {
     setLoadingProjects(true)
     try {
-      const response = await fetch('/api/newsletter/projects')
+      const response = await newsletterFetch('/api/newsletter/projects')
       const data = await readApiResponse<{ projects?: NewsletterProject[]; error?: string }>(response)
 
       if (!response.ok) {
@@ -132,7 +146,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
     setSaveStatus('saving')
     try {
       const html = await getEmailHtml()
-      const response = await fetch('/api/newsletter/projects', {
+      const response = await newsletterFetch('/api/newsletter/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -168,7 +182,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
   }, [campaignName, currentProjectId, editorRef, fetchProjects, fromEmail, fromName, getEmailHtml, subject, toAddress])
 
   const deleteProject = useCallback(async (project: NewsletterProject) => {
-    const response = await fetch(`/api/newsletter/projects/${project.id}`, { method: 'DELETE' })
+    const response = await newsletterFetch(`/api/newsletter/projects/${project.id}`, { method: 'DELETE' })
 
     if (!response.ok) {
       const data = await readApiResponse<{ error?: string }>(response)
@@ -197,7 +211,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
   const fetchMailingLists = useCallback(async () => {
     setLoadingLists(true)
     try {
-      const response = await fetch('/api/newsletter/mailing-lists')
+      const response = await newsletterFetch('/api/newsletter/mailing-lists')
       const data = await readApiResponse<{ lists?: MailingList[]; error?: string }>(response)
 
       if (!response.ok) {
@@ -215,7 +229,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
   const fetchAssets = useCallback(async () => {
     setLoadingAssets(true)
     try {
-      const response = await fetch('/api/newsletter/assets')
+      const response = await newsletterFetch('/api/newsletter/assets')
       const data = await readApiResponse<{ assets?: NewsletterAsset[]; error?: string }>(response)
 
       if (!response.ok) {
@@ -236,7 +250,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
       const formData = new FormData()
       formData.append('image', file)
 
-      const response = await fetch('/api/newsletter/assets', {
+      const response = await newsletterFetch('/api/newsletter/assets', {
         method: 'POST',
         body: formData,
       })
@@ -258,7 +272,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
   }, [])
 
   const deleteAsset = useCallback(async (asset: NewsletterAsset) => {
-    const response = await fetch(`/api/newsletter/assets?${new URLSearchParams({ path: asset.path })}`, {
+    const response = await newsletterFetch(`/api/newsletter/assets?${new URLSearchParams({ path: asset.path })}`, {
       method: 'DELETE',
     })
 
@@ -282,7 +296,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
   const fetchDeliveries = useCallback(async () => {
     setLoadingDeliveries(true)
     try {
-      const response = await fetch('/api/newsletter/delivery-status')
+      const response = await newsletterFetch('/api/newsletter/delivery-status')
       const data = await readApiResponse<{ deliveries?: NewsletterDelivery[]; error?: string }>(response)
 
       if (!response.ok) {
@@ -305,7 +319,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
 
     setLoadingDeliveries(true)
     try {
-      const response = await fetch(`/api/newsletter/delivery-status?${new URLSearchParams({
+      const response = await newsletterFetch(`/api/newsletter/delivery-status?${new URLSearchParams({
         messageId: delivery.mailgun_message_id,
       })}`)
       const data = await readApiResponse<{ error?: string }>(response)
@@ -325,7 +339,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
 
   const send = useCallback(async (payload: { testEmail?: string; toAddress?: string }) => {
     const html = await getEmailHtml()
-    const response = await fetch('/api/newsletter/send', {
+    const response = await newsletterFetch('/api/newsletter/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fromName, fromEmail, projectId: currentProjectId, subject, html, ...payload }),
