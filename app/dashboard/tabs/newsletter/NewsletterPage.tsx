@@ -479,92 +479,94 @@ export function NewsletterPage({ effectiveHasSpecialAccess }: Props) {
         </CardContent>
       </Card>
 
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <Card className="min-h-[720px] py-0">
-          <CardHeader className="border-b py-4">
-            <CardTitle>Email editor</CardTitle>
-            <CardDescription>Use email-safe blocks and HTTPS image URLs for reliable delivery.</CardDescription>
+      <div className="grid gap-5 lg:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle>Templates</CardTitle>
+            <CardDescription>Start from a compact email-safe layout.</CardDescription>
           </CardHeader>
-          <CardContent className="min-h-[660px] p-0">
-            <GrapesEditor
-              ref={editorRef}
-              onChange={newsletter.markDirty}
+          <CardContent className="flex flex-col gap-2">
+            {TEMPLATES.map((template) => (
+              <Button
+                key={template.id}
+                type="button"
+                variant="outline"
+                className="h-auto justify-start whitespace-normal px-3 py-3 text-left"
+                onClick={() => newsletter.loadTemplate(template.html, template.label)}
+              >
+                <LayoutTemplateIcon data-icon="inline-start" />
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium">{template.label}</span>
+                  <span className="block text-xs text-muted-foreground">{template.description}</span>
+                </span>
+              </Button>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Assets</CardTitle>
+            <CardDescription>Upload reusable images and insert them into the editor.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <AssetLibrary
+              assets={newsletter.assets}
+              loading={newsletter.loadingAssets}
+              uploading={newsletter.uploadingAsset}
+              onDelete={(asset) => void newsletter.deleteAsset(asset)}
+              onInsert={newsletter.insertAsset}
+              onRefresh={() => void newsletter.fetchAssets()}
+              onUpload={(file) => void newsletter.uploadAsset(file)}
             />
           </CardContent>
         </Card>
 
-        <aside className="flex flex-col gap-5">
-          <Card>
-            <CardHeader>
-              <CardTitle>Templates</CardTitle>
-              <CardDescription>Start from a compact email-safe layout.</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2">
-              {TEMPLATES.map((template) => (
-                <Button
-                  key={template.id}
-                  type="button"
-                  variant="outline"
-                  className="h-auto justify-start whitespace-normal px-3 py-3 text-left"
-                  onClick={() => newsletter.loadTemplate(template.html, template.label)}
-                >
-                  <LayoutTemplateIcon data-icon="inline-start" />
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium">{template.label}</span>
-                    <span className="block text-xs text-muted-foreground">{template.description}</span>
-                  </span>
-                </Button>
-              ))}
-            </CardContent>
-          </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Projects</CardTitle>
+            <CardDescription>Saved campaigns are shared across special-access users.</CardDescription>
+            <CardAction>
+              <Button type="button" variant="ghost" size="icon-sm" onClick={() => void newsletter.fetchProjects()}>
+                <RefreshCwIcon />
+                <span className="sr-only">Refresh projects</span>
+              </Button>
+            </CardAction>
+          </CardHeader>
+          <CardContent>
+            <ProjectList
+              currentProjectId={newsletter.currentProjectId}
+              loading={newsletter.loadingProjects}
+              projects={newsletter.projects}
+              onDelete={(project) => void newsletter.deleteProject(project)}
+              onLoad={newsletter.loadProject}
+            />
+          </CardContent>
+        </Card>
+      </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Assets</CardTitle>
-              <CardDescription>Upload reusable images and insert them into the editor.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AssetLibrary
-                assets={newsletter.assets}
-                loading={newsletter.loadingAssets}
-                uploading={newsletter.uploadingAsset}
-                onDelete={(asset) => void newsletter.deleteAsset(asset)}
-                onInsert={newsletter.insertAsset}
-                onRefresh={() => void newsletter.fetchAssets()}
-                onUpload={(file) => void newsletter.uploadAsset(file)}
-              />
-            </CardContent>
-          </Card>
+      <Card className="overflow-hidden py-0">
+        <CardHeader className="border-b py-4">
+          <CardTitle>Email editor</CardTitle>
+          <CardDescription>Use email-safe blocks and HTTPS image URLs for reliable delivery.</CardDescription>
+        </CardHeader>
+        <CardContent className="h-[clamp(480px,56vh,620px)] p-0">
+          <GrapesEditor
+            ref={editorRef}
+            onChange={newsletter.markDirty}
+          />
+        </CardContent>
+      </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Projects</CardTitle>
-              <CardDescription>Saved campaigns are shared across special-access users.</CardDescription>
-              <CardAction>
-                <Button type="button" variant="ghost" size="icon-sm" onClick={() => void newsletter.fetchProjects()}>
-                  <RefreshCwIcon />
-                  <span className="sr-only">Refresh projects</span>
-                </Button>
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              <ProjectList
-                currentProjectId={newsletter.currentProjectId}
-                loading={newsletter.loadingProjects}
-                projects={newsletter.projects}
-                onDelete={(project) => void newsletter.deleteProject(project)}
-                onLoad={newsletter.loadProject}
-              />
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Send</CardTitle>
-              <CardDescription>Send a test first, then unlock the campaign send.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <FieldGroup>
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Send</CardTitle>
+            <CardDescription>Send a test first, then unlock the campaign send.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup>
+              <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
                 <Field>
                   <FieldLabel htmlFor="newsletter-test-email">Test recipient</FieldLabel>
                   <div className="flex gap-2">
@@ -591,33 +593,33 @@ export function NewsletterPage({ effectiveHasSpecialAccess }: Props) {
                   />
                   <FieldDescription>Load Mailgun lists or enter a list address manually.</FieldDescription>
                 </Field>
+              </div>
 
-                {newsletter.mailingLists.length > 0 && (
-                  <div className="flex max-h-44 flex-col gap-2 overflow-y-auto rounded-lg border p-2">
-                    {newsletter.mailingLists.map((list) => (
-                      <button
-                        key={list.address}
-                        type="button"
-                        className="rounded-md px-2 py-2 text-left hover:bg-muted"
-                        onClick={() => newsletter.setToAddress(list.address)}
-                      >
-                        <span className="block truncate text-sm font-medium">{list.address}</span>
-                        <span className="block text-xs text-muted-foreground">
-                          {list.name || 'Mailgun list'} · {list.membersCount} members
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+              {newsletter.mailingLists.length > 0 && (
+                <div className="flex max-h-44 flex-col gap-2 overflow-y-auto rounded-lg border p-2">
+                  {newsletter.mailingLists.map((list) => (
+                    <button
+                      key={list.address}
+                      type="button"
+                      className="rounded-md px-2 py-2 text-left hover:bg-muted"
+                      onClick={() => newsletter.setToAddress(list.address)}
+                    >
+                      <span className="block truncate text-sm font-medium">{list.address}</span>
+                      <span className="block text-xs text-muted-foreground">
+                        {list.name || 'Mailgun list'} · {list.membersCount} members
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
 
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <Button type="button" variant="outline" disabled={newsletter.loadingLists} onClick={() => void newsletter.fetchMailingLists()}>
                   {newsletter.loadingLists ? <Spinner data-icon="inline-start" /> : <RefreshCwIcon data-icon="inline-start" />}
                   Load lists
                 </Button>
 
-                <Separator />
-
-                <Field orientation="horizontal" data-disabled={!newsletter.testSent}>
+                <Field orientation="horizontal" data-disabled={!newsletter.testSent} className="lg:max-w-sm">
                   <Checkbox
                     checked={sendConfirmed}
                     disabled={!newsletter.testSent}
@@ -628,30 +630,32 @@ export function NewsletterPage({ effectiveHasSpecialAccess }: Props) {
                     <FieldDescription>Required before sending to the selected list.</FieldDescription>
                   </FieldContent>
                 </Field>
+              </div>
 
-                <Button type="button" disabled={!canSendCampaign} onClick={() => void newsletter.sendCampaign()}>
-                  {newsletter.sendingCampaign ? <Spinner data-icon="inline-start" /> : <SendIcon data-icon="inline-start" />}
-                  Send campaign
-                </Button>
-              </FieldGroup>
-            </CardContent>
-          </Card>
+              <Separator />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Delivery tracking</CardTitle>
-              <CardDescription>Recent Mailgun sends and refreshed event status.</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <DeliveryHistory
-                deliveries={newsletter.deliveries}
-                loading={newsletter.loadingDeliveries}
-                onRefresh={() => void newsletter.fetchDeliveries()}
-                onRefreshDelivery={(delivery) => void newsletter.refreshDelivery(delivery)}
-              />
-            </CardContent>
-          </Card>
-        </aside>
+              <Button type="button" disabled={!canSendCampaign} onClick={() => void newsletter.sendCampaign()}>
+                {newsletter.sendingCampaign ? <Spinner data-icon="inline-start" /> : <SendIcon data-icon="inline-start" />}
+                Send campaign
+              </Button>
+            </FieldGroup>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Delivery tracking</CardTitle>
+            <CardDescription>Recent Mailgun sends and refreshed event status.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <DeliveryHistory
+              deliveries={newsletter.deliveries}
+              loading={newsletter.loadingDeliveries}
+              onRefresh={() => void newsletter.fetchDeliveries()}
+              onRefreshDelivery={(delivery) => void newsletter.refreshDelivery(delivery)}
+            />
+          </CardContent>
+        </Card>
       </div>
 
       <Dialog open={newsletter.previewOpen} onOpenChange={newsletter.setPreviewOpen}>
