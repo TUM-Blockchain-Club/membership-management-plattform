@@ -8,6 +8,17 @@ import type { MailingList, NewsletterAsset, NewsletterDelivery, NewsletterProjec
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
+async function readApiResponse<T extends { error?: string }>(response: Response): Promise<T> {
+  const text = await response.text()
+  if (!text) return {} as T
+
+  try {
+    return JSON.parse(text) as T
+  } catch {
+    return { error: text } as T
+  }
+}
+
 export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
   const [projects, setProjects] = useState<NewsletterProject[]>([])
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null)
@@ -47,7 +58,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ html, css }),
     })
-    const data = await response.json() as { html?: string; error?: string }
+    const data = await readApiResponse<{ html?: string; error?: string }>(response)
 
     if (!response.ok) {
       throw new Error(data.error ?? 'Could not inline CSS.')
@@ -60,7 +71,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
     setLoadingProjects(true)
     try {
       const response = await fetch('/api/newsletter/projects')
-      const data = await response.json() as { projects?: NewsletterProject[]; error?: string }
+      const data = await readApiResponse<{ projects?: NewsletterProject[]; error?: string }>(response)
 
       if (!response.ok) {
         throw new Error(data.error ?? 'Could not load newsletter projects.')
@@ -135,7 +146,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
           gjs_data: editorRef.current.getProjectData(),
         }),
       })
-      const data = await response.json() as { project?: NewsletterProject; error?: string }
+      const data = await readApiResponse<{ project?: NewsletterProject; error?: string }>(response)
 
       if (!response.ok) {
         throw new Error(data.error ?? 'Could not save newsletter project.')
@@ -160,7 +171,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
     const response = await fetch(`/api/newsletter/projects/${project.id}`, { method: 'DELETE' })
 
     if (!response.ok) {
-      const data = await response.json() as { error?: string }
+      const data = await readApiResponse<{ error?: string }>(response)
       toast.error(data.error ?? 'Could not delete project.')
       return
     }
@@ -187,7 +198,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
     setLoadingLists(true)
     try {
       const response = await fetch('/api/newsletter/mailing-lists')
-      const data = await response.json() as { lists?: MailingList[]; error?: string }
+      const data = await readApiResponse<{ lists?: MailingList[]; error?: string }>(response)
 
       if (!response.ok) {
         throw new Error(data.error ?? 'Could not load Mailgun lists.')
@@ -205,7 +216,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
     setLoadingAssets(true)
     try {
       const response = await fetch('/api/newsletter/assets')
-      const data = await response.json() as { assets?: NewsletterAsset[]; error?: string }
+      const data = await readApiResponse<{ assets?: NewsletterAsset[]; error?: string }>(response)
 
       if (!response.ok) {
         throw new Error(data.error ?? 'Could not load newsletter assets.')
@@ -229,7 +240,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
         method: 'POST',
         body: formData,
       })
-      const data = await response.json() as { asset?: NewsletterAsset; error?: string }
+      const data = await readApiResponse<{ asset?: NewsletterAsset; error?: string }>(response)
 
       if (!response.ok || !data.asset) {
         throw new Error(data.error ?? 'Could not upload newsletter asset.')
@@ -252,7 +263,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
     })
 
     if (!response.ok) {
-      const data = await response.json() as { error?: string }
+      const data = await readApiResponse<{ error?: string }>(response)
       toast.error(data.error ?? 'Could not delete newsletter asset.')
       return
     }
@@ -272,7 +283,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
     setLoadingDeliveries(true)
     try {
       const response = await fetch('/api/newsletter/delivery-status')
-      const data = await response.json() as { deliveries?: NewsletterDelivery[]; error?: string }
+      const data = await readApiResponse<{ deliveries?: NewsletterDelivery[]; error?: string }>(response)
 
       if (!response.ok) {
         throw new Error(data.error ?? 'Could not load delivery history.')
@@ -297,7 +308,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
       const response = await fetch(`/api/newsletter/delivery-status?${new URLSearchParams({
         messageId: delivery.mailgun_message_id,
       })}`)
-      const data = await response.json() as { error?: string }
+      const data = await readApiResponse<{ error?: string }>(response)
 
       if (!response.ok) {
         throw new Error(data.error ?? 'Could not refresh delivery status.')
@@ -319,7 +330,7 @@ export function useNewsletter(editorRef: RefObject<GrapesEditorHandle | null>) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fromName, fromEmail, projectId: currentProjectId, subject, html, ...payload }),
     })
-    const data = await response.json() as { error?: string; trackingError?: string }
+    const data = await readApiResponse<{ error?: string; trackingError?: string }>(response)
 
     if (!response.ok) {
       throw new Error(data.error ?? 'Could not send newsletter.')

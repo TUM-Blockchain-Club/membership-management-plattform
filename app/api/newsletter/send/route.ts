@@ -2,6 +2,17 @@ import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { requireNewsletterAccess } from '@/lib/newsletter/auth'
 
+async function readMailgunResponse(response: Response) {
+  const text = await response.text()
+  if (!text) return {}
+
+  try {
+    return JSON.parse(text) as { id?: string; message?: string }
+  } catch {
+    return { message: text }
+  }
+}
+
 export async function POST(request: Request) {
   try {
     const supabase = await createSupabaseServerClient()
@@ -66,7 +77,7 @@ export async function POST(request: Request) {
       body: form.toString(),
     })
 
-    const data = await response.json() as { id?: string; message?: string }
+    const data = await readMailgunResponse(response)
     if (!response.ok) {
       return NextResponse.json({ error: data.message || 'Mailgun error' }, { status: response.status })
     }

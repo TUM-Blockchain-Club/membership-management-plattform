@@ -13,6 +13,7 @@ Scope: PR 23 newsletter builder cleanup.
 - Added `newsletter_projects`, `newsletter_deliveries`, and `newsletter_delivery_events` to the local Supabase type map and documented the tables in `docs/database/schema.md`.
 - Added the public `newsletter-assets` bucket with special-access write policies. The asset API only accepts JPG, PNG, GIF, and WebP files up to 5 MB under the `images/` prefix.
 - Mailgun sends now write a delivery row after a successful API response. The delivery-status route can list recent sends and refresh events for a specific Mailgun message id.
+- Newsletter API response handling accepts plain-text upstream errors, including Mailgun `Forbidden` responses, so the UI surfaces the real error instead of failing with a JSON parse message.
 - Newsletter workspace controls are grouped around the editor: Templates, Assets, and Projects above it; Send and Delivery Tracking below it. The editor intentionally uses the full content width with a bounded responsive height.
 
 - Apply `supabase/newsletter_projects.sql` before deploying the newsletter builder.
