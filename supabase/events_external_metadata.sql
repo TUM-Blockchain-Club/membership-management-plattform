@@ -24,7 +24,7 @@ begin
   ) then
     alter table public.events
       add constraint events_event_kind_check
-      check (event_kind in ('internal', 'external'));
+      check (event_kind in ('internal', 'external', 'meeting'));
   end if;
 end $$;
 

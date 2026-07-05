@@ -20,6 +20,10 @@ For the live schema overview, table columns, relationships, RLS summary, storage
   - Creates `public.event_interest` for member-event interest tracking.
   - Adds idempotent indexes and RLS policies for interest reads/inserts/deletes.
 
+- `meeting_qr_test.sql`
+  - Adds the missing check-in columns and meeting event-kind support needed for QR testing on older schemas.
+  - Seeds a `QR Test Meeting` row for end-to-end check-in/QR validation.
+
 - `link_redirect_assets.sql`
   - Adds board-managed display names and image references to `public.link_redirect_definitions`.
   - Adds hardcoded-vs-soft link status metadata.

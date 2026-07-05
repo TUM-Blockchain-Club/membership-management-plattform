@@ -15,6 +15,7 @@ export default function EventsPageRoute() {
       handleEventRegistration={d.handleEventRegistration}
       handleUpdateExternalEvent={d.handleUpdateExternalEvent}
       handleUploadExternalEventImage={d.handleUploadExternalEventImage}
+      refreshEvents={d.loadEvents}
       handleToggleInterest={d.handleToggleInterest}
       handleViewInterestedMembers={d.handleViewInterestedMembers}
       interestedMembers={d.interestedMembers}

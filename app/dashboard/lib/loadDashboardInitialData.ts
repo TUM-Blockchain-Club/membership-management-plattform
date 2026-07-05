@@ -23,7 +23,7 @@ type EventRow = {
   location: string
   organizer_department: string
   capacity_total: number
-  event_kind: 'internal' | 'external'
+  event_kind: 'internal' | 'external' | 'meeting'
   event_type: string | null
   priority: string | null
   external_status: string | null
@@ -36,6 +36,8 @@ type EventRow = {
   is_hackathon: boolean
   attending_names: string[]
   all_day: boolean
+  check_in_enabled?: boolean
+  check_in_token?: string | null
 }
 
 type EventRegistrationRow = {
@@ -48,11 +50,17 @@ type EventInterestRow = {
   member_id: number
 }
 
+type AttendanceRow = {
+  event_id: string | number
+  member_id: number
+}
+
 const NFT_ADMIN_MEMBER_IDS = new Set([0, 99, 107, 26, 126])
 const EVENTS_FETCH_LIMIT = 500
 const MEMBER_COLUMNS =
   'id, created_at, Name, Role, Status, Department, "Project/Task", "Area of Expertise", Picture, Uni, "Semester Joined", Degree, Phone, "Private Email", "TBC Email", Linkedin, Telegram, Discord, Instagram, Twitter, "Size Merch"'
-const EVENT_COLUMNS = 'id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, image_url, event_link_url, tally_url, whatsapp_url, is_hackathon, attending_names, all_day'
+const EVENT_COLUMNS = 'id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, image_url, event_link_url, tally_url, whatsapp_url, is_hackathon, attending_names, all_day, check_in_enabled, check_in_token'
+const LEGACY_EVENT_COLUMNS = 'id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, image_url, event_link_url, tally_url, whatsapp_url, is_hackathon, attending_names, all_day'
 
 const emptyInitialData = (): DashboardInitialData => ({
   allMembers: [],
@@ -111,30 +119,46 @@ const loadUpcomingEvents = async (
   memberId: number,
   limit = EVENTS_FETCH_LIMIT
 ): Promise<DashboardEvent[]> => {
-  const { data: eventsData, error: eventsError } = await supabase
-    .from('events')
-    .select(EVENT_COLUMNS)
-    .order('start_at', { ascending: true })
-    .limit(limit)
+  const selectEvents = async (columns: string) => {
+    const result = await supabase
+      .from('events')
+      .select(columns)
+      .order('start_at', { ascending: true })
+      .limit(limit)
+
+    return result
+  }
+
+  let { data: eventsData, error: eventsError } = await selectEvents(EVENT_COLUMNS)
+
+  if (eventsError?.code === '42703') {
+    const legacyResult = await selectEvents(LEGACY_EVENT_COLUMNS)
+    eventsData = legacyResult.data
+    eventsError = legacyResult.error
+  }
 
   if (eventsError) {
     throw eventsError
   }
 
-  const typedEventsData = (eventsData ?? []) as EventRow[]
+  const typedEventsData = (eventsData ?? []) as unknown as EventRow[]
   if (typedEventsData.length === 0) {
     return []
   }
 
   const eventIds = typedEventsData.map((event) => event.id)
 
-  const [registrationsResult, interestResult] = await Promise.all([
+  const [registrationsResult, interestResult, attendanceResult] = await Promise.all([
     supabase
       .from('event_registrations')
       .select('event_id, member_id')
       .in('event_id', eventIds),
     supabase
       .from('event_interest')
+      .select('event_id, member_id')
+      .in('event_id', eventIds),
+    supabase
+      .from('attendance')
       .select('event_id, member_id')
       .in('event_id', eventIds),
   ])
@@ -147,8 +171,13 @@ const loadUpcomingEvents = async (
     throw interestResult.error
   }
 
+  if (attendanceResult.error && attendanceResult.error.code !== '42703') {
+    throw attendanceResult.error
+  }
+
   const typedRegistrationsData = (registrationsResult.data ?? []) as EventRegistrationRow[]
   const typedInterestData = (interestResult.data ?? []) as EventInterestRow[]
+  const typedAttendanceData = attendanceResult.error?.code === '42703' ? [] : ((attendanceResult.data ?? []) as unknown as AttendanceRow[])
 
   const registrationsByEventId = new Map<string, EventRegistrationRow[]>()
   typedRegistrationsData.forEach((registration) => {
@@ -175,13 +204,18 @@ const loadUpcomingEvents = async (
   return typedEventsData.map((event) => {
     const eventRegistrations = registrationsByEventId.get(String(event.id)) ?? []
     const eventInterests = interestByEventId.get(String(event.id)) ?? []
+    const eventAttendance = typedAttendanceData.filter((row) => row.event_id === event.id)
 
     return {
       ...event,
+      check_in_enabled: event.check_in_enabled ?? false,
+      check_in_token: event.check_in_token ?? null,
       current_registrations: eventRegistrations.length,
       is_registered: eventRegistrations.some((registration) => registration.member_id === memberId),
       interest_count: eventInterests.length,
       is_interested: eventInterests.some((row) => row.member_id === memberId),
+      attendance_count: eventAttendance.length,
+      is_checked_in: eventAttendance.some((row) => row.member_id === memberId),
     }
   })
 }

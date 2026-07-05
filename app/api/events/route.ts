@@ -4,21 +4,26 @@ import { createSupabaseServerClient } from "@/lib/supabase/server"
 import { dateRange, optionalStringArray } from "@/app/api/events/[eventId]/route"
 
 type EventCreatePayload = {
+  event_kind?: string | null
   title?: string | null
+  description?: string | null
   start_date?: string | null
   end_date?: string | null
   event_types?: string[]
   priority?: string | null
   external_status?: string | null
   city?: string | null
+  location?: string | null
+  organizer_department?: string | null
   formats?: string[]
   event_link_url?: string | null
   tally_url?: string | null
   whatsapp_url?: string | null
+  check_in_enabled?: boolean | null
 }
 
 const EVENT_COLUMNS =
-  "id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, image_url, event_link_url, tally_url, whatsapp_url, is_hackathon, attending_names, all_day"
+  "id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, image_url, event_link_url, tally_url, whatsapp_url, is_hackathon, attending_names, all_day, check_in_enabled, check_in_token"
 
 const nullableString = (value: unknown) => {
   if (typeof value !== "string") return null
@@ -39,6 +44,10 @@ export async function POST(request: Request) {
     const formats = optionalStringArray(payload.formats)
     const format = formats.join(", ") || null
     const city = nullableString(payload.city)
+    const location = nullableString(payload.location) ?? city
+    const organizerDepartment = nullableString(payload.organizer_department) ?? eventType ?? location
+    const eventKind = payload.event_kind === "meeting" ? "meeting" : "external"
+    const checkInEnabled = payload.check_in_enabled === true || eventKind === "meeting"
 
     if (!title) {
       return NextResponse.json({ error: "Event title is required." }, { status: 400 })
@@ -52,24 +61,26 @@ export async function POST(request: Request) {
       .from("events")
       .insert({
         title,
-        description: "External ecosystem event.",
+        description: nullableString(payload.description) ?? (eventKind === "meeting" ? "Meeting record." : "External ecosystem event."),
         start_at: dates.start_at,
         end_at: dates.end_at,
-        location: city,
-        organizer_department: eventType,
-        capacity_total: 0,
-        event_kind: "external",
-        event_type: eventType,
-        priority: nullableString(payload.priority),
-        external_status: nullableString(payload.external_status),
-        city,
-        format,
-        event_link_url: nullableString(payload.event_link_url),
-        tally_url: nullableString(payload.tally_url),
-        whatsapp_url: nullableString(payload.whatsapp_url),
-        is_hackathon: eventTypes.includes("Hackathon"),
+        location: eventKind === "meeting" ? location : city,
+        organizer_department: eventKind === "meeting" ? organizerDepartment : eventType,
+        capacity_total: eventKind === "meeting" ? 0 : 0,
+        event_kind: eventKind,
+        event_type: eventKind === "meeting" ? null : eventType,
+        priority: eventKind === "meeting" ? null : nullableString(payload.priority),
+        external_status: eventKind === "meeting" ? null : nullableString(payload.external_status),
+        city: eventKind === "meeting" ? null : city,
+        format: eventKind === "meeting" ? null : format,
+        event_link_url: eventKind === "meeting" ? null : nullableString(payload.event_link_url),
+        tally_url: eventKind === "meeting" ? null : nullableString(payload.tally_url),
+        whatsapp_url: eventKind === "meeting" ? null : nullableString(payload.whatsapp_url),
+        is_hackathon: eventKind === "meeting" ? false : eventTypes.includes("Hackathon"),
         attending_names: [],
-        all_day: true,
+        all_day: eventKind === "meeting" ? false : true,
+        check_in_enabled: checkInEnabled,
+        check_in_token: checkInEnabled ? crypto.randomUUID() : null,
       })
       .select(EVENT_COLUMNS)
       .single()

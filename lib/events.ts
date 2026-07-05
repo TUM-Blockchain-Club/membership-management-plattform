@@ -10,7 +10,7 @@ export interface Event {
   location: string
   organizer_department: string
   capacity_total: number
-  event_kind: 'internal' | 'external'
+  event_kind: 'internal' | 'external' | 'meeting'
   event_type: string | null
   priority: string | null
   external_status: string | null
@@ -23,10 +23,14 @@ export interface Event {
   is_hackathon: boolean
   attending_names: string[]
   all_day: boolean
+  check_in_enabled: boolean
+  check_in_token: string | null
   current_registrations?: number
   is_registered?: boolean
   interest_count?: number
   is_interested?: boolean
+  attendance_count?: number
+  is_checked_in?: boolean
 }
 
 export interface Participant {
@@ -55,7 +59,7 @@ type EventRow = {
   location: string
   organizer_department: string
   capacity_total: number
-  event_kind: 'internal' | 'external'
+  event_kind: 'internal' | 'external' | 'meeting'
   event_type: string | null
   priority: string | null
   external_status: string | null
@@ -68,6 +72,8 @@ type EventRow = {
   is_hackathon: boolean
   attending_names: string[]
   all_day: boolean
+  check_in_enabled: boolean
+  check_in_token: string | null
 }
 
 type EventRegistrationRow = {
@@ -76,6 +82,11 @@ type EventRegistrationRow = {
 }
 
 type EventInterestRow = {
+  event_id: string | number
+  member_id: number
+}
+
+type AttendanceRow = {
   event_id: string | number
   member_id: number
 }
@@ -111,7 +122,7 @@ export const eventService = {
 
       const eventIds = typedEventsData.map(event => event.id)
 
-      const [registrationsResult, interestResult] = await Promise.all([
+      const [registrationsResult, interestResult, attendanceResult] = await Promise.all([
         supabase
           .from('event_registrations')
           .select('event_id, member_id')
@@ -120,21 +131,30 @@ export const eventService = {
           .from('event_interest')
           .select('event_id, member_id')
           .in('event_id', eventIds),
+        supabase
+          .from('attendance')
+          .select('event_id, member_id')
+          .in('event_id', eventIds),
       ])
 
       if (registrationsResult.error) return { data: null, error: registrationsResult.error }
       if (interestResult.error) return { data: null, error: interestResult.error }
+      if (attendanceResult.error && attendanceResult.error.code !== '42703') return { data: null, error: attendanceResult.error }
 
       const typedRegistrationsData = (registrationsResult.data ?? []) as EventRegistrationRow[]
       const typedInterestData = (interestResult.data ?? []) as EventInterestRow[]
+      const typedAttendanceData = attendanceResult.error?.code === '42703' ? [] : ((attendanceResult.data ?? []) as unknown as AttendanceRow[])
 
       const eventsWithData = typedEventsData.map(event => {
         const eventRegistrations = typedRegistrationsData.filter(reg => reg.event_id === event.id)
         const eventInterests = typedInterestData.filter(row => row.event_id === event.id)
+        const eventAttendance = typedAttendanceData.filter(row => row.event_id === event.id)
         const currentRegistrations = eventRegistrations.length
         const isRegistered = memberId ? eventRegistrations.some(reg => reg.member_id === memberId) : false
         const interestCount = eventInterests.length
         const isInterested = memberId ? eventInterests.some(row => row.member_id === memberId) : false
+        const attendanceCount = eventAttendance.length
+        const isCheckedIn = memberId ? eventAttendance.some(row => row.member_id === memberId) : false
 
         return {
           ...event,
@@ -142,6 +162,8 @@ export const eventService = {
           is_registered: isRegistered,
           interest_count: interestCount,
           is_interested: isInterested,
+          attendance_count: attendanceCount,
+          is_checked_in: isCheckedIn,
         }
       })
 

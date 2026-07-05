@@ -5,6 +5,7 @@ import {
   GlobeIcon,
   MessageCircleIcon,
   PencilIcon,
+  QrCodeIcon,
   StarIcon,
   type LucideIcon,
   MapPinIcon,
@@ -42,6 +43,10 @@ type InternalEventCardProps = {
   onApply?: () => void
   showParticipantsButton?: boolean
   onViewParticipants?: () => void
+  checkInEnabled?: boolean
+  checkInCount?: number
+  canManageCheckIn?: boolean
+  onOpenCheckIn?: () => void
 }
 
 type ExternalEventCardProps = {
@@ -64,6 +69,24 @@ type ExternalEventCardProps = {
   isInterested: boolean
   onToggleInterest?: () => void
   onViewInterestedMembers?: () => void
+  checkInEnabled?: boolean
+  checkInCount?: number
+  canManageCheckIn?: boolean
+  onOpenCheckIn?: () => void
+}
+
+type MeetingEventCardProps = {
+  title: string
+  date: string
+  time: string
+  location: string
+  description: string
+  organizer: string
+  checkInEnabled: boolean
+  checkInCount: number
+  canManageCheckIn?: boolean
+  onEdit?: () => void
+  onOpenCheckIn?: () => void
 }
 
 function DetailRow({
@@ -120,6 +143,10 @@ export function InternalEventCard({
   onApply,
   showParticipantsButton,
   onViewParticipants,
+  checkInEnabled,
+  checkInCount,
+  canManageCheckIn,
+  onOpenCheckIn,
 }: InternalEventCardProps) {
   return (
     <Card className="h-full">
@@ -154,21 +181,39 @@ export function InternalEventCard({
       </CardContent>
 
       <CardFooter className="justify-between gap-3">
-        {maxAttendees ? (
-          <Badge variant="secondary" className="tabular-nums">
-            <UsersIcon data-icon="inline-start" />
-            {currentAttendees || 0}/{maxAttendees}
-          </Badge>
-        ) : (
-          <span className="text-xs text-muted-foreground">No capacity limit</span>
-        )}
+        <div className="flex flex-wrap gap-2">
+          {maxAttendees ? (
+            <Badge variant="secondary" className="tabular-nums">
+              <UsersIcon data-icon="inline-start" />
+              {currentAttendees || 0}/{maxAttendees}
+            </Badge>
+          ) : (
+            <span className="text-xs text-muted-foreground">No capacity limit</span>
+          )}
 
-        {hasApplyButton && (
-          <Button variant={isApplied ? 'destructive' : 'default'} size="sm" onClick={onApply}>
-            <UserRoundCheckIcon data-icon="inline-start" />
-            {isApplied ? 'Deregister' : 'Apply'}
-          </Button>
-        )}
+          {checkInEnabled && (
+            <Badge variant="outline" className="tabular-nums">
+              <QrCodeIcon data-icon="inline-start" />
+              {checkInCount ?? 0} checked in
+            </Badge>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {onOpenCheckIn && (checkInEnabled || canManageCheckIn) && (
+            <Button variant="outline" size="sm" onClick={onOpenCheckIn}>
+              <QrCodeIcon data-icon="inline-start" />
+              Check-in
+            </Button>
+          )}
+
+          {hasApplyButton && (
+            <Button variant={isApplied ? 'destructive' : 'default'} size="sm" onClick={onApply}>
+              <UserRoundCheckIcon data-icon="inline-start" />
+              {isApplied ? 'Deregister' : 'Apply'}
+            </Button>
+          )}
+        </div>
       </CardFooter>
     </Card>
   )
@@ -193,6 +238,10 @@ export function ExternalEventCard({
   isInterested,
   onToggleInterest,
   onViewInterestedMembers,
+  checkInEnabled,
+  checkInCount,
+  canManageCheckIn,
+  onOpenCheckIn,
 }: ExternalEventCardProps) {
   const frameClass = priorityFrameClass(priority)
   const image = imageUrl ? (
@@ -321,8 +370,89 @@ export function ExternalEventCard({
               )}
             </div>
           )}
+
+          {onOpenCheckIn && (checkInEnabled || canManageCheckIn) && (
+            <div className="flex w-full items-center gap-2">
+              <Badge variant="outline" className="tabular-nums">
+                <QrCodeIcon data-icon="inline-start" />
+                {checkInCount ?? 0} checked in
+              </Badge>
+              <Button variant="outline" size="sm" className="ml-auto" onClick={onOpenCheckIn}>
+                <QrCodeIcon data-icon="inline-start" />
+                Check-in
+              </Button>
+            </div>
+          )}
         </CardFooter>
       </Card>
     </div>
+  )
+}
+
+export function MeetingEventCard({
+  title,
+  date,
+  time,
+  location,
+  description,
+  organizer,
+  checkInEnabled,
+  checkInCount,
+  canManageCheckIn,
+  onEdit,
+  onOpenCheckIn,
+}: MeetingEventCardProps) {
+  return (
+    <Card className="h-full">
+      <CardHeader>
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-secondary text-muted-foreground">
+            <CalendarDaysIcon />
+          </div>
+          <div className="min-w-0 flex-1">
+            <CardTitle className="truncate">{title}</CardTitle>
+            <CardDescription className="truncate">{organizer}</CardDescription>
+          </div>
+        </div>
+
+        {onEdit && (
+          <CardAction>
+            <Button variant="ghost" size="icon-sm" onClick={onEdit} title="Edit meeting">
+              <PencilIcon />
+              <span className="sr-only">Edit meeting</span>
+            </Button>
+          </CardAction>
+        )}
+      </CardHeader>
+
+      <CardContent className="flex flex-1 flex-col gap-4">
+        <div className="flex flex-wrap gap-1.5">
+          <Badge variant="secondary">Meeting</Badge>
+          {checkInEnabled && <Badge variant="outline">Check-in enabled</Badge>}
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <DetailRow icon={CalendarDaysIcon}>{date}</DetailRow>
+          <DetailRow icon={TicketIcon}>{time}</DetailRow>
+          <DetailRow icon={MapPinIcon}>{location}</DetailRow>
+        </div>
+
+        <p className="line-clamp-3 text-sm text-muted-foreground">{description}</p>
+      </CardContent>
+
+      <CardFooter className="justify-between gap-3">
+        <Badge variant="secondary" className="tabular-nums">
+          <UsersIcon data-icon="inline-start" />
+          {checkInCount} checked in
+        </Badge>
+
+        {onOpenCheckIn && (checkInEnabled || canManageCheckIn) && (
+          <Button variant="outline" size="sm" onClick={onOpenCheckIn}>
+            <QrCodeIcon data-icon="inline-start" />
+            Check-in
+          </Button>
+        )}
+      </CardFooter>
+    </Card>
   )
 }

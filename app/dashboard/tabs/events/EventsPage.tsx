@@ -1,6 +1,6 @@
 'use client'
 
-import { ExternalEventCard, InternalEventCard } from '@/app/components/dashboard/EventCard'
+import { ExternalEventCard, InternalEventCard, MeetingEventCard } from '@/app/components/dashboard/EventCard'
 import type {
   DashboardEvent,
   DashboardInterestedMember,
@@ -38,6 +38,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useCallback, useEffect, useMemo, useState, useTransition } from 'react'
+import { CheckInDialog } from './CheckInDialog'
 import { EventEditorDialog, type EventEditorDraft } from './EventEditorDialog'
 
 const PRIORITY_OPTIONS = [
@@ -57,6 +58,7 @@ export function EventsPage({
   handleEventRegistration,
   handleUpdateExternalEvent,
   handleUploadExternalEventImage,
+  refreshEvents,
   handleToggleInterest,
   handleViewInterestedMembers,
   interestedMembers,
@@ -82,6 +84,7 @@ export function EventsPage({
   handleEventRegistration: (eventId: string | number, isCurrentlyRegistered: boolean) => void
   handleUpdateExternalEvent: (eventId: string | number, draft: EventEditorDraft) => Promise<DashboardEvent | null>
   handleUploadExternalEventImage: (eventId: string | number, file: File) => Promise<string | null>
+  refreshEvents?: (memberId?: number) => Promise<void>
   handleToggleInterest: (eventId: string | number) => void
   handleViewInterestedMembers: (eventId: string | number, title: string) => void
   interestedMembers: DashboardInterestedMember[]
@@ -102,6 +105,7 @@ export function EventsPage({
 }) {
   const [editingEvent, setEditingEvent] = useState<DashboardEvent | null>(null)
   const [creatingEvent, setCreatingEvent] = useState(false)
+  const [checkInEvent, setCheckInEvent] = useState<DashboardEvent | null>(null)
   const [inputValue, setInputValue] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
@@ -109,6 +113,7 @@ export function EventsPage({
   const [showOlderPastEvents, setShowOlderPastEvents] = useState(false)
   const [, startTransition] = useTransition()
   const internalEvents = events.filter((event) => event.event_kind === 'internal')
+  const meetingEvents = events.filter((event) => event.event_kind === 'meeting')
   const externalEvents = events.filter((event) => event.event_kind === 'external')
   const showInternalEvents = false
   const canManageEvents = hasSpecialAccess
@@ -174,6 +179,23 @@ export function EventsPage({
       return true
     })
   }, [externalEvents, priorityFilter, recentPastCutoffMs, searchQuery, showOlderPastEvents, typeFilter])
+
+  const filteredMeetingEvents = useMemo(() => {
+    const normalizedSearch = searchQuery.trim().toLowerCase()
+
+    return meetingEvents.filter((event) => {
+      const eventEndMs = new Date(event.end_at).getTime()
+      const searchText = [event.title, event.location, event.organizer_department, event.description]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+
+      if (!showOlderPastEvents && Number.isFinite(eventEndMs) && eventEndMs < recentPastCutoffMs) return false
+      if (normalizedSearch && !searchText.includes(normalizedSearch)) return false
+
+      return true
+    })
+  }, [meetingEvents, recentPastCutoffMs, searchQuery, showOlderPastEvents])
 
   const priorityFilterLabel = useMemo(() => {
     if (priorityFilter.length === 0) return 'Priority'
@@ -258,6 +280,44 @@ export function EventsPage({
           )}
         </section>
       )}
+
+      <section className="flex flex-col gap-4">
+        <div className="flex items-center gap-3">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            Meetings
+          </span>
+          <Separator className="flex-1" />
+          <Badge variant="secondary">{filteredMeetingEvents.length}</Badge>
+        </div>
+
+        {filteredMeetingEvents.length === 0 ? (
+          <Empty className="border-dashed">
+            <EmptyHeader>
+              <EmptyTitle>No meetings</EmptyTitle>
+              <EmptyDescription>Record your first meeting to keep attendance in one place.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {filteredMeetingEvents.map((event) => (
+              <MeetingEventCard
+                key={event.id}
+                title={event.title}
+                date={formatEventDate(event.start_at, event.end_at)}
+                time={formatEventTime(event.start_at, event.end_at)}
+                location={event.location}
+                description={event.description}
+                organizer={event.organizer_department}
+                checkInEnabled={event.check_in_enabled}
+                checkInCount={event.attendance_count ?? 0}
+                canManageCheckIn={canManageEvents}
+                onEdit={() => setEditingEvent(event)}
+                onOpenCheckIn={() => setCheckInEvent(event)}
+              />
+            ))}
+          </div>
+        )}
+      </section>
 
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap gap-2">
@@ -367,6 +427,10 @@ export function EventsPage({
                 isInterested={event.is_interested ?? false}
                 onToggleInterest={member ? () => handleToggleInterest(event.id) : undefined}
                 onViewInterestedMembers={() => handleViewInterestedMembers(event.id, event.title)}
+                checkInEnabled={event.check_in_enabled}
+                checkInCount={event.attendance_count ?? 0}
+                canManageCheckIn={canManageEvents}
+                onOpenCheckIn={() => setCheckInEvent(event)}
               />
             ))}
           </div>
@@ -472,6 +536,20 @@ export function EventsPage({
         onOpenChange={(open) => { if (!open) setCreatingEvent(false) }}
         onSave={handleCreateEvent}
         onUploadImage={handleUploadExternalEventImage}
+      />
+
+      <CheckInDialog
+        event={checkInEvent}
+        open={!!checkInEvent}
+        onOpenChange={(open) => {
+          if (!open) setCheckInEvent(null)
+        }}
+        onCheckedIn={() => {
+          if (member?.id && refreshEvents) {
+            void refreshEvents(member.id)
+          }
+        }}
+        canManageCheckIns={canManageEvents}
       />
     </div>
   )

@@ -15,6 +15,7 @@ export function EventsTab(props: {
   handleEventRegistration: (eventId: string | number, isCurrentlyRegistered: boolean) => void
   handleUpdateExternalEvent: (eventId: string | number, draft: EventEditorDraft) => Promise<DashboardEvent | null>
   handleUploadExternalEventImage: (eventId: string | number, file: File) => Promise<string | null>
+  refreshEvents?: (memberId?: number) => Promise<void>
   handleToggleInterest: (eventId: string | number) => void
   handleViewInterestedMembers: (eventId: string | number, title: string) => void
   interestedMembers: DashboardInterestedMember[]

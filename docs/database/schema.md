@@ -85,7 +85,7 @@ Current live count: 29 rows.
 | `capacity_total` | `integer` | yes | none | Internal event capacity. |
 | `check_in_token` | `uuid` | yes | `gen_random_uuid()` | Token for check-in flows. |
 | `check_in_enabled` | `boolean` | no | `false` | Enables event check-in. |
-| `event_kind` | `text` | no | `internal` | `internal` or `external`. |
+| `event_kind` | `text` | no | `internal` | `internal`, `external`, or `meeting`. |
 | `event_type` | `text` | yes | none | External type, e.g. `Conference`, `Hackathon`, or both. |
 | `priority` | `text` | yes | none | External priority, e.g. `P1`, `P2`, `P3`, `P4`, `P5`. |
 | `external_status` | `text` | yes | none | External status such as `Registration Open`, `Past`, `Canceled`. |
@@ -102,12 +102,13 @@ Current live count: 29 rows.
 Constraints and indexes:
 
 - Primary key: `events_pkey` on `id`.
-- Check: `events_event_kind_check`, restricts `event_kind` to `internal` or `external`.
+- Check: `events_event_kind_check`, restricts `event_kind` to `internal`, `external`, or `meeting`.
 - Unique index: `events_check_in_token_idx` on `check_in_token`.
 
 App behavior:
 
 - Internal events use registration, participant count, capacity, organizer, and check-in flows.
+- Meetings use the same `events` table with meeting-specific metadata and the shared attendance table for QR/manual check-in.
 - External events use structured metadata from CSV/admin edits.
 - Events page defaults to P1/P2 priorities and hides events older than seven days unless `Past Events` is enabled.
 - Full external CSV imports use `scripts/import-external-events-csv.mjs`.
