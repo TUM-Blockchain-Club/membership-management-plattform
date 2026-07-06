@@ -87,7 +87,13 @@ export function LectureEditor({ open, initial, onCancel, onSubmit, working, erro
             <select
               value={kind}
               onChange={(e) => setKind(e.target.value as LectureKind)}
-              className="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              className="w-full appearance-none cursor-pointer pl-3 pr-10 py-2 bg-white/5 hover:bg-white/10 border border-white/20 hover:border-white/30 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-transparent transition-colors bg-no-repeat"
+              style={{
+                backgroundImage:
+                  "url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke-width='2' stroke='rgba(255,255,255,0.6)'%3e%3cpath stroke-linecap='round' stroke-linejoin='round' d='m19.5 8.25-7.5 7.5-7.5-7.5'/%3e%3c/svg%3e\")",
+                backgroundPosition: 'right 0.75rem center',
+                backgroundSize: '1rem',
+              }}
             >
               <option value="core" className="bg-gray-900">Core lecture (bi-weekly)</option>
               <option value="side" className="bg-gray-900">Side meeting (weekly)</option>
