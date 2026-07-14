@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:email-signature": "playwright test tests/email-signature.spec.ts",
     "bench:members:server": "node scripts/bench-members-server.mjs",
     "bench:members:browser": "node scripts/bench-members-browser.mjs"
   },

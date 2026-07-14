@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import type { User, Session, AuthError } from '@supabase/supabase-js'
+import { GMAIL_SETTINGS_SCOPE } from './email-signature/constants'
 
 export interface AuthResponse {
   user: User | null;
@@ -32,6 +33,23 @@ export const auth = {
       provider: 'google',
       options: {
         redirectTo: callbackUrl.toString(),
+      },
+    })
+    return { data, error }
+  },
+
+  authorizeGmailSignature: async () => {
+    const callbackUrl = new URL('/auth/callback', window.location.origin)
+    callbackUrl.searchParams.set('next', '/email-signature?gmail=authorized')
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: callbackUrl.toString(),
+        scopes: GMAIL_SETTINGS_SCOPE,
+        queryParams: {
+          include_granted_scopes: 'true',
+        },
       },
     })
     return { data, error }
