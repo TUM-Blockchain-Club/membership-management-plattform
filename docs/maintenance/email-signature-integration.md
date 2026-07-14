@@ -12,12 +12,13 @@ native workflow does not call or embed it.
 
 ## Request flow
 
-1. The form is prefilled from the authenticated member's `members_main` row.
-2. On submit, the validated form is held in browser `sessionStorage` while the
-   existing Supabase Google OAuth flow requests
+1. The member connects Gmail before editing the form. The existing Supabase
+   Google OAuth flow requests
    `https://www.googleapis.com/auth/gmail.settings.basic`.
-3. The auth callback keeps the fresh Google provider token in an HttpOnly,
+2. The auth callback keeps the fresh Google provider token in an HttpOnly,
    path-restricted cookie for at most five minutes.
+3. After the redirect, the form is prefilled from the authenticated member's
+   `members_main` row and unlocked. No form fields are persisted across OAuth.
 4. `/api/email-signature` authenticates the Supabase user, checks that a member
    profile exists, and requires a Gmail send-as address matching the user's
    platform email.
@@ -25,8 +26,11 @@ native workflow does not call or embed it.
    address, and immediately deletes the provider-token cookie.
 
 Google access tokens and refresh tokens are not written to Supabase or any
-application table. Signature form data is removed from `sessionStorage` after a
-successful update.
+application table. Signature form data remains only in React state on the
+current page.
+
+LinkedIn and mobile number are optional. The renderer omits the LinkedIn link
+and icon or the complete mobile row when the corresponding field is empty.
 
 ## Google Cloud setup
 
