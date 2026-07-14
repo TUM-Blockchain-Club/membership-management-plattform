@@ -6,6 +6,7 @@ import {
   LinkIcon,
   LogOutIcon,
   MailIcon,
+  PenLineIcon,
   UserIcon,
   UsersIcon,
 } from 'lucide-react'
@@ -37,6 +38,12 @@ const TABS: Array<{
     labelDesktop: 'My Profile',
     labelMobile: 'Profile',
     icon: UserIcon,
+  },
+  {
+    key: 'email-signature',
+    labelDesktop: 'Email Signature',
+    labelMobile: 'Signature',
+    icon: PenLineIcon,
   },
   {
     key: 'members',

@@ -11,6 +11,7 @@ import type { DashboardTab } from '@/app/components/dashboard/types'
 const PATHNAME_TO_TAB: Record<string, DashboardTab> = {
   '/members':       'members',
   '/profile':       'profile',
+  '/email-signature': 'email-signature',
   '/statistics':    'stats',
   '/events':        'events',
   '/link-analytics': 'link-analytics',
