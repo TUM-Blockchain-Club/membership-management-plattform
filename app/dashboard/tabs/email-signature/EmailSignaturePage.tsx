@@ -227,7 +227,6 @@ export function EmailSignaturePage({ member }: { member: DashboardMember | null 
                     inputMode="url"
                     maxLength={300}
                     placeholder="https://www.linkedin.com/in/..."
-                    required
                     value={form.linkedinUrl}
                     onChange={(event) => setField('linkedinUrl', event.target.value)}
                   />
@@ -243,7 +242,6 @@ export function EmailSignaturePage({ member }: { member: DashboardMember | null 
                     autoComplete="tel"
                     maxLength={40}
                     placeholder="+49 123 4567890"
-                    required
                     value={form.mobileNumber}
                     onChange={(event) => setField('mobileNumber', event.target.value)}
                   />

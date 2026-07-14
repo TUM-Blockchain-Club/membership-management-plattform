@@ -32,6 +32,21 @@ test('rejects non-LinkedIn and malformed mobile values', () => {
   })).toThrow(SignatureValidationError)
 })
 
+test('allows optional contact fields and omits their signature markup', () => {
+  const input = parseSignatureInput({
+    ...validInput,
+    linkedinUrl: '',
+    mobileNumber: '',
+  })
+  const html = renderEmailSignature(input, 'nikolas.hack@tum-blockchain.com')
+
+  expect(input.linkedinUrl).toBe('')
+  expect(input.mobileNumber).toBe('')
+  expect(html).not.toContain('LinkedIn Profile')
+  expect(html).not.toContain('Mobile:')
+  expect(html).not.toContain('href="tel:')
+})
+
 test('escapes member-controlled content in generated HTML', () => {
   const html = renderEmailSignature({
     ...validInput,
