@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test'
+import { readFileSync } from 'node:fs'
 import {
   findMatchingSendAsAlias,
   parseSignatureInput,
@@ -68,4 +69,14 @@ test('only selects the Gmail alias matching the signed-in platform account', () 
 
   expect(findMatchingSendAsAlias(aliases, 'nikolas.hack@tum-blockchain.com')).toEqual(aliases[1])
   expect(findMatchingSendAsAlias(aliases, 'missing@tum-blockchain.com')).toBeNull()
+})
+
+test('does not persist signature form data in browser storage', () => {
+  const source = readFileSync(
+    'app/dashboard/tabs/email-signature/EmailSignaturePage.tsx',
+    'utf8',
+  )
+
+  expect(source).not.toContain('sessionStorage')
+  expect(source).not.toContain('localStorage')
 })

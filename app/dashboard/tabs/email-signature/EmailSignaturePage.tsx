@@ -22,11 +22,10 @@ import {
   type SignatureInput,
 } from '@/lib/email-signature/signature'
 
-const PENDING_SIGNATURE_KEY = 'tbc:pending-email-signature:v1'
-
 type UpdateStatus =
   | { state: 'idle' }
   | { state: 'authorizing' }
+  | { state: 'authorized' }
   | { state: 'updating' }
   | { state: 'success'; email: string }
   | { state: 'error'; message: string }
@@ -74,7 +73,7 @@ export function EmailSignaturePage({ member }: { member: DashboardMember | null 
     resumedAuthorization.current = true
     window.history.replaceState(null, '', window.location.pathname)
 
-    const updateSignature = async () => {
+    const finishAuthorization = async () => {
       if (gmailResult !== 'authorized') {
         setStatus({
           state: 'error',
@@ -82,53 +81,21 @@ export function EmailSignaturePage({ member }: { member: DashboardMember | null 
         })
         return
       }
-
-      const pending = window.sessionStorage.getItem(PENDING_SIGNATURE_KEY)
-      if (!pending) {
-        setStatus({
-          state: 'error',
-          message: 'Your saved signature details were not found. Please submit the form again.',
-        })
-        return
-      }
-
-      try {
-        const parsed = parseSignatureInput(JSON.parse(pending))
-        setForm(parsed)
-        setStatus({ state: 'updating' })
-
-        const response = await fetch('/api/email-signature', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(parsed),
-        })
-        const updatedEmail = await readResponse(response)
-        window.sessionStorage.removeItem(PENDING_SIGNATURE_KEY)
-        setStatus({ state: 'success', email: updatedEmail })
-      } catch (error) {
-        setStatus({
-          state: 'error',
-          message: error instanceof Error ? error.message : 'Could not update your signature.',
-        })
-      }
+      setStatus({ state: 'authorized' })
     }
 
-    void updateSignature()
+    void finishAuthorization()
   }, [])
 
   const setField = (field: keyof SignatureInput, value: string) => {
     setForm((current) => ({ ...current, [field]: value }))
-    if (status.state === 'success' || status.state === 'error') {
+    if (status.state === 'success') {
       setStatus({ state: 'idle' })
     }
   }
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-
+  const handleAuthorization = async () => {
     try {
-      const parsed = parseSignatureInput(form)
-      window.sessionStorage.setItem(PENDING_SIGNATURE_KEY, JSON.stringify(parsed))
       setStatus({ state: 'authorizing' })
       const { error } = await auth.authorizeGmailSignature()
       if (error) throw error
@@ -136,6 +103,28 @@ export function EmailSignaturePage({ member }: { member: DashboardMember | null 
       setStatus({
         state: 'error',
         message: error instanceof Error ? error.message : 'Could not start Google authorization.',
+      })
+    }
+  }
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (status.state !== 'authorized') return
+
+    try {
+      const parsed = parseSignatureInput(form)
+      setStatus({ state: 'updating' })
+      const response = await fetch('/api/email-signature', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(parsed),
+      })
+      const updatedEmail = await readResponse(response)
+      setStatus({ state: 'success', email: updatedEmail })
+    } catch (error) {
+      setStatus({
+        state: 'error',
+        message: error instanceof Error ? error.message : 'Could not update your signature.',
       })
     }
   }
@@ -191,7 +180,8 @@ export function EmailSignaturePage({ member }: { member: DashboardMember | null 
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit}>
-              <FieldGroup>
+              <fieldset disabled={status.state !== 'authorized'} className="disabled:opacity-60">
+                <FieldGroup>
                 <Field>
                   <FieldLabel htmlFor="signature-full-name">Full name</FieldLabel>
                   <Input
@@ -247,23 +237,44 @@ export function EmailSignaturePage({ member }: { member: DashboardMember | null 
                   />
                 </Field>
 
-                <Alert className="border-primary/20 bg-primary/5">
-                  <InfoIcon />
-                  <AlertTitle>Google permission check</AlertTitle>
-                  <AlertDescription>
-                    Google verifies the Gmail settings permission when you continue. The first update may show a consent screen.
+                  <Button type="submit" size="lg" disabled={busy || !member} className="w-full">
+                    {status.state === 'updating' && <Spinner data-icon="inline-start" />}
+                    {status.state === 'updating' ? 'Updating signature…' : 'Update Gmail signature'}
+                  </Button>
+                </FieldGroup>
+              </fieldset>
+
+              {status.state !== 'authorized' && status.state !== 'updating' && (
+                <div className="mt-5 flex flex-col gap-3">
+                  <Alert className="border-primary/20 bg-primary/5">
+                    <InfoIcon />
+                    <AlertTitle>Connect Gmail first</AlertTitle>
+                    <AlertDescription>
+                      Google checks the Gmail settings permission before the form is unlocked. Your form details are not stored during the redirect.
+                    </AlertDescription>
+                  </Alert>
+                  <Button
+                    type="button"
+                    size="lg"
+                    disabled={status.state === 'authorizing' || !member}
+                    className="w-full"
+                    onClick={() => void handleAuthorization()}
+                  >
+                    {status.state === 'authorizing' && <Spinner data-icon="inline-start" />}
+                    {status.state === 'authorizing' ? 'Opening Google…' : 'Connect Gmail'}
+                  </Button>
+                </div>
+              )}
+
+              {status.state === 'authorized' && (
+                <Alert className="mt-5 border-emerald-500/30 bg-emerald-500/10 text-emerald-300">
+                  <ShieldCheckIcon />
+                  <AlertTitle>Gmail connected</AlertTitle>
+                  <AlertDescription className="text-emerald-200/80">
+                    Permission is ready for this update. Review the unlocked form and submit it.
                   </AlertDescription>
                 </Alert>
-
-                <Button type="submit" size="lg" disabled={busy || !member} className="w-full">
-                  {busy && <Spinner data-icon="inline-start" />}
-                  {status.state === 'authorizing'
-                    ? 'Opening Google…'
-                    : status.state === 'updating'
-                      ? 'Updating signature…'
-                      : 'Authorize Google & update signature'}
-                </Button>
-              </FieldGroup>
+              )}
             </form>
           </CardContent>
         </Card>
