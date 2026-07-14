@@ -16,6 +16,7 @@ import {
   LinkIcon,
   LogOutIcon,
   MailIcon,
+  PenLineIcon,
   UserIcon,
   UsersIcon,
 } from 'lucide-react'
@@ -81,6 +82,7 @@ const NAVIGATION_GROUPS: Array<{ label: string; items: NavigationItem[] }> = [
       { key: 'events', label: 'Events', icon: CalendarIcon },
       { key: 'attendance', label: 'Attendance', icon: BadgeCheckIcon },
       { key: 'nft-status', label: 'NFT Status', icon: HexagonIcon },
+      { key: 'email-signature', label: 'Email Signature', icon: PenLineIcon },
     ],
   },
   {

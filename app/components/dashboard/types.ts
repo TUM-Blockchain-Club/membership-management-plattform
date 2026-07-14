@@ -37,6 +37,7 @@ export type DashboardTab =
   | 'profile'
   | 'coffee-chats'
   | 'coffee-chats-admin'
+  | 'email-signature'
   | 'members'
   | 'stats'
   | 'events'
