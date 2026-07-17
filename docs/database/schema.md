@@ -16,6 +16,7 @@ Last inspected against the live Supabase project: 2026-05-26.
   - `supabase/event_interest.sql`
   - `supabase/nft_requests.sql`
   - `supabase/newsletter_projects.sql`
+  - `supabase/coffee_chats.sql`
 - Import tooling:
   - `scripts/import-external-events-csv.mjs`
 
@@ -435,6 +436,78 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 | `link-redirect-images` | no | Private board-uploaded visual references for QR/link placements. |
 | `newsletter-assets` | yes | Public reusable images inserted into Mailgun newsletter campaigns. |
 | `nft-images-picks` | yes | NFT request image uploads/picks. |
+
+## Coffee Chats Tables (`supabase/coffee_chats.sql`)
+
+Applies coffee-chat columns to `members_main` and creates three new tables.
+
+### `public.members_main` coffee-chat columns
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `cc_interests` | `text[]` | Selected interest tags. |
+| `cc_study_programme` | `text` | Free-form study programme string. |
+| `cc_already_know` | `bigint[]` | Member IDs the person already knows well (used for exclusion). |
+| `cc_favourite_coffee` | `text` | Favourite coffee drink. |
+| `cc_favourite_spots` | `text[]` | Favourite Munich coffee spots. |
+| `cc_fun_fact` | `text` | Ice-breaker fun fact. |
+| `cc_active` | `boolean` | Whether the member opts into coffee chats. Default `false`. |
+
+### `public.cc_rounds`
+
+One row per monthly coffee-chat cycle.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `uuid` | Primary key. |
+| `month` | `text` | Human-readable month string, e.g. `2026-07`. |
+| `status` | `text` | `open`, `paired`, or `closed`. |
+| `signup_deadline` | `timestamptz` | Optional deadline shown to members. |
+| `meet_deadline` | `timestamptz` | Optional meeting deadline. |
+| `created_at` | `timestamptz` | Creation timestamp. |
+
+RLS: all authenticated users can read; only `has_special_access()` users can write.
+
+### `public.cc_signups`
+
+Member opt-ins for a round.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `uuid` | Primary key. |
+| `round_id` | `uuid` | References `cc_rounds(id)`. Cascades delete. |
+| `member_id` | `bigint` | References `members_main(id)`. |
+| `signed_up_at` | `timestamptz` | Signup timestamp. |
+
+Unique constraint on `(round_id, member_id)`.
+RLS: members manage their own rows via `current_member_id()`; admins manage all.
+
+### `public.cc_pairs`
+
+Matched pairs or trios for a round.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `uuid` | Primary key. |
+| `round_id` | `uuid` | References `cc_rounds(id)`. |
+| `person1_id` | `bigint` | First member. |
+| `person2_id` | `bigint` | Second member. |
+| `person3_id` | `bigint` | Optional third member (trio for odd counts). |
+| `icebreaker_q1/q2/q3` | `text` | Auto-generated ice-breaker questions. |
+| `status` | `text` | `pending`, `met`, or `skipped`. |
+| `selfie_url` | `text` | Public Supabase Storage URL for the selfie. |
+| `drive_url` | `text` | Optional Google Drive web-view URL. |
+| `date_met` | `date` | Date the pair met. |
+| `person1/2/3_signed_off` | `boolean` | Individual sign-off flags. |
+| `rating` | `int` | 1–5 rating. |
+| `highlight_note` | `text` | Short highlight note. |
+| `created_at` | `timestamptz` | Creation timestamp. |
+
+RLS: each member can see pairs they belong to; admins manage all.
+
+### Storage Bucket `coffee-chat-selfies`
+
+Public bucket. Authenticated members can upload.
 
 ## Known Documentation And Type Gaps
 

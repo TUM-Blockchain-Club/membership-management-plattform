@@ -2,6 +2,7 @@ import type { ComponentType, SVGProps } from 'react'
 import {
   BarChart3Icon,
   CalendarIcon,
+  CoffeeIcon,
   HexagonIcon,
   LinkIcon,
   LogOutIcon,
@@ -139,6 +140,20 @@ export function DashboardHeader({
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-3 sm:pb-4">
         <nav className="flex gap-1 sm:gap-2 overflow-x-auto scrollbar-hide -mx-4 sm:mx-0 px-4 sm:px-0">
+          {/* Coffee Chats — standalone section, not a dashboard tab */}
+          <Button
+            variant="ghost"
+            size="lg"
+            asChild
+            className="text-xs sm:text-sm flex-shrink-0 text-white/60 hover:text-white hover:bg-white/5"
+          >
+            <a href="/coffee-chats">
+              <CoffeeIcon data-icon="inline-start" />
+              <span className="hidden sm:inline">Coffee Chats</span>
+              <span className="sm:hidden">Coffee</span>
+            </a>
+          </Button>
+
           {TABS.filter((tab) => {
             if (tab.key === 'nft-approvals') return showNftApprovalsTab
             if (tab.key === 'link-analytics') return showLinkAnalyticsTab
