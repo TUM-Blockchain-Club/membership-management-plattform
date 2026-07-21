@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import type { DashboardMember } from '@/app/components/dashboard/types'
 import { AttendanceCalendar } from './AttendanceCalendar'
+import { CheckInScannerModal } from './CheckInScannerModal'
 import { LectureEditor } from './LectureEditor'
 import { LectureQrDisplay } from './LectureQrDisplay'
 import {
@@ -46,17 +47,37 @@ export function AttendancePage({ isBoard, allMembers }: Props) {
 }
 
 function MyCalendarSection() {
-  const { data, error, loading } = useMyAttendance()
+  const { data, error, loading, refresh } = useMyAttendance()
   const attendance = data?.attendance ?? []
+  const [scannerOpen, setScannerOpen] = useState(false)
 
   return (
     <section className="space-y-3">
       <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="text-white font-semibold text-lg">My calendar</h3>
-        <div className="text-white/50 text-xs sm:text-sm">
-          {data ? `${attendance.length} of ${data.totalLectures} lectures attended` : ''}
+        <div className="flex items-center gap-3">
+          <div className="text-white/50 text-xs sm:text-sm">
+            {data ? `${attendance.length} of ${data.totalLectures} lectures attended` : ''}
+          </div>
+          <button
+            onClick={() => setScannerOpen(true)}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-3 py-2 text-sm text-white transition-colors hover:bg-blue-700"
+          >
+            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7V5a2 2 0 012-2h2M17 3h2a2 2 0 012 2v2M21 17v2a2 2 0 01-2 2h-2M7 21H5a2 2 0 01-2-2v-2M7 12h10" />
+            </svg>
+            Scan QR
+          </button>
         </div>
       </div>
+
+      {scannerOpen && (
+        <CheckInScannerModal
+          open
+          onClose={() => setScannerOpen(false)}
+          onCheckedIn={refresh}
+        />
+      )}
 
       {loading && (
         <div className="bg-white/5 border border-white/10 rounded-xl p-6 text-white/50 text-sm">
