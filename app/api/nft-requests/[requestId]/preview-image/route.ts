@@ -4,18 +4,26 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { buildNftImage } from '@/lib/server/buildNftImage';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY!
-); 
-
 export const dynamic = 'force-dynamic';
+
+// Build the admin client lazily, per-request. Doing it at module scope makes
+// `next build` crash during page-data collection whenever the service-role key
+// isn't present in the build environment.
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
+  if (!url || !key) {
+    throw new Error('Supabase admin credentials are not configured.');
+  }
+  return createClient(url, key);
+}
 
 export async function GET(_req: Request, context: { params: Promise<{ requestId: string }> }) {
   try {
     const { requestId } = await context.params;
     if (!requestId) return new NextResponse('No ID', { status: 400 });
 
+    const supabase = getSupabaseAdmin();
     const { data: rec, error } = await supabase
       .from('nft_requests')
       .select('*, members_main (*)')
