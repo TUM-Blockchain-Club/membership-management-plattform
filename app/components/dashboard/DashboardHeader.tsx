@@ -1,5 +1,6 @@
 import type { ComponentType, SVGProps } from 'react'
 import {
+  BadgeCheckIcon,
   BarChart3Icon,
   CalendarIcon,
   HexagonIcon,
@@ -61,6 +62,12 @@ const TABS: Array<{
     labelDesktop: 'Link Analytics',
     labelMobile: 'Links',
     icon: LinkIcon,
+  },
+  {
+    key: 'attendance',
+    labelDesktop: 'Attendance',
+    labelMobile: 'Attend',
+    icon: BadgeCheckIcon,
   },
   {
     key: 'nft-approvals',
