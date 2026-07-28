@@ -80,7 +80,6 @@ export default function CoffeeChatsSetupPage() {
         supabase
           .from('members_main')
           .select('id, Name, Department')
-          .eq('Status', 'Active')
           .order('Name', { ascending: true }),
       ])
 
@@ -286,7 +285,7 @@ export default function CoffeeChatsSetupPage() {
                   <Field>
                     <FieldLabel htmlFor="known-member-search">Search members</FieldLabel>
                     <Input id="known-member-search" value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="Search by name or department" />
-                    <FieldDescription>Only active members are shown.</FieldDescription>
+                    <FieldDescription>All members except your own profile are shown.</FieldDescription>
                   </Field>
 
                   {filteredKnownMembers.length > 0 ? (

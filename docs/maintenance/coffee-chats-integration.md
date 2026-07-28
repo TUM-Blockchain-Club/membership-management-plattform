@@ -12,9 +12,9 @@ and the latest outstanding match. The old `/coffee-chats/join` and
 `/coffee-chats/my-match` URLs redirect to this default route for compatibility.
 Preferences, gallery, and authorized admin tools are secondary routes.
 
-The profile includes a searchable active-member checklist for
-`cc_already_know`. Those member IDs are treated as pairing exclusions whenever
-another complete matching is available.
+The profile includes a searchable checklist of every member except the signed-in
+member for `cc_already_know`. Those member IDs are treated as pairing exclusions
+whenever another complete matching is available.
 
 At least one interest is required before saving and joining. Three to five are
 recommended in the UI. Other profile details and acquaintance exclusions are
