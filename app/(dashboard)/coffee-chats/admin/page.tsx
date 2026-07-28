@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { PlusIcon, PlayIcon, UsersIcon } from 'lucide-react'
 import { getSupabaseBrowserClient } from '@/lib/supabase'
-import { DateTimePicker, MonthPicker } from '@/components/date-picker'
+import { DatePicker, MonthPicker } from '@/components/date-picker'
 import { Button } from '@/components/ui/button'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { localDateTimeToUtcIso } from '@/lib/coffee-chats/rounds'
+import { localDateToUtcIso } from '@/lib/coffee-chats/rounds'
 import { DashboardContext } from '@/app/dashboard/DashboardContext'
 
 interface Round {
@@ -93,7 +93,7 @@ export default function CoffeeChatsAdminPage() {
     if (
       newSignupDeadline &&
       newMeetDeadline &&
-      new Date(newSignupDeadline).getTime() > new Date(newMeetDeadline).getTime()
+      newSignupDeadline > newMeetDeadline
     ) {
       toast.error('The signup deadline must be before the meeting deadline.')
       return
@@ -102,8 +102,8 @@ export default function CoffeeChatsAdminPage() {
     startTransition(async () => {
       const { data, error } = await supabase.from('cc_rounds').insert({
         month: newMonth,
-        signup_deadline: newSignupDeadline ? localDateTimeToUtcIso(newSignupDeadline) : null,
-        meet_deadline: newMeetDeadline ? localDateTimeToUtcIso(newMeetDeadline) : null,
+        signup_deadline: newSignupDeadline ? localDateToUtcIso(newSignupDeadline) : null,
+        meet_deadline: newMeetDeadline ? localDateToUtcIso(newMeetDeadline) : null,
         status: 'open',
       }).select().single()
 
@@ -204,7 +204,7 @@ export default function CoffeeChatsAdminPage() {
             </Field>
             <Field>
               <FieldLabel htmlFor="coffee-chat-signup-deadline">Sign-up deadline</FieldLabel>
-              <DateTimePicker
+              <DatePicker
                 id="coffee-chat-signup-deadline"
                 value={newSignupDeadline}
                 onChange={setNewSignupDeadline}
@@ -213,7 +213,7 @@ export default function CoffeeChatsAdminPage() {
             </Field>
             <Field>
               <FieldLabel htmlFor="coffee-chat-meet-deadline">Meet deadline</FieldLabel>
-              <DateTimePicker
+              <DatePicker
                 id="coffee-chat-meet-deadline"
                 value={newMeetDeadline}
                 onChange={setNewMeetDeadline}

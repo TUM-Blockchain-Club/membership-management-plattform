@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 import { MAX_SELFIE_BYTES, validateSelfieUpload } from '../lib/coffee-chats/uploads'
-import { dateToCalendarDate, getSignupError, localDateTimeToUtcIso } from '../lib/coffee-chats/rounds'
+import { dateToCalendarDate, getSignupError, localDateTimeToUtcIso, localDateToUtcIso } from '../lib/coffee-chats/rounds'
 import { runPairing } from '../lib/coffee-chats/pairing'
 import { escapeEmailHtml } from '../lib/coffee-chats/emails'
 import { filterKnownMembers } from '../lib/coffee-chats/profiles'
@@ -40,6 +40,18 @@ test('admin deadlines are converted from local Munich time to UTC', () => {
 
   try {
     expect(localDateTimeToUtcIso('2026-07-28T18:00')).toBe('2026-07-28T16:00:00.000Z')
+  } finally {
+    if (previousTimezone) process.env.TZ = previousTimezone
+    else delete process.env.TZ
+  }
+})
+
+test('admin deadline dates default to local midnight', () => {
+  const previousTimezone = process.env.TZ
+  process.env.TZ = 'Europe/Berlin'
+
+  try {
+    expect(localDateToUtcIso('2026-07-28')).toBe('2026-07-27T22:00:00.000Z')
   } finally {
     if (previousTimezone) process.env.TZ = previousTimezone
     else delete process.env.TZ

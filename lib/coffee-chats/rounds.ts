@@ -24,6 +24,10 @@ export function localDateTimeToUtcIso(value: string): string {
   return date.toISOString()
 }
 
+export function localDateToUtcIso(value: string): string {
+  return localDateTimeToUtcIso(`${value}T00:00`)
+}
+
 export function dateToCalendarDate(
   date: Date,
   timeZone = 'Europe/Berlin',
