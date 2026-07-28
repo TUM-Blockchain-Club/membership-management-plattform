@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { sendSignupConfirmEmail } from '@/lib/coffee-chats/emails'
+import { getSignupError } from '@/lib/coffee-chats/rounds'
 
 export async function POST() {
   try {
@@ -14,7 +15,7 @@ export async function POST() {
     // Resolve member row
     const { data: member, error: memberError } = await supabase
       .from('members_main')
-      .select('id, Name, "TBC Email"')
+      .select('id, Name, "TBC Email", cc_active, cc_interests')
       .ilike('"TBC Email"', user.email ?? '')
       .maybeSingle()
 
@@ -22,10 +23,17 @@ export async function POST() {
       return NextResponse.json({ error: 'Member profile not found' }, { status: 404 })
     }
 
+    if (!member.cc_active || member.cc_interests.length === 0) {
+      return NextResponse.json(
+        { error: 'Set up your Coffee Chat profile before joining a round.' },
+        { status: 400 },
+      )
+    }
+
     // Find the current open round
     const { data: round, error: roundError } = await supabase
       .from('cc_rounds')
-      .select('id, month, signup_deadline')
+      .select('id, month, status, signup_deadline')
       .eq('status', 'open')
       .order('created_at', { ascending: false })
       .limit(1)
@@ -33,6 +41,14 @@ export async function POST() {
 
     if (roundError || !round) {
       return NextResponse.json({ error: 'No open round found' }, { status: 404 })
+    }
+
+    const eligibilityError = getSignupError({
+      status: round.status,
+      signupDeadline: round.signup_deadline,
+    })
+    if (eligibilityError) {
+      return NextResponse.json({ error: eligibilityError }, { status: 400 })
     }
 
     // Insert signup (UNIQUE constraint handles duplicates gracefully)
@@ -48,13 +64,13 @@ export async function POST() {
     }
 
     // Send confirmation email (best effort)
-    const email = (member['TBC Email'] as string | null) ?? user.email ?? ''
+    const email = member['TBC Email'] ?? user.email ?? ''
     if (email) {
       await sendSignupConfirmEmail({
         toEmail: email,
-        toName: (member.Name as string | null) ?? 'Member',
-        month: round.month as string,
-        signupDeadline: round.signup_deadline as string | null,
+        toName: member.Name ?? 'Member',
+        month: round.month,
+        signupDeadline: round.signup_deadline,
       }).catch((err: unknown) => {
         console.warn('[coffee-chats/signup] confirmation email failed:', err)
       })

@@ -15,6 +15,11 @@ interface DriveUploadResult {
   webViewLink: string
 }
 
+type DriveImageType = {
+  contentType: 'image/jpeg' | 'image/png' | 'image/webp'
+  extension: 'jpg' | 'png' | 'webp'
+}
+
 async function getAccessToken(): Promise<string> {
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL
   const rawKey = process.env.GOOGLE_PRIVATE_KEY
@@ -88,6 +93,7 @@ async function getAccessToken(): Promise<string> {
  * @param pairId      - UUID of the cc_pairs row (used in filename)
  * @param month       - Round month string, e.g. "2026-07"
  * @param names       - Display names of the participants
+ * @param imageType   - Validated image content type and matching extension
  * @returns Drive file metadata or null if upload is not configured/failed
  */
 export async function syncSelfie(
@@ -95,6 +101,7 @@ export async function syncSelfie(
   pairId: string,
   month: string,
   names: string[],
+  imageType: DriveImageType,
 ): Promise<DriveUploadResult | null> {
   const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID
 
@@ -105,7 +112,7 @@ export async function syncSelfie(
 
   try {
     const accessToken = await getAccessToken()
-    const fileName = `coffee-chat-${month}-${names.join('-').replace(/\s+/g, '_').toLowerCase()}-${pairId.slice(0, 8)}.jpg`
+    const fileName = `coffee-chat-${month}-${names.join('-').replace(/\s+/g, '_').toLowerCase()}-${pairId.slice(0, 8)}.${imageType.extension}`
 
     const metadata = JSON.stringify({
       name: fileName,
@@ -119,7 +126,7 @@ export async function syncSelfie(
     const body = Buffer.concat([
       Buffer.from(
         `${delimiter}Content-Type: application/json\r\n\r\n${metadata}` +
-          `${delimiter}Content-Type: image/jpeg\r\n\r\n`,
+          `${delimiter}Content-Type: ${imageType.contentType}\r\n\r\n`,
       ),
       imageBuffer,
       Buffer.from(closeDelimiter),

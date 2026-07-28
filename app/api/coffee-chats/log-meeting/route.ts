@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getSupabaseAdminClient } from '@/lib/server/supabaseAdmin'
 import { syncSelfie } from '@/lib/coffee-chats/drive'
+import { MAX_SELFIE_BYTES, validateSelfieUpload } from '@/lib/coffee-chats/uploads'
+import { getCoffeeChatAdminClient } from '@/lib/coffee-chats/supabase'
+import type { Database } from '@/lib/types/database.types'
 
 export async function POST(request: Request) {
   try {
@@ -36,11 +38,26 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'pairId is required' }, { status: 400 })
     }
 
-    // Fetch the pair to verify membership and get round info
-    const admin = getSupabaseAdminClient()
-    const dataClient = admin ?? supabase
+    const parsedRating = rating === null || rating === '' ? null : Number(rating)
+    if (parsedRating !== null && (!Number.isInteger(parsedRating) || parsedRating < 1 || parsedRating > 5)) {
+      return NextResponse.json({ error: 'rating must be an integer from 1 to 5' }, { status: 400 })
+    }
 
-    const { data: pair, error: pairError } = await dataClient
+    if (typeof highlightNote === 'string' && highlightNote.length > 500) {
+      return NextResponse.json({ error: 'highlightNote must be 500 characters or fewer' }, { status: 400 })
+    }
+
+    if (typeof dateMet === 'string' && !/^\d{4}-\d{2}-\d{2}$/.test(dateMet)) {
+      return NextResponse.json({ error: 'dateMet must use YYYY-MM-DD format' }, { status: 400 })
+    }
+
+    // Fetch the pair to verify membership and get round info
+    const admin = getCoffeeChatAdminClient()
+    if (!admin) {
+      return NextResponse.json({ error: 'Admin client unavailable' }, { status: 500 })
+    }
+
+    const { data: pair, error: pairError } = await admin
       .from('cc_pairs')
       .select('id, round_id, person1_id, person2_id, person3_id')
       .eq('id', pairId)
@@ -65,70 +82,90 @@ export async function POST(request: Request) {
       'person3_signed_off'
 
     // Handle selfie upload
-    let selfieUrl: string | null = null
+    let selfiePath: string | null = null
     let driveUrl: string | null = null
 
     if (selfieFile && selfieFile.size > 0) {
+      if (selfieFile.size > MAX_SELFIE_BYTES) {
+        return NextResponse.json({ error: 'Selfies must be 5 MB or smaller.' }, { status: 400 })
+      }
+
       const arrayBuffer = await selfieFile.arrayBuffer()
       const buffer = Buffer.from(arrayBuffer)
+      let imageType
 
-      // Upload to Supabase Storage
-      const fileName = `${pair.round_id as string}/${pairId}-${Date.now()}.jpg`
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('coffee-chat-selfies')
-        .upload(fileName, buffer, { contentType: 'image/jpeg', upsert: true })
-
-      if (!uploadError && uploadData) {
-        const { data: { publicUrl } } = supabase.storage
-          .from('coffee-chat-selfies')
-          .getPublicUrl(uploadData.path)
-        selfieUrl = publicUrl
-
-        // Optionally sync to Google Drive
-        const { data: roundData } = await dataClient
-          .from('cc_rounds')
-          .select('month')
-          .eq('id', pair.round_id)
-          .maybeSingle()
-
-        const { data: partners } = await dataClient
-          .from('members_main')
-          .select('Name')
-          .in('id', [p1, p2, ...(p3 ? [p3] : [])])
-
-        const names = (partners ?? []).map((p) => (p.Name as string | null) ?? 'Member')
-        const driveResult = await syncSelfie(
-          buffer,
-          pairId,
-          (roundData?.month as string | null) ?? 'unknown',
-          names,
-        )
-        if (driveResult) driveUrl = driveResult.webViewLink
+      try {
+        imageType = validateSelfieUpload(buffer, selfieFile.type)
+      } catch (error) {
+        const message = error instanceof Error ? error.message : 'Invalid selfie image'
+        return NextResponse.json({ error: message }, { status: 400 })
       }
+
+      const fileName = `${pair.round_id}/${pairId}-${crypto.randomUUID()}.${imageType.extension}`
+      const { data: uploadData, error: uploadError } = await admin.storage
+        .from('coffee-chat-selfies')
+        .upload(fileName, buffer, { contentType: imageType.contentType, upsert: false })
+
+      if (uploadError || !uploadData) {
+        return NextResponse.json(
+          { error: uploadError?.message ?? 'Selfie upload failed' },
+          { status: 500 },
+        )
+      }
+
+      selfiePath = uploadData.path
+
+      const { data: roundData } = await admin
+        .from('cc_rounds')
+        .select('month')
+        .eq('id', pair.round_id)
+        .maybeSingle()
+
+      const { data: partners } = await admin
+        .from('members_main')
+        .select('Name')
+        .in('id', [p1, p2, ...(p3 ? [p3] : [])])
+
+      const names = (partners ?? []).map((partner) => partner.Name ?? 'Member')
+      const driveResult = await syncSelfie(
+        buffer,
+        pairId,
+        roundData?.month ?? 'unknown',
+        names,
+        imageType,
+      )
+      if (driveResult) driveUrl = driveResult.webViewLink
     }
 
     // Build update payload
-    const update: Record<string, unknown> = {
+    const update: Database['public']['Tables']['cc_pairs']['Update'] = {
       [signOffField]: true,
       status: 'met',
     }
 
     if (dateMet && typeof dateMet === 'string') update.date_met = dateMet
-    if (rating && !isNaN(Number(rating))) update.rating = Number(rating)
+    if (parsedRating !== null) update.rating = parsedRating
     if (highlightNote && typeof highlightNote === 'string') update.highlight_note = highlightNote
-    if (selfieUrl) update.selfie_url = selfieUrl
+    if (selfiePath) update.selfie_path = selfiePath
     if (driveUrl) update.drive_url = driveUrl
 
-    const { error: updateError } = await dataClient
+    const { error: updateError } = await admin
       .from('cc_pairs')
       .update(update)
       .eq('id', pairId)
 
     if (updateError) {
+      if (selfiePath) {
+        await admin.storage.from('coffee-chat-selfies').remove([selfiePath])
+      }
       return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 
-    return NextResponse.json({ ok: true, selfieUrl, driveUrl })
+    const { data: signedSelfie } = selfiePath
+      ? await admin.storage.from('coffee-chat-selfies').createSignedUrl(selfiePath, 60 * 60)
+      : { data: null }
+
+    return NextResponse.json({ ok: true, selfieUrl: signedSelfie?.signedUrl ?? null, driveUrl })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Log meeting failed'
     return NextResponse.json({ error: message }, { status: 500 })

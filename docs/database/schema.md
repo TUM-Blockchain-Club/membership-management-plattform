@@ -355,6 +355,8 @@ Constraints and indexes:
 | `has_special_access()` | `boolean` | Checks whether the current user has special admin access. |
 | `check_email_has_special_access(check_email text)` | `boolean` | Checks special access for a supplied email. |
 | `check_email_can_manage_newsletter(check_email text)` | `boolean` | Checks newsletter manager access for board members or special-access users. |
+| `check_email_can_manage_coffee_chats(check_email text)` | `boolean` | Checks Coffee Chat administrator access for board members or special-access users. |
+| `commit_coffee_chat_pairing(target_round_id uuid, pair_rows jsonb)` | `integer` | Locks an open round, validates participants, inserts all pairs, and advances the round atomically. Service-role only. |
 | `can_manage_nft_requests()` | `boolean` | Checks NFT admin permissions. |
 | `allow_only_test_domain()` | `trigger` | Auth-related domain guard. |
 | `block_guest_core_updates_email()` | `trigger` | Prevents restricted email updates. |
@@ -435,6 +437,7 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 | `event-qr-codes` | yes | Event check-in QR codes. |
 | `link-redirect-images` | no | Private board-uploaded visual references for QR/link placements. |
 | `newsletter-assets` | yes | Public reusable images inserted into Mailgun newsletter campaigns. |
+| `coffee-chat-selfies` | no | Private Coffee Chat meeting photos served with short-lived signed URLs. |
 | `nft-images-picks` | yes | NFT request image uploads/picks. |
 
 ## Coffee Chats Tables (`supabase/coffee_chats.sql`)
@@ -466,7 +469,9 @@ One row per monthly coffee-chat cycle.
 | `meet_deadline` | `timestamptz` | Optional meeting deadline. |
 | `created_at` | `timestamptz` | Creation timestamp. |
 
-RLS: all authenticated users can read; only `has_special_access()` users can write.
+Only one round can be open at a time, month values are unique `YYYY-MM` strings,
+and the signup deadline cannot be later than the meeting deadline. RLS allows all
+authenticated users to read; board members and explicit special-access users can write.
 
 ### `public.cc_signups`
 
@@ -495,7 +500,7 @@ Matched pairs or trios for a round.
 | `person3_id` | `bigint` | Optional third member (trio for odd counts). |
 | `icebreaker_q1/q2/q3` | `text` | Auto-generated ice-breaker questions. |
 | `status` | `text` | `pending`, `met`, or `skipped`. |
-| `selfie_url` | `text` | Public Supabase Storage URL for the selfie. |
+| `selfie_path` | `text` | Private Supabase Storage object path. APIs issue short-lived signed URLs. |
 | `drive_url` | `text` | Optional Google Drive web-view URL. |
 | `date_met` | `date` | Date the pair met. |
 | `person1/2/3_signed_off` | `boolean` | Individual sign-off flags. |
@@ -503,15 +508,19 @@ Matched pairs or trios for a round.
 | `highlight_note` | `text` | Short highlight note. |
 | `created_at` | `timestamptz` | Creation timestamp. |
 
-RLS: each member can see pairs they belong to; admins manage all.
+RLS: each member can see pairs they belong to; board members and explicit
+special-access users manage all. Pair rows and the round status are committed
+atomically by `commit_coffee_chat_pairing(uuid, jsonb)`.
 
 ### Storage Bucket `coffee-chat-selfies`
 
-Public bucket. Authenticated members can upload.
+Private bucket. Uploads go through the authenticated Coffee Chat API, which
+verifies pair membership, permits JPEG/PNG/WebP images up to 5 MB, and uses the
+service-role client. Reads use one-hour signed URLs.
 
 ## Known Documentation And Type Gaps
 
-- `lib/types/database.types.ts` is a hand-written partial Supabase type map for member and newsletter tables. It is not a full generated schema.
+- `lib/types/database.types.ts` is a hand-written partial Supabase type map for member, newsletter, and Coffee Chat tables. It is not a full generated schema.
 - `events`, `event_registrations`, `attendance`, `nft_requests`, and link redirect analytics tables are modeled locally in feature files where needed.
 - If you regenerate Supabase types, include all `public` tables and update imports that currently rely on hand-written interfaces.
 

@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { ArrowRightIcon, CoffeeIcon, UsersIcon, ImageIcon, UserIcon } from 'lucide-react'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getSupabaseAdminClient } from '@/lib/server/supabaseAdmin'
+import { getCoffeeChatAdminClient } from '@/lib/coffee-chats/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -10,7 +10,7 @@ export default async function CoffeeChatsPage() {
   const supabase = await createSupabaseServerClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  const admin = getSupabaseAdminClient()
+  const admin = getCoffeeChatAdminClient()
   const dataClient = admin ?? supabase
 
   // Resolve member
@@ -68,7 +68,16 @@ export default async function CoffeeChatsPage() {
     (member.cc_interests as string[] | null)?.length
   )
 
-  const sections = [
+  type BadgeVariant = 'default' | 'secondary' | 'outline' | 'destructive'
+  const sections: Array<{
+    href: string
+    icon: typeof UserIcon
+    title: string
+    description: string
+    cta: string
+    badge: string | null
+    badgeVariant: BadgeVariant
+  }> = [
     {
       href: '/coffee-chats/setup',
       icon: UserIcon,

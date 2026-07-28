@@ -24,6 +24,15 @@ interface SignupConfirmOptions {
   signupDeadline?: string | null
 }
 
+export function escapeEmailHtml(value: string): string {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;')
+}
+
 function buildMailgunAuth(): string {
   const apiKey = process.env.MAILGUN_API_KEY ?? ''
   return 'Basic ' + Buffer.from(`api:${apiKey}`).toString('base64')
@@ -39,8 +48,7 @@ async function sendMail(to: string, subject: string, html: string): Promise<void
   const domain = process.env.MAILGUN_DOMAIN || 'mg.tum-blockchain.com'
 
   if (!apiKey) {
-    console.warn('[coffee-chats/emails] MAILGUN_API_KEY not set — skipping email to', to)
-    return
+    throw new Error('MAILGUN_API_KEY is not configured')
   }
 
   const form = new URLSearchParams()
@@ -59,8 +67,7 @@ async function sendMail(to: string, subject: string, html: string): Promise<void
   })
 
   if (!response.ok) {
-    const text = await response.text()
-    console.warn('[coffee-chats/emails] Mailgun error:', response.status, text)
+    throw new Error(`Mailgun rejected the message with status ${response.status}`)
   }
 }
 
@@ -82,11 +89,11 @@ export async function sendMatchEmail(opts: MatchEmailOptions): Promise<void> {
   } = opts
 
   const partners = thirdPersonName
-    ? `${partnerName} (${partnerEmail}) and ${thirdPersonName} (${thirdPersonEmail})`
-    : `${partnerName} (${partnerEmail})`
+    ? `${escapeEmailHtml(partnerName)} (${escapeEmailHtml(partnerEmail)}) and ${escapeEmailHtml(thirdPersonName)} (${escapeEmailHtml(thirdPersonEmail ?? '')})`
+    : `${escapeEmailHtml(partnerName)} (${escapeEmailHtml(partnerEmail)})`
 
   const deadlineText = meetDeadline
-    ? `<p>Try to meet before <strong>${meetDeadline}</strong>.</p>`
+    ? `<p>Try to meet before <strong>${escapeEmailHtml(meetDeadline)}</strong>.</p>`
     : ''
 
   const html = `
@@ -105,15 +112,15 @@ export async function sendMatchEmail(opts: MatchEmailOptions): Promise<void> {
 </style></head>
 <body>
 <div class="wrap">
-  <h1>Your Coffee Chat for ${month}</h1>
-  <p>Hi ${toName},</p>
+  <h1>Your Coffee Chat for ${escapeEmailHtml(month)}</h1>
+  <p>Hi ${escapeEmailHtml(toName)},</p>
   <p>You have been matched with <strong>${partners}</strong> for this month&apos;s TBC Coffee Chat.</p>
   ${deadlineText}
   <div class="card">
     <h2>Ice-breaker questions to get you started</h2>
-    <p class="q">${questions[0]}</p>
-    <p class="q">${questions[1]}</p>
-    <p class="q">${questions[2]}</p>
+    <p class="q">${escapeEmailHtml(questions[0])}</p>
+    <p class="q">${escapeEmailHtml(questions[1])}</p>
+    <p class="q">${escapeEmailHtml(questions[2])}</p>
   </div>
   <p>Once you have met, log your session on the <a href="https://plattform.tum-blockchain.com/coffee-chats/my-match">Coffee Chats platform</a> and upload your selfie for the gallery!</p>
   <div class="footer">TUM Blockchain Club &mdash; plattform.tum-blockchain.com</div>
@@ -131,7 +138,7 @@ export async function sendSignupConfirmEmail(opts: SignupConfirmOptions): Promis
   const { toEmail, toName, month, signupDeadline } = opts
 
   const deadlineText = signupDeadline
-    ? `<p>The signup window closes on <strong>${signupDeadline}</strong>. Matches will be sent out shortly after.</p>`
+    ? `<p>The signup window closes on <strong>${escapeEmailHtml(signupDeadline)}</strong>. Matches will be sent out shortly after.</p>`
     : ''
 
   const html = `
@@ -147,8 +154,8 @@ export async function sendSignupConfirmEmail(opts: SignupConfirmOptions): Promis
 <body>
 <div class="wrap">
   <h1>You&apos;re signed up for Coffee Chats!</h1>
-  <p>Hi ${toName},</p>
-  <p>You have successfully signed up for the <strong>${month}</strong> TBC Coffee Chat round.</p>
+  <p>Hi ${escapeEmailHtml(toName)},</p>
+  <p>You have successfully signed up for the <strong>${escapeEmailHtml(month)}</strong> TBC Coffee Chat round.</p>
   ${deadlineText}
   <p>We will email you your match once pairings are done. In the meantime, make sure your <a href="https://plattform.tum-blockchain.com/coffee-chats/setup">Coffee Chat profile</a> is up to date so we can find you the best match.</p>
   <div class="footer">TUM Blockchain Club &mdash; plattform.tum-blockchain.com</div>

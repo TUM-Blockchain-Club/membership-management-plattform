@@ -53,45 +53,25 @@ export function runPairing(members: PairingMember[]): PairingResult[] {
   if (members.length < 2) return []
 
   const pool = shuffle([...members])
-  const paired = new Set<number>()
   const results: PairingResult[] = []
 
-  for (let i = 0; i < pool.length; i++) {
-    const a = pool[i]
-    if (paired.has(a.id)) continue
-
-    // Prefer a partner who isn't excluded
-    let partnerIndex = -1
-    for (let j = i + 1; j < pool.length; j++) {
-      if (paired.has(pool[j].id)) continue
-      if (!shouldExclude(a, pool[j])) {
-        partnerIndex = j
-        break
-      }
-    }
-
-    // Fall back to any remaining unpaired person
-    if (partnerIndex === -1) {
-      for (let j = i + 1; j < pool.length; j++) {
-        if (!paired.has(pool[j].id)) {
-          partnerIndex = j
-          break
-        }
-      }
-    }
-
-    if (partnerIndex === -1) {
-      // a is the lone leftover — fold into the last pair as person3
+  while (pool.length > 0) {
+    if (pool.length === 1) {
       if (results.length > 0) {
-        results[results.length - 1].person3Id = a.id
+        results[results.length - 1].person3Id = pool[0].id
       }
-      paired.add(a.id)
-      continue
+      break
     }
 
-    const b = pool[partnerIndex]
-    paired.add(a.id)
-    paired.add(b.id)
+    const compatibleCount = (member: PairingMember) =>
+      pool.filter((candidate) => candidate.id !== member.id && !shouldExclude(member, candidate)).length
+
+    pool.sort((a, b) => compatibleCount(a) - compatibleCount(b))
+    const a = pool.shift()!
+    const compatiblePartners = pool.filter((candidate) => !shouldExclude(a, candidate))
+    const b = compatiblePartners.sort((left, right) => compatibleCount(left) - compatibleCount(right))[0] ?? pool[0]
+
+    pool.splice(pool.findIndex((candidate) => candidate.id === b.id), 1)
     results.push({ person1Id: a.id, person2Id: b.id })
   }
 

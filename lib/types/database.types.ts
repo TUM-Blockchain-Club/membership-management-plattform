@@ -21,6 +21,8 @@ export type MemberPicture =
     }
   | null
 
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+
 export interface Member {
   id: number;
   created_at: string;
@@ -51,6 +53,50 @@ export interface Member {
   nft_avatar?: string | null;
   nft_consent?: boolean | null;
   nickname?: string | null;
+  cc_interests?: string[] | null;
+  cc_study_programme?: string | null;
+  cc_already_know?: number[] | null;
+  cc_favourite_coffee?: string | null;
+  cc_favourite_spots?: string[] | null;
+  cc_fun_fact?: string | null;
+  cc_active?: boolean | null;
+}
+
+export interface CoffeeChatRound {
+  id: string
+  month: string
+  status: 'open' | 'paired' | 'closed'
+  signup_deadline: string | null
+  meet_deadline: string | null
+  created_at: string
+}
+
+export interface CoffeeChatSignup {
+  id: string
+  round_id: string
+  member_id: number
+  signed_up_at: string
+}
+
+export interface CoffeeChatPair {
+  id: string
+  round_id: string
+  person1_id: number
+  person2_id: number
+  person3_id: number | null
+  icebreaker_q1: string | null
+  icebreaker_q2: string | null
+  icebreaker_q3: string | null
+  status: 'pending' | 'met' | 'skipped'
+  selfie_path: string | null
+  drive_url: string | null
+  date_met: string | null
+  person1_signed_off: boolean
+  person2_signed_off: boolean
+  person3_signed_off: boolean
+  rating: number | null
+  highlight_note: string | null
+  created_at: string
 }
 
 export interface NewsletterProject {
@@ -100,13 +146,57 @@ export interface Database {
   public: {
     Tables: {
       members_main: {
-        Row: Member
+        Row: Member & Record<string, unknown>
         Insert: Omit<Member, 'id' | 'created_at'>
         Update: Partial<Omit<Member, 'id' | 'created_at'>>
         Relationships: []
       }
+      cc_rounds: {
+        Row: CoffeeChatRound & Record<string, unknown>
+        Insert: Pick<CoffeeChatRound, 'month'> &
+          Partial<Omit<CoffeeChatRound, 'month'>>
+        Update: Partial<Omit<CoffeeChatRound, 'id' | 'created_at'>>
+        Relationships: []
+      }
+      cc_signups: {
+        Row: CoffeeChatSignup & Record<string, unknown>
+        Insert: Pick<CoffeeChatSignup, 'round_id' | 'member_id'> &
+          Partial<Omit<CoffeeChatSignup, 'round_id' | 'member_id'>>
+        Update: Partial<Omit<CoffeeChatSignup, 'id' | 'signed_up_at'>>
+        Relationships: [
+          {
+            foreignKeyName: 'cc_signups_round_id_fkey'
+            columns: ['round_id']
+            isOneToOne: false
+            referencedRelation: 'cc_rounds'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'cc_signups_member_id_fkey'
+            columns: ['member_id']
+            isOneToOne: false
+            referencedRelation: 'members_main'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      cc_pairs: {
+        Row: CoffeeChatPair & Record<string, unknown>
+        Insert: Pick<CoffeeChatPair, 'round_id' | 'person1_id' | 'person2_id'> &
+          Partial<Omit<CoffeeChatPair, 'round_id' | 'person1_id' | 'person2_id'>>
+        Update: Partial<Omit<CoffeeChatPair, 'id' | 'round_id' | 'created_at'>>
+        Relationships: [
+          {
+            foreignKeyName: 'cc_pairs_round_id_fkey'
+            columns: ['round_id']
+            isOneToOne: false
+            referencedRelation: 'cc_rounds'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       newsletter_projects: {
-        Row: NewsletterProject
+        Row: NewsletterProject & Record<string, unknown>
         Insert: Partial<Pick<NewsletterProject, 'id' | 'created_at' | 'updated_at'>> &
           Pick<NewsletterProject, 'name'> &
           Partial<Omit<NewsletterProject, 'id' | 'name' | 'created_at' | 'updated_at'>>
@@ -114,7 +204,7 @@ export interface Database {
         Relationships: []
       }
       newsletter_deliveries: {
-        Row: NewsletterDelivery
+        Row: NewsletterDelivery & Record<string, unknown>
         Insert: Partial<Pick<NewsletterDelivery, 'id' | 'created_at' | 'updated_at' | 'delivery_type' | 'status' | 'event_summary'>> &
           Pick<NewsletterDelivery, 'subject' | 'from_email' | 'recipient'> &
           Partial<Omit<NewsletterDelivery, 'id' | 'subject' | 'from_email' | 'recipient' | 'created_at' | 'updated_at'>>
@@ -122,7 +212,7 @@ export interface Database {
         Relationships: []
       }
       newsletter_delivery_events: {
-        Row: NewsletterDeliveryEvent
+        Row: NewsletterDeliveryEvent & Record<string, unknown>
         Insert: Partial<Pick<NewsletterDeliveryEvent, 'id' | 'created_at' | 'raw_payload'>> &
           Pick<NewsletterDeliveryEvent, 'delivery_id' | 'event' | 'recipient' | 'event_timestamp'>
         Update: Partial<Omit<NewsletterDeliveryEvent, 'id' | 'created_at'>>
@@ -133,8 +223,20 @@ export interface Database {
       [_ in never]: never
     }
     Functions: {
+      check_email_can_manage_coffee_chats: {
+        Args: { check_email: string }
+        Returns: boolean
+      }
       check_email_can_manage_newsletter: {
         Args: { check_email: string }
+        Returns: boolean
+      }
+      commit_coffee_chat_pairing: {
+        Args: { target_round_id: string; pair_rows: Json }
+        Returns: number
+      }
+      has_special_access: {
+        Args: never
         Returns: boolean
       }
     }

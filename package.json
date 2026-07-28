@@ -8,6 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test:coffee-chats": "playwright test tests/coffee-chats.spec.ts",
     "bench:members:server": "node scripts/bench-members-server.mjs",
     "bench:members:browser": "node scripts/bench-members-browser.mjs"
   },

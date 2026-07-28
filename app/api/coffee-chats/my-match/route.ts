@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getSupabaseAdminClient } from '@/lib/server/supabaseAdmin'
+import { getCoffeeChatAdminClient } from '@/lib/coffee-chats/supabase'
 
 export async function GET() {
   try {
@@ -22,11 +22,13 @@ export async function GET() {
     }
 
     const memberId = member.id as number
-    const admin = getSupabaseAdminClient()
-    const dataClient = admin ?? supabase
+    const admin = getCoffeeChatAdminClient()
+    if (!admin) {
+      return NextResponse.json({ error: 'Admin client unavailable' }, { status: 500 })
+    }
 
     // Find the most recent paired round
-    const { data: latestRound } = await dataClient
+    const { data: latestRound } = await admin
       .from('cc_rounds')
       .select('id, month, meet_deadline')
       .in('status', ['paired', 'closed'])
@@ -39,9 +41,9 @@ export async function GET() {
     }
 
     // Find this member's pair in that round
-    const { data: pair } = await dataClient
+    const { data: pair } = await admin
       .from('cc_pairs')
-      .select('id, person1_id, person2_id, person3_id, icebreaker_q1, icebreaker_q2, icebreaker_q3, status, selfie_url, date_met, person1_signed_off, person2_signed_off, person3_signed_off, rating, highlight_note')
+      .select('id, person1_id, person2_id, person3_id, icebreaker_q1, icebreaker_q2, icebreaker_q3, status, selfie_path, date_met, person1_signed_off, person2_signed_off, person3_signed_off, rating, highlight_note')
       .eq('round_id', latestRound.id)
       .or(`person1_id.eq.${memberId},person2_id.eq.${memberId},person3_id.eq.${memberId}`)
       .maybeSingle()
@@ -54,14 +56,19 @@ export async function GET() {
     const partnerIds = [pair.person1_id, pair.person2_id, pair.person3_id]
       .filter((id): id is number => id !== null && id !== memberId)
 
-    const { data: partners } = await dataClient
+    const { data: partners } = await admin
       .from('members_main')
       .select('id, Name, "TBC Email", Department, cc_interests, cc_favourite_coffee, cc_favourite_spots, cc_fun_fact')
       .in('id', partnerIds)
 
+    const { selfie_path: selfiePath, ...pairData } = pair
+    const { data: signedSelfie } = selfiePath
+      ? await admin.storage.from('coffee-chat-selfies').createSignedUrl(selfiePath, 60 * 60)
+      : { data: null }
+
     return NextResponse.json({
       match: {
-        pair,
+        pair: { ...pairData, selfie_url: signedSelfie?.signedUrl ?? null },
         partners: partners ?? [],
         round: latestRound,
       },

@@ -36,7 +36,10 @@ export default function CoffeeChatsAdminPage() {
 
   useEffect(() => {
     async function load() {
-      const { data: adminResult } = await supabase.rpc('has_special_access')
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data: adminResult } = await supabase.rpc('check_email_can_manage_coffee_chats', {
+        check_email: user?.email ?? '',
+      })
       setIsAdmin(adminResult === true)
 
       if (adminResult !== true) { setLoading(false); return }
@@ -73,6 +76,14 @@ export default function CoffeeChatsAdminPage() {
 
   function handleCreateRound() {
     if (!newMonth) { toast.error('Month is required'); return }
+    if (
+      newSignupDeadline &&
+      newMeetDeadline &&
+      new Date(newSignupDeadline).getTime() > new Date(newMeetDeadline).getTime()
+    ) {
+      toast.error('The signup deadline must be before the meeting deadline.')
+      return
+    }
 
     startTransition(async () => {
       const { data, error } = await supabase.from('cc_rounds').insert({
@@ -101,14 +112,26 @@ export default function CoffeeChatsAdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ roundId }),
       })
-      const json = await res.json() as { ok?: boolean; pairsCreated?: number; memberCount?: number; error?: string }
+      const json = await res.json() as {
+        ok?: boolean
+        pairsCreated?: number
+        memberCount?: number
+        emailsSent?: number
+        emailsFailed?: number
+        error?: string
+      }
 
       if (!res.ok || !json.ok) {
         toast.error(json.error ?? 'Pairing failed')
         return
       }
 
-      toast.success(`Paired ${json.memberCount} members into ${json.pairsCreated} groups. Match emails sent.`)
+      const emailSummary = json.emailsFailed
+        ? `${json.emailsSent ?? 0} emails sent; ${json.emailsFailed} failed.`
+        : `${json.emailsSent ?? 0} emails sent.`
+      const message = `Paired ${json.memberCount} members into ${json.pairsCreated} groups. ${emailSummary}`
+      if (json.emailsFailed) toast.warning(message)
+      else toast.success(message)
       setRounds((prev) => prev.map((r) => r.id === roundId ? { ...r, status: 'paired' } : r))
     })
   }
@@ -159,7 +182,7 @@ export default function CoffeeChatsAdminPage() {
             <div className="space-y-1.5">
               <Label className="text-white/80">Month</Label>
               <Input
-                placeholder="e.g. 2026-08"
+                type="month"
                 value={newMonth}
                 onChange={(e) => setNewMonth(e.target.value)}
                 className="bg-background/80"

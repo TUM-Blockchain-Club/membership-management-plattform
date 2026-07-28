@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getSupabaseAdminClient } from '@/lib/server/supabaseAdmin'
 import { runPairing } from '@/lib/coffee-chats/pairing'
 import { getQuestionsForPair } from '@/lib/coffee-chats/icebreakers'
 import { sendMatchEmail } from '@/lib/coffee-chats/emails'
+import { getCoffeeChatAdminClient } from '@/lib/coffee-chats/supabase'
 
 export async function POST(request: Request) {
   try {
@@ -15,7 +15,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { data: isAdmin } = await supabase.rpc('has_special_access')
+    const { data: isAdmin } = await supabase.rpc('check_email_can_manage_coffee_chats', {
+      check_email: user.email ?? '',
+    })
     if (!isAdmin) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
@@ -25,7 +27,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'roundId is required' }, { status: 400 })
     }
 
-    const admin = getSupabaseAdminClient()
+    const admin = getCoffeeChatAdminClient()
     if (!admin) {
       return NextResponse.json({ error: 'Admin client unavailable' }, { status: 500 })
     }
@@ -76,7 +78,11 @@ export async function POST(request: Request) {
       .from('cc_pairs')
       .select('person1_id, person2_id, person3_id, round_id')
       .neq('round_id', roundId)
-      .in('person1_id', memberIds)
+      .or(
+        memberIds
+          .flatMap((id) => [`person1_id.eq.${id}`, `person2_id.eq.${id}`, `person3_id.eq.${id}`])
+          .join(','),
+      )
 
     const priorPartnerMap = new Map<number, number[]>()
     for (const pair of (priorPairs ?? [])) {
@@ -114,27 +120,32 @@ export async function POST(request: Request) {
       const [q1, q2, q3] = getQuestionsForPair(interests1, interests2)
 
       return {
-        round_id: roundId,
         person1_id: pair.person1Id,
         person2_id: pair.person2Id,
-        person3_id: m3 ? pair.person3Id : null,
+        person3_id: m3 ? pair.person3Id ?? null : null,
         icebreaker_q1: q1,
         icebreaker_q2: q2,
         icebreaker_q3: q3,
       }
     })
 
-    const { data: insertedPairs, error: insertError } = await admin
-      .from('cc_pairs')
-      .insert(pairInserts)
-      .select()
+    const { data: pairsCreated, error: commitError } = await admin.rpc('commit_coffee_chat_pairing', {
+      target_round_id: roundId,
+      pair_rows: pairInserts,
+    })
 
-    if (insertError) {
-      return NextResponse.json({ error: insertError.message }, { status: 500 })
+    if (commitError) {
+      return NextResponse.json({ error: commitError.message }, { status: 409 })
     }
 
-    // Update round status to 'paired'
-    await admin.from('cc_rounds').update({ status: 'paired' }).eq('id', roundId)
+    const { data: insertedPairs, error: insertedPairsError } = await admin
+      .from('cc_pairs')
+      .select()
+      .eq('round_id', roundId)
+
+    if (insertedPairsError) {
+      return NextResponse.json({ error: insertedPairsError.message }, { status: 500 })
+    }
 
     // Send match emails (best-effort, errors logged but not fatal)
     const meetDeadline = round.meet_deadline as string | null
@@ -170,18 +181,20 @@ export async function POST(request: Request) {
           month,
           questions,
           meetDeadline,
-        }).catch((err: unknown) => {
-          console.warn('[coffee-chats/run-pairing] email failed:', err)
         }),
       )
     })
 
-    await Promise.allSettled(emailPromises)
+    const emailResults = await Promise.allSettled(emailPromises)
+    const emailsSent = emailResults.filter((result) => result.status === 'fulfilled').length
+    const emailsFailed = emailResults.length - emailsSent
 
     return NextResponse.json({
       ok: true,
-      pairsCreated: pairInserts.length,
+      pairsCreated: pairsCreated ?? pairInserts.length,
       memberCount: memberIds.length,
+      emailsSent,
+      emailsFailed,
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Pairing failed'
