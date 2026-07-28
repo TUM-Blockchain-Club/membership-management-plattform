@@ -38,16 +38,12 @@ function formatLectureDate(value: string | null) {
 function CheckInInner() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
-  const [state, setState] = useState<CheckInState>({ status: 'idle' })
+  const [state, setState] = useState<CheckInState>({ status: 'loading' })
 
   useEffect(() => {
-    if (!token) {
-      setState({ status: 'error', message: 'Missing check-in token in the URL.' })
-      return
-    }
+    if (!token) return
 
     let cancelled = false
-    setState({ status: 'loading' })
 
     const performCheckIn = async () => {
       try {
@@ -85,6 +81,10 @@ function CheckInInner() {
     }
   }, [token])
 
+  const visibleState: CheckInState = token
+    ? state
+    : { status: 'error', message: 'Missing check-in token in the URL.' }
+
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-black relative">
       <div className="absolute inset-0 grid-background pointer-events-none">
@@ -94,7 +94,7 @@ function CheckInInner() {
 
       <div className="relative z-10 w-full max-w-md">
         <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl p-6 sm:p-8">
-          {state.status === 'loading' && (
+          {visibleState.status === 'loading' && (
             <div className="flex flex-col items-center text-center">
               <svg className="animate-spin h-10 w-10 text-blue-400 mb-4" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
@@ -104,7 +104,7 @@ function CheckInInner() {
             </div>
           )}
 
-          {state.status === 'success' && (
+          {visibleState.status === 'success' && (
             <div className="flex flex-col items-center text-center">
               <div className="w-16 h-16 rounded-full bg-green-500/20 border-2 border-green-500/40 flex items-center justify-center mb-4">
                 <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -112,19 +112,19 @@ function CheckInInner() {
                 </svg>
               </div>
               <h1 className="text-2xl font-bold text-white mb-2">
-                {state.result.alreadyCheckedIn ? 'Already Checked In' : 'Attendance Recorded'}
+                {visibleState.result.alreadyCheckedIn ? 'Already Checked In' : 'Attendance Recorded'}
               </h1>
               <p className="text-white/80 font-medium mb-1">
-                {state.result.lecture.title || 'Lecture'}
+                {visibleState.result.lecture.title || 'Lecture'}
               </p>
-              {state.result.lecture.kind && (
+              {visibleState.result.lecture.kind && (
                 <p className="text-white/50 text-xs uppercase tracking-wider mb-2">
-                  {state.result.lecture.kind === 'core' ? 'Core lecture' : 'Side meeting'}
+                  {visibleState.result.lecture.kind === 'core' ? 'Core lecture' : 'Side meeting'}
                 </p>
               )}
-              {state.result.lecture.scheduled_at && (
+              {visibleState.result.lecture.scheduled_at && (
                 <p className="text-white/40 text-sm mb-6">
-                  {formatLectureDate(state.result.lecture.scheduled_at)}
+                  {formatLectureDate(visibleState.result.lecture.scheduled_at)}
                 </p>
               )}
               <Link
@@ -136,7 +136,7 @@ function CheckInInner() {
             </div>
           )}
 
-          {state.status === 'error' && (
+          {visibleState.status === 'error' && (
             <div className="flex flex-col items-center text-center">
               <div className="w-16 h-16 rounded-full bg-red-500/20 border-2 border-red-500/40 flex items-center justify-center mb-4">
                 <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -144,7 +144,7 @@ function CheckInInner() {
                 </svg>
               </div>
               <h1 className="text-2xl font-bold text-white mb-2">Check-in Failed</h1>
-              <p className="text-white/70 mb-6">{state.message}</p>
+              <p className="text-white/70 mb-6">{visibleState.message}</p>
               <Link
                 href="/dashboard"
                 className="px-5 py-2.5 bg-white/10 hover:bg-white/15 border border-white/20 text-white text-sm rounded-lg transition-colors"
