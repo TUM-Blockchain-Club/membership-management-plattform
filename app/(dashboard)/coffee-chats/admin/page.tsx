@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { PlusIcon, PlayIcon, UsersIcon } from 'lucide-react'
 import { getSupabaseBrowserClient } from '@/lib/supabase'
+import { DateTimePicker, MonthPicker } from '@/components/date-picker'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
@@ -196,29 +196,28 @@ export default function CoffeeChatsAdminPage() {
           <FieldGroup className="grid gap-4 sm:grid-cols-3">
             <Field>
               <FieldLabel htmlFor="coffee-chat-month">Month</FieldLabel>
-              <Input
+              <MonthPicker
                 id="coffee-chat-month"
-                type="month"
                 value={newMonth}
-                onChange={(e) => setNewMonth(e.target.value)}
+                onChange={setNewMonth}
               />
             </Field>
             <Field>
               <FieldLabel htmlFor="coffee-chat-signup-deadline">Sign-up deadline</FieldLabel>
-              <Input
+              <DateTimePicker
                 id="coffee-chat-signup-deadline"
-                type="datetime-local"
                 value={newSignupDeadline}
-                onChange={(e) => setNewSignupDeadline(e.target.value)}
+                onChange={setNewSignupDeadline}
+                placeholder="Pick deadline"
               />
             </Field>
             <Field>
               <FieldLabel htmlFor="coffee-chat-meet-deadline">Meet deadline</FieldLabel>
-              <Input
+              <DateTimePicker
                 id="coffee-chat-meet-deadline"
-                type="datetime-local"
                 value={newMeetDeadline}
-                onChange={(e) => setNewMeetDeadline(e.target.value)}
+                onChange={setNewMeetDeadline}
+                placeholder="Pick deadline"
               />
             </Field>
           </FieldGroup>

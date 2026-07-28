@@ -14,9 +14,9 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 import { EditableProfileForm } from '@/app/components/dashboard/EditableProfileForm'
 import { cn } from '@/lib/utils'
@@ -229,7 +229,7 @@ export function MemberEditorModal({
         </div>
 
         {/* ── Footer ───────────────────────────────────────────────── */}
-        <div className="shrink-0 flex items-center justify-end gap-2 px-6 py-4 border-t border-border bg-muted/30">
+        <DialogFooter className="shrink-0 border-t bg-muted/30 px-6 py-4">
           <Button variant="outline" onClick={handleCancel} disabled={saving}>
             Cancel
           </Button>
@@ -240,7 +240,7 @@ export function MemberEditorModal({
             }
             {saving ? 'Saving…' : creatingMember ? 'Create Member' : 'Save Changes'}
           </Button>
-        </div>
+        </DialogFooter>
 
       </DialogContent>
     </Dialog>

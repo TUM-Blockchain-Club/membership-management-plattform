@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog"
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field"
 import { Textarea } from "@/components/ui/textarea"
-import { AlertTriangleIcon } from "./Icons"
+import { TriangleAlertIcon as AlertTriangleIcon } from 'lucide-react'
 
 interface RejectModalProps {
   memberName: string

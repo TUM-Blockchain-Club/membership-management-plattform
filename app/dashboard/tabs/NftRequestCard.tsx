@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import type { NftRequestStatus } from "@/lib/nftRequests"
-import { CheckIcon, ClockIcon, XIcon } from "./Icons"
+import { CheckIcon, ClockIcon, XIcon } from 'lucide-react'
 
 export interface NFTRequest {
   id: string
