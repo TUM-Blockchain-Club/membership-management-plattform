@@ -18,6 +18,7 @@ import { useDashboardStats } from '@/app/dashboard/tabs/stats/useDashboardStats'
 import { auth } from '@/lib/auth'
 import { memberService } from '@/lib/members'
 import { supabase } from '@/lib/supabase'
+import { canShowCoffeeChatAdmin } from '@/lib/coffee-chats/access'
 import type {
   DashboardMember,
   DashboardMessage,
@@ -92,6 +93,11 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
   const showLinkAnalyticsTab = (effectiveIsBoardMember || effectiveHasSpecialAccess) && !forceMemberView
   const showNftApprovalsTab = canManageNftRequests && !forceMemberView
   const showNewsletterTab = effectiveIsBoardMember || effectiveHasSpecialAccess
+  const canManageCoffeeChats = canShowCoffeeChatAdmin({
+    forceMemberView,
+    hasSpecialAccess,
+    isBoardMember: member?.Role === 'Board Member',
+  })
 
   const activeTab = routeTab
 
@@ -441,6 +447,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     boardMembers,
     canEditField,
     canEditMember,
+    canManageCoffeeChats,
     canManageNftRequests,
     coreMembers,
     creatingMember,

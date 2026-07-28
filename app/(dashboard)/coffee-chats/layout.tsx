@@ -1,12 +1,11 @@
 import type { ReactNode } from 'react'
 import { redirect } from 'next/navigation'
 import { CoffeeChatsNavigation } from './CoffeeChatsNavigation'
-import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { getCoffeeChatViewer } from '@/lib/coffee-chats/viewer'
 
 export default async function CoffeeChatsLayout({ children }: { children: ReactNode }) {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/signin')
+  const viewer = await getCoffeeChatViewer()
+  if (!viewer) redirect('/signin')
 
   return (
     <section className="mx-auto flex w-full max-w-5xl flex-col gap-6">

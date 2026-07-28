@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState, useTransition } from 'react'
+import { useContext, useEffect, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { PlusIcon, PlayIcon, UsersIcon } from 'lucide-react'
 import { getSupabaseBrowserClient } from '@/lib/supabase'
@@ -14,6 +15,7 @@ import { Badge } from '@/components/ui/badge'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { localDateTimeToUtcIso } from '@/lib/coffee-chats/rounds'
+import { DashboardContext } from '@/app/dashboard/DashboardContext'
 
 interface Round {
   id: string
@@ -25,7 +27,10 @@ interface Round {
 }
 
 export default function CoffeeChatsAdminPage() {
+  const router = useRouter()
+  const dashboard = useContext(DashboardContext)
   const supabase = getSupabaseBrowserClient()
+  const canManageCoffeeChats = dashboard?.canManageCoffeeChats ?? false
   const [isPending, startTransition] = useTransition()
   const [loading, setLoading] = useState(true)
   const [isAdmin, setIsAdmin] = useState(false)
@@ -39,6 +44,11 @@ export default function CoffeeChatsAdminPage() {
   const [newMeetDeadline, setNewMeetDeadline] = useState('')
 
   useEffect(() => {
+    if (!canManageCoffeeChats) {
+      router.replace('/coffee-chats')
+      return
+    }
+
     async function load() {
       const { data: { user } } = await supabase.auth.getUser()
       const { data: adminResult } = await supabase.rpc('check_email_can_manage_coffee_chats', {
@@ -76,7 +86,7 @@ export default function CoffeeChatsAdminPage() {
       setLoading(false)
     }
     void load()
-  }, [supabase])
+  }, [canManageCoffeeChats, router, supabase])
 
   function handleCreateRound() {
     if (!newMonth) { toast.error('Month is required'); return }
@@ -158,7 +168,7 @@ export default function CoffeeChatsAdminPage() {
     )
   }
 
-  if (!isAdmin) {
+  if (!canManageCoffeeChats || !isAdmin) {
     return (
       <Empty className="mx-auto max-w-lg border">
         <EmptyHeader>

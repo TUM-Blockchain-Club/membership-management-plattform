@@ -7,6 +7,7 @@ import { escapeEmailHtml } from '../lib/coffee-chats/emails'
 import { filterKnownMembers } from '../lib/coffee-chats/profiles'
 import { getCoffeeChatNextStep } from '../lib/coffee-chats/experience'
 import { buildMeetingUpdate } from '../lib/coffee-chats/meeting'
+import { canShowCoffeeChatAdmin } from '../lib/coffee-chats/access'
 import { getDashboardTabForPathname } from '../app/dashboard/lib/routes'
 
 test('selfie upload rejects non-image bytes disguised as JPEG', () => {
@@ -94,6 +95,26 @@ test('dashboard routing keeps every Coffee Chats page in the Coffee Chats tab', 
   expect(getDashboardTabForPathname('/coffee-chats')).toBe('coffee-chats')
   expect(getDashboardTabForPathname('/coffee-chats/setup')).toBe('coffee-chats')
   expect(getDashboardTabForPathname('/coffee-chats/gallery')).toBe('coffee-chats')
+})
+
+test('normal member view hides Coffee Chat administration for board members', () => {
+  expect(
+    canShowCoffeeChatAdmin({
+      forceMemberView: true,
+      hasSpecialAccess: false,
+      isBoardMember: true,
+    }),
+  ).toBe(false)
+})
+
+test('Coffee Chat administration is visible with effective admin access', () => {
+  expect(
+    canShowCoffeeChatAdmin({
+      forceMemberView: false,
+      hasSpecialAccess: true,
+      isBoardMember: false,
+    }),
+  ).toBe(true)
 })
 
 test('current round asks for matching preferences before signup', () => {

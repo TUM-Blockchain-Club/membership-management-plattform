@@ -1,7 +1,7 @@
 import 'server-only'
 
-import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { getCoffeeChatAdminClient } from '@/lib/coffee-chats/supabase'
+import { getCoffeeChatViewer } from '@/lib/coffee-chats/viewer'
 
 export type CoffeeChatRoundSummary = {
   id: string
@@ -94,18 +94,25 @@ function toRoundSummary(round: RoundRow): CoffeeChatRoundSummary {
 }
 
 export async function loadCoffeeChatHome(): Promise<CoffeeChatHomeData | null> {
-  const supabase = await createSupabaseServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return null
+  const viewer = await getCoffeeChatViewer()
+  if (!viewer) return null
 
+  const { supabase } = viewer
   const admin = getCoffeeChatAdminClient()
   const dataClient = admin ?? supabase
+  const memberQuery = viewer.isDevBypass
+    ? dataClient
+        .from('members_main')
+        .select('id, Name, cc_active, cc_interests')
+        .eq('id', viewer.memberId ?? -1)
+        .maybeSingle()
+    : supabase
+        .from('members_main')
+        .select('id, Name, cc_active, cc_interests')
+        .ilike('"TBC Email"', viewer.email ?? '')
+        .maybeSingle()
   const [memberResult, openRoundResult, latestRoundResult] = await Promise.all([
-    supabase
-      .from('members_main')
-      .select('id, Name, cc_active, cc_interests')
-      .ilike('"TBC Email"', user.email ?? '')
-      .maybeSingle(),
+    memberQuery,
     dataClient
       .from('cc_rounds')
       .select('id, month, status, signup_deadline, meet_deadline')
@@ -129,7 +136,7 @@ export async function loadCoffeeChatHome(): Promise<CoffeeChatHomeData | null> {
   const latestRound = latestRoundResult.data as RoundRow | null
   const [signupResult, pairResult] = await Promise.all([
     openRound
-      ? supabase
+      ? (viewer.isDevBypass ? dataClient : supabase)
           .from('cc_signups')
           .select('id')
           .eq('round_id', openRound.id)

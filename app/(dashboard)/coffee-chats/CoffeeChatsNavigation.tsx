@@ -17,9 +17,7 @@ const MEMBER_ITEMS = [
 export function CoffeeChatsNavigation() {
   const pathname = usePathname()
   const dashboard = useContext(DashboardContext)
-  const canManageCoffeeChats = Boolean(
-    dashboard?.effectiveHasSpecialAccess || dashboard?.member?.Role === 'Board Member',
-  )
+  const canManageCoffeeChats = dashboard?.canManageCoffeeChats ?? false
   const items = canManageCoffeeChats
     ? [...MEMBER_ITEMS, { href: '/coffee-chats/admin', label: 'Admin', icon: ShieldIcon }]
     : MEMBER_ITEMS
@@ -49,4 +47,3 @@ export function CoffeeChatsNavigation() {
     </nav>
   )
 }
-
