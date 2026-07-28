@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { localDateTimeToUtcIso } from '@/lib/coffee-chats/rounds'
 
 interface Round {
   id: string
@@ -88,8 +89,8 @@ export default function CoffeeChatsAdminPage() {
     startTransition(async () => {
       const { data, error } = await supabase.from('cc_rounds').insert({
         month: newMonth,
-        signup_deadline: newSignupDeadline || null,
-        meet_deadline: newMeetDeadline || null,
+        signup_deadline: newSignupDeadline ? localDateTimeToUtcIso(newSignupDeadline) : null,
+        meet_deadline: newMeetDeadline ? localDateTimeToUtcIso(newMeetDeadline) : null,
         status: 'open',
       }).select().single()
 

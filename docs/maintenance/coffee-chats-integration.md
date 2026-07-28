@@ -5,6 +5,10 @@ maintain a small matching profile, join the current monthly round, view their
 pair or trio, and log the meeting. Board members and explicit special-access
 users manage rounds and trigger matching from `/coffee-chats/admin`.
 
+The profile includes a searchable active-member checklist for
+`cc_already_know`. Those member IDs are treated as pairing exclusions whenever
+another complete matching is available.
+
 ## Data and authorization
 
 - Apply `supabase/coffee_chats.sql` before deploying the routes.
@@ -13,6 +17,8 @@ users manage rounds and trigger matching from `/coffee-chats/admin`.
 - Only one round can be open at a time. Pair creation and the transition to
   `paired` happen in one locked database transaction through
   `commit_coffee_chat_pairing`.
+- Admin deadline inputs are interpreted in the administrator's browser timezone
+  and converted to UTC ISO timestamps before they are written to Supabase.
 - Member signup and pair reads remain protected by RLS. Administrative actions
   accept board members and existing explicit special-access users.
 

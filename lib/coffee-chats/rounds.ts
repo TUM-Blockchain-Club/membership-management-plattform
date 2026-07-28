@@ -14,3 +14,12 @@ export function getSignupError(round: SignupRound, now = new Date()): string | n
 
   return null
 }
+
+export function localDateTimeToUtcIso(value: string): string {
+  const date = new Date(value)
+  if (!Number.isFinite(date.getTime())) {
+    throw new Error('Invalid local date and time.')
+  }
+
+  return date.toISOString()
+}

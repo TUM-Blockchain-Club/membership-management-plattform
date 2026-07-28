@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test'
 
 import { MAX_SELFIE_BYTES, validateSelfieUpload } from '../lib/coffee-chats/uploads'
-import { getSignupError } from '../lib/coffee-chats/rounds'
+import { getSignupError, localDateTimeToUtcIso } from '../lib/coffee-chats/rounds'
 import { runPairing } from '../lib/coffee-chats/pairing'
 import { escapeEmailHtml } from '../lib/coffee-chats/emails'
+import { filterKnownMembers } from '../lib/coffee-chats/profiles'
 
 test('selfie upload rejects non-image bytes disguised as JPEG', () => {
   expect(() =>
@@ -27,6 +28,18 @@ test('signup rejects an open round after its deadline', () => {
       new Date('2026-07-28T12:00:00.000Z'),
     ),
   ).toBe('The signup deadline for this round has passed.')
+})
+
+test('admin deadlines are converted from local Munich time to UTC', () => {
+  const previousTimezone = process.env.TZ
+  process.env.TZ = 'Europe/Berlin'
+
+  try {
+    expect(localDateTimeToUtcIso('2026-07-28T18:00')).toBe('2026-07-28T16:00:00.000Z')
+  } finally {
+    if (previousTimezone) process.env.TZ = previousTimezone
+    else delete process.env.TZ
+  }
 })
 
 test('pairing avoids an excluded pair when a valid complete matching exists', () => {
@@ -56,4 +69,14 @@ test('email HTML escapes member-controlled text', () => {
   expect(escapeEmailHtml('<img src=x onerror=alert(1)> & "quoted"')).toBe(
     '&lt;img src=x onerror=alert(1)&gt; &amp; &quot;quoted&quot;',
   )
+})
+
+test('known-member search matches names and departments case-insensitively', () => {
+  const members = [
+    { id: 1, name: 'Ada Lovelace', department: 'Research' },
+    { id: 2, name: 'Grace Hopper', department: 'IT & Development' },
+  ]
+
+  expect(filterKnownMembers(members, 'research')).toEqual([members[0]])
+  expect(filterKnownMembers(members, 'GRACE')).toEqual([members[1]])
 })
