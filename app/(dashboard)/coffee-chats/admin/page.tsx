@@ -6,9 +6,12 @@ import { PlusIcon, PlayIcon, UsersIcon } from 'lucide-react'
 import { getSupabaseBrowserClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { localDateTimeToUtcIso } from '@/lib/coffee-chats/rounds'
 
@@ -94,7 +97,10 @@ export default function CoffeeChatsAdminPage() {
         status: 'open',
       }).select().single()
 
-      if (error) { toast.error(error.message); return }
+      if (error) {
+        toast.error('The round could not be created. Check the dates and try again.')
+        return
+      }
 
       toast.success(`Round ${newMonth} created.`)
       setRounds((prev) => [data as Round, ...prev])
@@ -123,7 +129,7 @@ export default function CoffeeChatsAdminPage() {
       }
 
       if (!res.ok || !json.ok) {
-        toast.error(json.error ?? 'Pairing failed')
+        toast.error('Pairing could not be completed. No partial pairing was saved; try again or check the server logs.')
         return
       }
 
@@ -145,72 +151,70 @@ export default function CoffeeChatsAdminPage() {
 
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto">
-        <div className="h-64 bg-white/5 rounded-xl animate-pulse" />
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+        <Skeleton className="h-7 w-48" />
+        <Skeleton className="h-64 w-full rounded-xl" />
       </div>
     )
   }
 
   if (!isAdmin) {
     return (
-      <div className="max-w-lg mx-auto">
-        <Card className="border-border bg-background/50">
-          <CardHeader>
-            <CardTitle className="text-white">Access Denied</CardTitle>
-            <CardDescription className="text-white/50">
-              This page is for Coffee Chats administrators only.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
+      <Empty className="mx-auto max-w-lg border">
+        <EmptyHeader>
+          <EmptyMedia variant="icon"><UsersIcon /></EmptyMedia>
+          <EmptyTitle>Admin access required</EmptyTitle>
+          <EmptyDescription>This page is available to board and special-access members.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     )
   }
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-1">Coffee Chats Admin</h2>
-        <p className="text-white/60 text-sm">Manage rounds and run pairings.</p>
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
+      <div className="flex flex-col gap-1">
+        <h3 className="text-xl font-semibold tracking-tight text-foreground">Coffee Chats admin</h3>
+        <p className="text-sm text-muted-foreground">Manage rounds and run pairings.</p>
       </div>
 
       {/* Create round */}
       <Card className="border-border bg-background/50">
         <CardHeader>
-          <CardTitle className="text-white text-base">Create New Round</CardTitle>
+          <CardTitle>Create new round</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid sm:grid-cols-3 gap-4">
-            <div className="space-y-1.5">
-              <Label className="text-white/80">Month</Label>
+        <CardContent className="flex flex-col gap-4">
+          <FieldGroup className="grid gap-4 sm:grid-cols-3">
+            <Field>
+              <FieldLabel htmlFor="coffee-chat-month">Month</FieldLabel>
               <Input
+                id="coffee-chat-month"
                 type="month"
                 value={newMonth}
                 onChange={(e) => setNewMonth(e.target.value)}
-                className="bg-background/80"
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-white/80">Sign-up deadline</Label>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="coffee-chat-signup-deadline">Sign-up deadline</FieldLabel>
               <Input
+                id="coffee-chat-signup-deadline"
                 type="datetime-local"
                 value={newSignupDeadline}
                 onChange={(e) => setNewSignupDeadline(e.target.value)}
-                className="bg-background/80"
               />
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-white/80">Meet deadline</Label>
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="coffee-chat-meet-deadline">Meet deadline</FieldLabel>
               <Input
+                id="coffee-chat-meet-deadline"
                 type="datetime-local"
                 value={newMeetDeadline}
                 onChange={(e) => setNewMeetDeadline(e.target.value)}
-                className="bg-background/80"
               />
-            </div>
-          </div>
+            </Field>
+          </FieldGroup>
           <Button onClick={handleCreateRound} disabled={isPending}>
-            <PlusIcon data-icon="inline-start" />
-            Create Round
+            {isPending ? <Spinner data-icon="inline-start" /> : <PlusIcon data-icon="inline-start" />}
+            {isPending ? 'Creating…' : 'Create round'}
           </Button>
         </CardContent>
       </Card>
@@ -218,35 +222,41 @@ export default function CoffeeChatsAdminPage() {
       {/* Rounds table */}
       <Card className="border-border bg-background/50">
         <CardHeader>
-          <CardTitle className="text-white text-base">All Rounds</CardTitle>
+          <CardTitle>All rounds</CardTitle>
         </CardHeader>
         <CardContent>
           {rounds.length === 0 ? (
-            <p className="text-white/50 text-sm">No rounds yet.</p>
+            <Empty>
+              <EmptyHeader>
+                <EmptyMedia variant="icon"><UsersIcon /></EmptyMedia>
+                <EmptyTitle>No rounds yet</EmptyTitle>
+                <EmptyDescription>Create the first round above.</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <Table>
               <TableHeader>
                 <TableRow className="border-border">
-                  <TableHead className="text-white/60">Month</TableHead>
-                  <TableHead className="text-white/60">Status</TableHead>
-                  <TableHead className="text-white/60 text-center">
+                  <TableHead>Month</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-center">
                     <UsersIcon className="inline size-4" /> Signups
                   </TableHead>
-                  <TableHead className="text-white/60 text-center">Pairs</TableHead>
-                  <TableHead className="text-white/60">Actions</TableHead>
+                  <TableHead className="text-center">Pairs</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rounds.map((round) => (
                   <TableRow key={round.id} className="border-border">
-                    <TableCell className="text-white font-medium">{round.month}</TableCell>
+                    <TableCell className="font-medium">{round.month}</TableCell>
                     <TableCell>
                       <Badge variant={statusVariant(round.status)}>{round.status}</Badge>
                     </TableCell>
-                    <TableCell className="text-center text-white/70">
+                    <TableCell className="text-center text-muted-foreground">
                       {signupCounts[round.id] ?? 0}
                     </TableCell>
-                    <TableCell className="text-center text-white/70">
+                    <TableCell className="text-center text-muted-foreground">
                       {pairCounts[round.id] ?? 0}
                     </TableCell>
                     <TableCell>

@@ -23,3 +23,18 @@ export function localDateTimeToUtcIso(value: string): string {
 
   return date.toISOString()
 }
+
+export function dateToCalendarDate(
+  date: Date,
+  timeZone = 'Europe/Berlin',
+): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    timeZone,
+  }).formatToParts(date)
+  const values = new Map(parts.map((part) => [part.type, part.value]))
+
+  return `${values.get('year')}-${values.get('month')}-${values.get('day')}`
+}

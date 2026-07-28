@@ -1,13 +1,24 @@
 # Coffee Chats integration
 
-Coffee Chats is a native authenticated section under `/coffee-chats`. Members
-maintain a small matching profile, join the current monthly round, view their
-pair or trio, and log the meeting. Board members and explicit special-access
-users manage rounds and trigger matching from `/coffee-chats/admin`.
+Coffee Chats is a native authenticated dashboard tab under `/coffee-chats`.
+Its routes live in the `(dashboard)` route group so the shared dashboard header,
+navigation, account controls, background, and footer remain mounted. Do not add
+a second Coffee Chats application shell or a standalone "Back to Dashboard"
+control.
+
+The default route is a state-aware current-round experience. It derives one
+next action from matching-preference completion, signup state, the open round,
+and the latest outstanding match. The old `/coffee-chats/join` and
+`/coffee-chats/my-match` URLs redirect to this default route for compatibility.
+Preferences, gallery, and authorized admin tools are secondary routes.
 
 The profile includes a searchable active-member checklist for
 `cc_already_know`. Those member IDs are treated as pairing exclusions whenever
 another complete matching is available.
+
+At least one interest is required before saving and joining. Three to five are
+recommended in the UI. Other profile details and acquaintance exclusions are
+optional and progressively disclosed.
 
 ## Data and authorization
 
@@ -26,8 +37,11 @@ another complete matching is available.
 
 `coffee-chat-selfies` is private. `/api/coffee-chats/log-meeting` verifies that
 the current member belongs to the pair, accepts only valid JPEG, PNG, or WebP
-content up to 5 MB, and uploads with the service-role client. Match and gallery
-responses expose one-hour signed URLs rather than permanent public URLs.
+content up to 5 MB, and uploads with the service-role client. The route requires
+an explicit `complete-meeting` or `upload-selfie` intent. Uploading a selfie to
+an already completed meeting never changes pair status or sign-off fields.
+Match and gallery responses expose one-hour signed URLs rather than permanent
+public URLs.
 
 Google Drive backup remains optional through `GOOGLE_SERVICE_ACCOUNT_EMAIL`,
 `GOOGLE_PRIVATE_KEY`, and `GOOGLE_DRIVE_FOLDER_ID`.

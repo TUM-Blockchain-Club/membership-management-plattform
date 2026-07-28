@@ -3,7 +3,7 @@ import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { syncSelfie } from '@/lib/coffee-chats/drive'
 import { MAX_SELFIE_BYTES, validateSelfieUpload } from '@/lib/coffee-chats/uploads'
 import { getCoffeeChatAdminClient } from '@/lib/coffee-chats/supabase'
-import type { Database } from '@/lib/types/database.types'
+import { buildMeetingUpdate } from '@/lib/coffee-chats/meeting'
 
 export async function POST(request: Request) {
   try {
@@ -29,6 +29,7 @@ export async function POST(request: Request) {
     const formData = await request.formData()
 
     const pairId = formData.get('pairId')
+    const intent = formData.get('intent')
     const dateMet = formData.get('dateMet')
     const rating = formData.get('rating')
     const highlightNote = formData.get('highlightNote')
@@ -38,16 +39,20 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'pairId is required' }, { status: 400 })
     }
 
+    if (intent !== 'complete-meeting' && intent !== 'upload-selfie') {
+      return NextResponse.json({ error: 'A valid meeting action is required.' }, { status: 400 })
+    }
+
     const parsedRating = rating === null || rating === '' ? null : Number(rating)
     if (parsedRating !== null && (!Number.isInteger(parsedRating) || parsedRating < 1 || parsedRating > 5)) {
       return NextResponse.json({ error: 'rating must be an integer from 1 to 5' }, { status: 400 })
     }
 
-    if (typeof highlightNote === 'string' && highlightNote.length > 500) {
+    if (intent === 'complete-meeting' && typeof highlightNote === 'string' && highlightNote.length > 500) {
       return NextResponse.json({ error: 'highlightNote must be 500 characters or fewer' }, { status: 400 })
     }
 
-    if (typeof dateMet === 'string' && !/^\d{4}-\d{2}-\d{2}$/.test(dateMet)) {
+    if (intent === 'complete-meeting' && (typeof dateMet !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateMet))) {
       return NextResponse.json({ error: 'dateMet must use YYYY-MM-DD format' }, { status: 400 })
     }
 
@@ -59,7 +64,7 @@ export async function POST(request: Request) {
 
     const { data: pair, error: pairError } = await admin
       .from('cc_pairs')
-      .select('id, round_id, person1_id, person2_id, person3_id')
+      .select('id, round_id, person1_id, person2_id, person3_id, status')
       .eq('id', pairId)
       .maybeSingle()
 
@@ -73,6 +78,17 @@ export async function POST(request: Request) {
 
     if (memberId !== p1 && memberId !== p2 && memberId !== p3) {
       return NextResponse.json({ error: 'You are not a member of this pair' }, { status: 403 })
+    }
+
+    if (intent === 'upload-selfie' && pair.status !== 'met') {
+      return NextResponse.json(
+        { error: 'Complete the meeting before uploading a standalone selfie.' },
+        { status: 400 },
+      )
+    }
+
+    if (intent === 'upload-selfie' && (!selfieFile || selfieFile.size === 0)) {
+      return NextResponse.json({ error: 'Select a selfie to upload.' }, { status: 400 })
     }
 
     // Determine which sign-off column to set
@@ -137,17 +153,15 @@ export async function POST(request: Request) {
       if (driveResult) driveUrl = driveResult.webViewLink
     }
 
-    // Build update payload
-    const update: Database['public']['Tables']['cc_pairs']['Update'] = {
-      [signOffField]: true,
-      status: 'met',
-    }
-
-    if (dateMet && typeof dateMet === 'string') update.date_met = dateMet
-    if (parsedRating !== null) update.rating = parsedRating
-    if (highlightNote && typeof highlightNote === 'string') update.highlight_note = highlightNote
-    if (selfiePath) update.selfie_path = selfiePath
-    if (driveUrl) update.drive_url = driveUrl
+    const update = buildMeetingUpdate({
+      intent,
+      signOffField,
+      selfiePath,
+      driveUrl,
+      dateMet: typeof dateMet === 'string' ? dateMet : null,
+      rating: parsedRating,
+      highlightNote: typeof highlightNote === 'string' ? highlightNote : null,
+    })
 
     const { error: updateError } = await admin
       .from('cc_pairs')

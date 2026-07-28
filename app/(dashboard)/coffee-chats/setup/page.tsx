@@ -1,26 +1,41 @@
 'use client'
 
 import { useEffect, useMemo, useState, useTransition } from 'react'
-import { UsersIcon } from 'lucide-react'
+import { CheckIcon, UsersIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { getSupabaseBrowserClient } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
+import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
-import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel, FieldTitle } from '@/components/ui/field'
+import {
+  Field,
+  FieldContent,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+  FieldLegend,
+  FieldSet,
+  FieldTitle,
+} from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { filterKnownMembers, type KnownMemberOption } from '@/lib/coffee-chats/profiles'
 
-const INTEREST_OPTIONS = [
-  'Blockchain', 'DeFi', 'NFTs', 'Web3', 'Smart Contracts',
-  'Solidity', 'Research', 'Finance', 'Trading', 'Investing',
-  'Software Dev', 'Design', 'Marketing', 'Legal', 'VC & Startups',
-  'AI / ML', 'Sports', 'Music', 'Travel', 'Gaming',
-]
+const CORE_INTEREST_OPTIONS = [
+  'Blockchain', 'DeFi', 'Web3', 'Smart Contracts',
+  'Research', 'Finance', 'Software Dev', 'VC & Startups',
+] as const
+
+const MORE_INTEREST_OPTIONS = [
+  'NFTs', 'Solidity', 'Trading', 'Investing', 'Design', 'Marketing',
+  'Legal', 'AI / ML', 'Sports', 'Music', 'Travel', 'Gaming',
+] as const
 
 type MemberDirectoryRow = {
   id: number
@@ -41,6 +56,7 @@ export default function CoffeeChatsSetupPage() {
   const [knownMembers, setKnownMembers] = useState<KnownMemberOption[]>([])
   const [alreadyKnow, setAlreadyKnow] = useState<number[]>([])
   const [memberSearch, setMemberSearch] = useState('')
+  const [hasSubmitted, setHasSubmitted] = useState(false)
 
   const filteredKnownMembers = useMemo(
     () => filterKnownMembers(knownMembers, memberSearch),
@@ -112,6 +128,12 @@ export default function CoffeeChatsSetupPage() {
   }
 
   function handleSave() {
+    setHasSubmitted(true)
+    if (interests.length === 0) {
+      toast.error('Choose at least one interest before saving.')
+      return
+    }
+
     startTransition(async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { toast.error('Not signed in'); return }
@@ -135,9 +157,9 @@ export default function CoffeeChatsSetupPage() {
         .ilike('"TBC Email"', user.email ?? '')
 
       if (error) {
-        toast.error(error.message)
+        toast.error('We could not save your matching preferences. Please try again.')
       } else {
-        toast.success('Coffee chat profile saved!')
+        toast.success('Matching preferences saved.')
       }
     })
   }
@@ -152,151 +174,160 @@ export default function CoffeeChatsSetupPage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold text-white mb-1">Coffee Chat Profile</h2>
-        <p className="text-white/60 text-sm">
-          Help us find you the best match. All fields are optional but more detail means better matches.
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+      <div className="flex max-w-2xl flex-col gap-1">
+        <h3 className="text-xl font-semibold tracking-tight text-foreground">Matching preferences</h3>
+        <p className="text-sm text-muted-foreground">
+          Choose at least one interest to participate. Three to five usually give the pairing more useful signal.
         </p>
       </div>
 
-      <Card className="border-border bg-background/50">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-white">Interests</CardTitle>
-          <CardDescription className="text-white/50">
-            Select topics you are excited to talk about.
+          <CardTitle>What would you enjoy talking about?</CardTitle>
+          <CardDescription>
+            Start with the topics that would make a Coffee Chat worth your time.
           </CardDescription>
+          <CardAction><Badge variant="secondary">{interests.length} selected</Badge></CardAction>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {INTEREST_OPTIONS.map((opt) => (
-              <button
-                key={opt}
-                type="button"
-                onClick={() => toggleInterest(opt)}
-                className={`px-3 py-1.5 rounded-lg text-sm border transition-colors ${
-                  interests.includes(opt)
-                    ? 'border-primary bg-primary/20 text-primary'
-                    : 'border-border text-white/60 hover:border-white/40 hover:text-white'
-                }`}
-              >
-                {opt}
-              </button>
-            ))}
-          </div>
+          <FieldSet>
+            <FieldLegend className="sr-only">Core interests</FieldLegend>
+            <FieldGroup data-slot="checkbox-group" className="grid gap-2 sm:grid-cols-2">
+              {CORE_INTEREST_OPTIONS.map((interest) => {
+                const id = `interest-${interest.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`
+                return (
+                  <FieldLabel key={interest} htmlFor={id}>
+                    <Field orientation="horizontal">
+                      <Checkbox
+                        id={id}
+                        checked={interests.includes(interest)}
+                        onCheckedChange={() => toggleInterest(interest)}
+                      />
+                      <FieldContent><FieldTitle>{interest}</FieldTitle></FieldContent>
+                    </Field>
+                  </FieldLabel>
+                )
+              })}
+            </FieldGroup>
+            {hasSubmitted && interests.length === 0 && (
+              <FieldError>Choose at least one interest.</FieldError>
+            )}
+          </FieldSet>
         </CardContent>
       </Card>
 
-      <Card className="border-border bg-background/50">
+      <Card>
         <CardHeader>
-          <CardTitle className="text-white">People I Already Know</CardTitle>
-          <CardDescription className="text-white/50">
-            We will avoid matching you with these members when another valid match is available.
-            {alreadyKnow.length > 0 ? ` ${alreadyKnow.length} selected.` : ''}
-          </CardDescription>
+          <CardTitle>Optional match improvements</CardTitle>
+          <CardDescription>Add only what you are comfortable sharing with your future match.</CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          <Field>
-            <FieldLabel htmlFor="known-member-search">Search members</FieldLabel>
-            <Input
-              id="known-member-search"
-              value={memberSearch}
-              onChange={(event) => setMemberSearch(event.target.value)}
-              placeholder="Search by name or department"
-            />
-            <FieldDescription>Only active members are shown.</FieldDescription>
-          </Field>
+        <CardContent>
+          <Accordion type="multiple">
+            <AccordionItem value="more-interests">
+              <AccordionTrigger>More interests</AccordionTrigger>
+              <AccordionContent>
+                <FieldSet>
+                  <FieldLegend className="sr-only">Additional interests</FieldLegend>
+                  <FieldGroup data-slot="checkbox-group" className="grid gap-2 sm:grid-cols-2">
+                    {MORE_INTEREST_OPTIONS.map((interest) => {
+                      const id = `interest-${interest.toLowerCase().replaceAll(/[^a-z0-9]+/g, '-')}`
+                      return (
+                        <FieldLabel key={interest} htmlFor={id}>
+                          <Field orientation="horizontal">
+                            <Checkbox
+                              id={id}
+                              checked={interests.includes(interest)}
+                              onCheckedChange={() => toggleInterest(interest)}
+                            />
+                            <FieldContent><FieldTitle>{interest}</FieldTitle></FieldContent>
+                          </Field>
+                        </FieldLabel>
+                      )
+                    })}
+                  </FieldGroup>
+                </FieldSet>
+              </AccordionContent>
+            </AccordionItem>
 
-          {filteredKnownMembers.length > 0 ? (
-            <div className="max-h-72 overflow-y-auto rounded-lg border">
-              <FieldGroup data-slot="checkbox-group" className="gap-0">
-                {filteredKnownMembers.map((member) => {
-                  const checkboxId = `known-member-${member.id}`
-                  return (
-                    <FieldLabel key={member.id} htmlFor={checkboxId} className="border-b last:border-b-0">
-                      <Field orientation="horizontal">
-                        <Checkbox
-                          id={checkboxId}
-                          checked={alreadyKnow.includes(member.id)}
-                          onCheckedChange={(checked) => toggleKnownMember(member.id, checked === true)}
-                        />
-                        <FieldContent>
-                          <FieldTitle>{member.name}</FieldTitle>
-                          {member.department && <FieldDescription>{member.department}</FieldDescription>}
-                        </FieldContent>
-                      </Field>
-                    </FieldLabel>
-                  )
-                })}
-              </FieldGroup>
-            </div>
-          ) : (
-            <Empty className="border">
-              <EmptyHeader>
-                <EmptyMedia variant="icon"><UsersIcon /></EmptyMedia>
-                <EmptyTitle>No members found</EmptyTitle>
-                <EmptyDescription>Try a different name or department.</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
-          )}
+            <AccordionItem value="about-you">
+              <AccordionTrigger>About you</AccordionTrigger>
+              <AccordionContent>
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel htmlFor="study">Study programme</FieldLabel>
+                    <Input id="study" placeholder="e.g. MSc Informatics, TUM" value={studyProgramme} onChange={(event) => setStudyProgramme(event.target.value)} />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="coffee">Favourite coffee drink</FieldLabel>
+                    <Input id="coffee" placeholder="e.g. Flat white or oat latte" value={favouriteCoffee} onChange={(event) => setFavouriteCoffee(event.target.value)} />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="spots">Favourite coffee spots in Munich</FieldLabel>
+                    <Input id="spots" placeholder="Separate places with commas" value={favouriteSpots} onChange={(event) => setFavouriteSpots(event.target.value)} />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="funfact">Fun fact</FieldLabel>
+                    <Textarea id="funfact" placeholder="Give your match an easy conversation starter" value={funFact} onChange={(event) => setFunFact(event.target.value)} rows={3} />
+                  </Field>
+                </FieldGroup>
+              </AccordionContent>
+            </AccordionItem>
+
+            <AccordionItem value="already-know">
+              <AccordionTrigger>
+                People I already know {alreadyKnow.length > 0 ? `(${alreadyKnow.length})` : ''}
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="flex flex-col gap-4">
+                  <p className="text-sm text-muted-foreground">
+                    We avoid these pairings when another complete matching is available.
+                  </p>
+                  <Field>
+                    <FieldLabel htmlFor="known-member-search">Search members</FieldLabel>
+                    <Input id="known-member-search" value={memberSearch} onChange={(event) => setMemberSearch(event.target.value)} placeholder="Search by name or department" />
+                    <FieldDescription>Only active members are shown.</FieldDescription>
+                  </Field>
+
+                  {filteredKnownMembers.length > 0 ? (
+                    <div className="max-h-72 overflow-y-auto rounded-lg border">
+                      <FieldGroup data-slot="checkbox-group" className="gap-0">
+                        {filteredKnownMembers.map((member) => {
+                          const checkboxId = `known-member-${member.id}`
+                          return (
+                            <FieldLabel key={member.id} htmlFor={checkboxId} className="border-b last:border-b-0">
+                              <Field orientation="horizontal">
+                                <Checkbox id={checkboxId} checked={alreadyKnow.includes(member.id)} onCheckedChange={(checked) => toggleKnownMember(member.id, checked === true)} />
+                                <FieldContent>
+                                  <FieldTitle>{member.name}</FieldTitle>
+                                  {member.department && <FieldDescription>{member.department}</FieldDescription>}
+                                </FieldContent>
+                              </Field>
+                            </FieldLabel>
+                          )
+                        })}
+                      </FieldGroup>
+                    </div>
+                  ) : (
+                    <Empty className="border">
+                      <EmptyHeader>
+                        <EmptyMedia variant="icon"><UsersIcon /></EmptyMedia>
+                        <EmptyTitle>No members found</EmptyTitle>
+                        <EmptyDescription>Try a different name or department.</EmptyDescription>
+                      </EmptyHeader>
+                    </Empty>
+                  )}
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
         </CardContent>
       </Card>
 
-      <Card className="border-border bg-background/50">
-        <CardHeader>
-          <CardTitle className="text-white">About You</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-1.5">
-            <Label htmlFor="study" className="text-white/80">Study programme</Label>
-            <Input
-              id="study"
-              placeholder="e.g. MSc Informatics, TUM"
-              value={studyProgramme}
-              onChange={(e) => setStudyProgramme(e.target.value)}
-              className="bg-background/80"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="coffee" className="text-white/80">Favourite coffee drink</Label>
-            <Input
-              id="coffee"
-              placeholder="e.g. Flat white, Oat latte, Black coffee"
-              value={favouriteCoffee}
-              onChange={(e) => setFavouriteCoffee(e.target.value)}
-              className="bg-background/80"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="spots" className="text-white/80">Favourite coffee spots in Munich</Label>
-            <Input
-              id="spots"
-              placeholder="Separate with commas: e.g. Lost Weekend, Standl 20, Franz & Josef"
-              value={favouriteSpots}
-              onChange={(e) => setFavouriteSpots(e.target.value)}
-              className="bg-background/80"
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="funfact" className="text-white/80">Fun fact about you</Label>
-            <Textarea
-              id="funfact"
-              placeholder="Something your match can use as an ice-breaker..."
-              value={funFact}
-              onChange={(e) => setFunFact(e.target.value)}
-              className="bg-background/80 resize-none"
-              rows={3}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="flex justify-end">
+      <div className="sticky bottom-0 flex justify-end bg-background/95 py-3 backdrop-blur supports-[backdrop-filter]:bg-background/80">
         <Button onClick={handleSave} disabled={isPending} size="lg">
-          {isPending ? 'Saving…' : 'Save Profile'}
+          {isPending ? <Spinner data-icon="inline-start" /> : <CheckIcon data-icon="inline-start" />}
+          {isPending ? 'Saving…' : 'Save preferences'}
         </Button>
       </div>
     </div>

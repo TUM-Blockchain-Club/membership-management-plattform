@@ -1,10 +1,13 @@
 import { expect, test } from '@playwright/test'
 
 import { MAX_SELFIE_BYTES, validateSelfieUpload } from '../lib/coffee-chats/uploads'
-import { getSignupError, localDateTimeToUtcIso } from '../lib/coffee-chats/rounds'
+import { dateToCalendarDate, getSignupError, localDateTimeToUtcIso } from '../lib/coffee-chats/rounds'
 import { runPairing } from '../lib/coffee-chats/pairing'
 import { escapeEmailHtml } from '../lib/coffee-chats/emails'
 import { filterKnownMembers } from '../lib/coffee-chats/profiles'
+import { getCoffeeChatNextStep } from '../lib/coffee-chats/experience'
+import { buildMeetingUpdate } from '../lib/coffee-chats/meeting'
+import { getDashboardTabForPathname } from '../app/dashboard/lib/routes'
 
 test('selfie upload rejects non-image bytes disguised as JPEG', () => {
   expect(() =>
@@ -40,6 +43,12 @@ test('admin deadlines are converted from local Munich time to UTC', () => {
     if (previousTimezone) process.env.TZ = previousTimezone
     else delete process.env.TZ
   }
+})
+
+test('meeting dates use the Munich calendar day instead of UTC', () => {
+  expect(dateToCalendarDate(new Date('2026-07-28T22:30:00.000Z'), 'Europe/Berlin')).toBe(
+    '2026-07-29',
+  )
 })
 
 test('pairing avoids an excluded pair when a valid complete matching exists', () => {
@@ -79,4 +88,92 @@ test('known-member search matches names and departments case-insensitively', () 
 
   expect(filterKnownMembers(members, 'research')).toEqual([members[0]])
   expect(filterKnownMembers(members, 'GRACE')).toEqual([members[1]])
+})
+
+test('dashboard routing keeps every Coffee Chats page in the Coffee Chats tab', () => {
+  expect(getDashboardTabForPathname('/coffee-chats')).toBe('coffee-chats')
+  expect(getDashboardTabForPathname('/coffee-chats/setup')).toBe('coffee-chats')
+  expect(getDashboardTabForPathname('/coffee-chats/gallery')).toBe('coffee-chats')
+})
+
+test('current round asks for matching preferences before signup', () => {
+  expect(
+    getCoffeeChatNextStep({
+      hasMatch: false,
+      isProfileComplete: false,
+      isSignedUp: false,
+      matchIsComplete: false,
+      roundIsOpen: true,
+    }),
+  ).toEqual({
+    kind: 'preferences',
+    label: 'Set matching preferences',
+    href: '/coffee-chats/setup',
+  })
+})
+
+test('current round exposes exactly the next signup action for a ready member', () => {
+  expect(
+    getCoffeeChatNextStep({
+      hasMatch: false,
+      isProfileComplete: true,
+      isSignedUp: false,
+      matchIsComplete: false,
+      roundIsOpen: true,
+    }),
+  ).toEqual({
+    kind: 'join',
+    label: 'Join this round',
+    href: null,
+  })
+})
+
+test('a completed previous match does not hide a newly open round', () => {
+  expect(
+    getCoffeeChatNextStep({
+      hasMatch: true,
+      isProfileComplete: true,
+      isSignedUp: false,
+      matchIsComplete: true,
+      roundIsOpen: true,
+    }),
+  ).toEqual({
+    kind: 'join',
+    label: 'Join this round',
+    href: null,
+  })
+})
+
+test('uploading a selfie alone does not complete the meeting', () => {
+  expect(
+    buildMeetingUpdate({
+      intent: 'upload-selfie',
+      signOffField: 'person1_signed_off',
+      selfiePath: 'round/pair-selfie.webp',
+      driveUrl: null,
+      dateMet: null,
+      rating: null,
+      highlightNote: null,
+    }),
+  ).toEqual({ selfie_path: 'round/pair-selfie.webp' })
+})
+
+test('completing a meeting explicitly records status and sign-off', () => {
+  expect(
+    buildMeetingUpdate({
+      intent: 'complete-meeting',
+      signOffField: 'person2_signed_off',
+      selfiePath: null,
+      driveUrl: null,
+      dateMet: '2026-07-28',
+      rating: 5,
+      highlightNote: 'Talked about account abstraction.',
+    }),
+  ).toEqual({
+    person2_signed_off: true,
+    status: 'met',
+    date_met: '2026-07-28',
+    rating: 5,
+    highlight_note: 'Talked about account abstraction.',
+  })
 })
