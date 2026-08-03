@@ -40,7 +40,7 @@ export async function POST(request: Request, context: RouteContext) {
         reviewed_by: user?.id ?? null,
       })
       .eq("id", requestId)
-      .select("id, member_id, status, display_name, fun_facts, wallet_address, image_path, image_url, created_at, reviewed_at, reviewed_by, review_note, mint_tx_hash")
+      .select("*")
       .single()
 
     if (error || !data) {

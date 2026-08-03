@@ -1,4 +1,3 @@
-import { NFT_REQUEST_IMAGE_BUCKET } from './nftRequestConstants'
 import { supabase } from './supabase'
 
 export type NftRequestStatus = 'pending' | 'approved' | 'rejected'
@@ -8,7 +7,6 @@ export type NftRequestUpsert = {
   status: 'pending'
   display_name: string
   fun_facts: string | null
-  wallet_address: string | null
   image_path: string
   image_url: string
   reviewed_at: null
@@ -22,7 +20,6 @@ export type NftRequestRow = {
   status: NftRequestStatus
   display_name: string
   fun_facts: string | null
-  wallet_address: string | null
   image_path: string
   image_url: string
   created_at: string
@@ -30,6 +27,27 @@ export type NftRequestRow = {
   reviewed_by: string | null
   review_note: string | null
   mint_tx_hash?: string | null
+  update_tx_hash?: string | null
+  burn_tx_hash?: string | null
+  request_image_bucket?: string
+  rendered_image_path?: string | null
+  metadata_path?: string | null
+  metadata_url?: string | null
+  metadata_version?: number
+  chain_network?: 'devnet' | 'mainnet-beta'
+  collection_address?: string | null
+  asset_address?: string | null
+  owner_address?: string | null
+  custody_status?: 'club' | 'member'
+  asset_state?: 'unminted' | 'active' | 'alumni' | 'burned'
+  claim_wallet_address?: string | null
+  claim_requested_at?: string | null
+  claimed_at?: string | null
+  minted_at?: string | null
+  updated_on_chain_at?: string | null
+  burned_at?: string | null
+  last_chain_error?: string | null
+  reconciled_at?: string | null
 }
 
 export type NftRequestMemberRow = {
@@ -46,6 +64,8 @@ export type AdminQueueMember = {
   email: string | null
   department: string | null
   picture: unknown | null
+  status: string | null
+  batch: string | null
 }
 
 export type AdminQueueRequestRow = NftRequestRow & {
@@ -54,7 +74,9 @@ export type AdminQueueRequestRow = NftRequestRow & {
 
 export type MintRequestResponse = {
   request: NftRequestRow
-  mintTxHash: string
+  transactionSignature: string
+  assetAddress: string
+  operation: 'mint' | 'update'
 }
 
 export type DeleteRequestResponse = {
@@ -97,58 +119,15 @@ export const nftRequestService = {
   },
 
   uploadRequestImage: async (memberId: number | string, file: File) => {
-    const fileExtension = file.name.includes('.') ? file.name.split('.').pop()?.toLowerCase() ?? 'png' : 'png'
-    const memberPrefix = String(memberId)
-    const { data: existingFiles } = await supabase.storage
-      .from(NFT_REQUEST_IMAGE_BUCKET)
-      .list(memberPrefix, {
-        limit: 100,
-      })
-
-    if (existingFiles?.length) {
-      const staleFilePaths = existingFiles
-        .map((entry: { name?: string | null }) => entry.name?.trim())
-        .filter((name: string | undefined): name is string => Boolean(name))
-        .map((name: string) => `${memberPrefix}/${name}`)
-
-      if (staleFilePaths.length) {
-        await supabase.storage
-          .from(NFT_REQUEST_IMAGE_BUCKET)
-          .remove(staleFilePaths)
-      }
+    const body = new FormData()
+    body.set('memberId', String(memberId))
+    body.set('file', file)
+    const response = await fetch('/api/nft-request-image', { method: 'POST', body })
+    const payload = (await response.json()) as { imagePath?: string; imageUrl?: string; error?: string }
+    if (!response.ok || !payload.imagePath || !payload.imageUrl) {
+      return { data: null, error: { message: payload.error || 'Could not upload the NFT image.' } }
     }
-
-    const uniqueToken =
-      typeof crypto !== 'undefined' && 'randomUUID' in crypto
-        ? crypto.randomUUID()
-        : `${Date.now()}-${Math.random().toString(16).slice(2)}`
-    const objectPath = `${memberPrefix}/${Date.now()}-${uniqueToken}.${fileExtension}`
-
-    const { error } = await supabase.storage
-      .from(NFT_REQUEST_IMAGE_BUCKET)
-      .upload(objectPath, file, {
-        cacheControl: '3600',
-        contentType: file.type || undefined,
-        upsert: true,
-      })
-
-    if (error) {
-      return { data: null, error }
-    }
-
-    const {
-      data: { publicUrl },
-    } = supabase.storage
-      .from(NFT_REQUEST_IMAGE_BUCKET)
-      .getPublicUrl(objectPath)
-
-    return {
-      data: {
-        imagePath: objectPath,
-        imageUrl: `${publicUrl}?t=${Date.now()}`,
-      },
-      error: null,
-    }
+    return { data: { imagePath: payload.imagePath, imageUrl: payload.imageUrl }, error: null }
   },
 
   getCurrentRequest: async () => {
@@ -242,7 +221,7 @@ export const nftRequestService = {
   getRequests: async () => {
     const { data, error } = await supabase
       .from('nft_requests')
-      .select('id, member_id, status, display_name, fun_facts, wallet_address, image_path, image_url, created_at, reviewed_at, reviewed_by, review_note, mint_tx_hash')
+      .select('*')
       .order('created_at', { ascending: false })
 
     return { data: (data ?? []) as NftRequestRow[], error }
@@ -315,50 +294,74 @@ export const nftRequestService = {
       | MintRequestResponse
       | {
           error?: string
-          mintTxHash?: string
+          transactionSignature?: string
         }
 
     if (!response.ok || !('request' in payload)) {
       return {
         data: null,
         error: ('error' in payload ? payload.error : undefined) || 'Minting failed.',
-        mintTxHash: 'mintTxHash' in payload ? payload.mintTxHash ?? null : null,
+        transactionSignature: 'transactionSignature' in payload ? payload.transactionSignature ?? null : null,
       }
     }
 
     return {
       data: payload,
       error: null,
-      mintTxHash: payload.mintTxHash,
+      transactionSignature: payload.transactionSignature,
     }
   },
 
-  getSignedRequestImageUrl: async (imagePath: string, fallbackUrl?: string | null) => {
-    if (!imagePath?.trim()) {
-      return { data: fallbackUrl ?? '', error: null }
-    }
-
-    const { data, error } = await supabase.storage
-      .from(NFT_REQUEST_IMAGE_BUCKET)
-      .createSignedUrl(imagePath, 60 * 60)
-
-    if (error || !data?.signedUrl) {
-      return { data: fallbackUrl ?? '', error }
-    }
-
-    return { data: data.signedUrl, error: null }
-  },
-
-  getRequestImageProxyUrl: (imagePath: string, version?: string | null) => {
-    if (!imagePath?.trim()) {
+  getRequestImageProxyUrl: (requestId: string, version?: string | null) => {
+    if (!requestId?.trim()) {
       return ''
     }
 
-    const searchParams = new URLSearchParams({ path: imagePath })
+    const searchParams = new URLSearchParams({ id: requestId })
     if (version?.trim()) {
       searchParams.set('v', version)
     }
     return `/api/nft-request-image?${searchParams.toString()}`
+  },
+
+  requestClaim: async (walletAddress: string) => {
+    const response = await fetch('/api/nft-requests/current/claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ walletAddress }),
+    })
+    const payload = (await response.json()) as { request?: NftRequestRow; error?: string }
+    return response.ok && payload.request
+      ? { data: payload.request, error: null }
+      : { data: null, error: payload.error || 'Could not request the NFT transfer.' }
+  },
+
+  approveClaim: async (requestId: string) => {
+    const response = await fetch(`/api/nft-requests/${requestId}/claim`, { method: 'POST' })
+    const payload = (await response.json()) as { request?: NftRequestRow; error?: string }
+    return response.ok && payload.request
+      ? { data: payload.request, error: null }
+      : { data: null, error: payload.error || 'Could not transfer the NFT.' }
+  },
+
+  updateLifecycle: async (requestId: string, action: 'sync' | 'revoke') => {
+    const response = await fetch(`/api/nft-requests/${requestId}/lifecycle`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action }),
+    })
+    const payload = (await response.json()) as { request?: NftRequestRow; error?: string }
+    return response.ok && payload.request
+      ? { data: payload.request, error: null }
+      : { data: null, error: payload.error || 'Could not update the NFT lifecycle.' }
+  },
+
+  reconcile: async () => {
+    const response = await fetch('/api/nft-requests/reconcile', { method: 'POST' })
+    const payload = (await response.json()) as { results?: unknown[]; error?: string }
+    return response.ok
+      ? { data: payload.results ?? [], error: null }
+      : { data: null, error: payload.error || 'Could not reconcile Solana assets.' }
   },
 
   getRequestCompositePreviewUrl: (requestId: string) => `/api/nft-requests/${requestId}/preview-image`,

@@ -49,12 +49,12 @@ export function NftRequestActions({
   )
 }
 
-export function OnChainButton({ className = '', href }: { className?: string; href: string }) {
+export function OnChainButton({ className = '', href, label = 'Check On-Chain' }: { className?: string; href: string; label?: string }) {
   return (
     <Button asChild variant="outline" className={`border-cyan-400/35 bg-cyan-500/10 text-cyan-100 hover:border-cyan-300/50 hover:bg-cyan-400/15 hover:text-cyan-50 ${className}`}>
       <a href={href} target="_blank" rel="noreferrer">
         <ExternalLinkIcon data-icon="inline-start" />
-        Check On-Chain
+        {label}
       </a>
     </Button>
   )
