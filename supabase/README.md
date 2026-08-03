@@ -26,8 +26,8 @@ For the live schema overview, table columns, relationships, RLS summary, storage
   - Adds the private `link-redirect-images` storage bucket.
 
 - `nft_requests.sql`
-  - Creates/updates `public.nft_requests`.
-  - Adds NFT request helper functions, indexes, policies, and storage policies.
+  - Creates/updates the Solana membership request, custody, lifecycle, and receipt schema.
+  - Creates the private source-image and public rendered-asset buckets.
 
 - `coffee_chats.sql`
   - Adds Coffee Chat profile columns to `members_main`.

@@ -2,9 +2,11 @@ packages:
   - .
 
 allowBuilds:
+  bufferutil: false
   msw: false
   sharp: true
   unrs-resolver: true
+  utf-8-validate: false
 
 overrides:
   postcss: 8.5.14

@@ -179,40 +179,30 @@ Relationships:
 
 ### `public.nft_requests`
 
-NFT image/profile request table.
+One row per member combines the reviewable public profile submission with the
+current Solana Metaplex Core asset state.
 
-Current live count: 2 rows.
+Important column groups:
 
-| Column | Type | Null | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `id` | `uuid` | no | `gen_random_uuid()` | Primary key. |
-| `member_id` | `integer` | no | none | References `members_main.id`; one request per member. |
-| `status` | `text` | no | `pending` | Request lifecycle status. |
-| `display_name` | `text` | no | none | Display name for NFT. |
-| `fun_facts` | `text` | yes | none | Optional prompt/profile facts. |
-| `wallet_address` | `text` | yes | none | Optional wallet override. |
-| `image_path` | `text` | no | none | Storage object path. |
-| `image_url` | `text` | no | none | Public image URL. |
-| `created_at` | `timestamptz` | no | `now()` | Creation timestamp. |
-| `reviewed_at` | `timestamptz` | yes | none | Review timestamp. |
-| `reviewed_by` | `uuid` | yes | none | References an auth user. |
-| `review_note` | `text` | yes | none | Admin review note. |
-| `mint_tx_hash` | `text` | yes | none | Mint transaction hash. |
-| `burn_tx_hash` | `text` | yes | none | Burn transaction hash. |
-| `update_tx_hash` | `text` | yes | none | Metadata/update transaction hash. |
+| Group | Columns | Purpose |
+| --- | --- | --- |
+| Request | `status`, `display_name`, `fun_facts`, `image_path`, `request_image_bucket` | Member submission and board review. Source portraits are private. |
+| Public metadata | `rendered_image_path`, `metadata_path`, `metadata_url`, `metadata_version` | Versioned public PNG and JSON files used by wallets and explorers. |
+| Solana identity | `chain_network`, `collection_address`, `asset_address` | Network and Metaplex Core addresses. |
+| Ownership | `owner_address`, `custody_status`, `claim_wallet_address`, `claim_requested_at`, `claimed_at` | Club custody, member claim, and wallet recovery. |
+| Lifecycle | `asset_state`, `minted_at`, `updated_on_chain_at`, `burned_at` | `unminted`, `active`, `alumni`, or `burned`. |
+| Receipts | `mint_tx_hash`, `update_tx_hash`, `burn_tx_hash`, `last_chain_error`, `reconciled_at` | Solana signatures and reconciliation state. |
 
-Constraints and indexes:
+`Alumni` keeps the same asset and publishes updated artwork/metadata. `Left`,
+`Kicked out`, or a manual board revocation burns the asset and deletes hosted
+personal media. Historical transaction records remain on Solana.
 
-- Primary key: `nft_requests_pkey` on `id`.
-- Unique index: `nft_requests_one_per_member` on `member_id`.
-- Unique indexes on `image_path` and `image_url`.
-- Index: `nft_requests_status_created_at_idx` on `(status, created_at desc)`.
-- Check constraints exist for `status`, wallet address, transaction hashes, and `fun_facts`.
+### `public.nft_chain_operations`
 
-Relationships:
-
-- `member_id` -> `members_main.id`
-- `reviewed_by` -> Supabase Auth user id.
+Durable operation receipts for `mint`, `update`, `claim`, `burn`, and
+`reconcile`. A row is created before the blockchain call and ends as
+`confirmed` or `failed`, preserving recovery evidence when a later request-row
+update fails.
 
 ### `public.link_redirect_definitions`
 
@@ -426,7 +416,8 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 - `event-images`: public read access.
 - `event-qr-codes`: public read access; board members can upload/update.
 - `newsletter-assets`: public read access; authenticated special-access users can upload, update, and delete objects.
-- `nft-images-picks`: open policy for anon/authenticated users named `dev_open_nft_images`; review this before production hardening.
+- `nft-request-images`: private member source portraits, accessed through guarded server routes.
+- `nft-public-assets`: public versioned NFT images, metadata, and collection metadata.
 
 ## Storage Buckets
 
@@ -438,7 +429,8 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 | `link-redirect-images` | no | Private board-uploaded visual references for QR/link placements. |
 | `newsletter-assets` | yes | Public reusable images inserted into Mailgun newsletter campaigns. |
 | `coffee-chat-selfies` | no | Private Coffee Chat meeting photos served with short-lived signed URLs. |
-| `nft-images-picks` | yes | NFT request image uploads/picks. |
+| `nft-request-images` | no | Private source portraits for membership NFT requests. |
+| `nft-public-assets` | yes | Public rendered NFT images and JSON metadata. |
 
 ## Coffee Chats Tables (`supabase/coffee_chats.sql`)
 

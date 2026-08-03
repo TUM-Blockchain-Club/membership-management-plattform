@@ -40,9 +40,22 @@ export async function buildNftImage(params: {
   degreeAtUni: string;
   programs: string;
   department: string;
+  membershipStatus?: 'ACTIVE' | 'ALUMNI';
+  membershipPeriod?: string;
+  imageBuffer?: Buffer | null;
   imageUrl?: string | null;
 }): Promise<Buffer> {
-  const { nickname, batch, degreeAtUni, programs, department, imageUrl } = params;
+  const {
+    nickname,
+    batch,
+    degreeAtUni,
+    programs,
+    department,
+    membershipStatus = 'ACTIVE',
+    membershipPeriod = '',
+    imageBuffer,
+    imageUrl,
+  } = params;
 
   const deptOverlay = DEPT_MAP[department] || "overlay_board.png";
 
@@ -52,8 +65,8 @@ export async function buildNftImage(params: {
     .toBuffer();
 
   // ── 2. Avatar ─────────────────────────────────────────────────────────────
-  let avatarBuffer: Buffer | null = null;
-  if (imageUrl) {
+  let avatarBuffer: Buffer | null = imageBuffer ?? null;
+  if (!avatarBuffer && imageUrl) {
     try {
       const res = await fetch(imageUrl);
       if (res.ok) {
@@ -133,7 +146,26 @@ export async function buildNftImage(params: {
           dominant-baseline: middle; 
           letter-spacing: 1px; 
         }
+        .status {
+          font-family: 'Raleway', sans-serif;
+          font-size: 30px;
+          font-weight: 700;
+          fill: #ffffff;
+          letter-spacing: 4px;
+          text-anchor: middle;
+          dominant-baseline: central;
+        }
+        .period {
+          font-family: 'Raleway', sans-serif;
+          font-size: 24px;
+          fill: rgba(255, 255, 255, 0.75);
+          text-anchor: end;
+        }
       </style>
+
+      <rect x="850" y="1145" width="270" height="58" rx="29" fill="${membershipStatus === 'ALUMNI' ? '#047857' : '#1D4ED8'}" />
+      <text x="985" y="1174" class="status">${membershipStatus}</text>
+      <text x="1120" y="1235" class="period">${escapeXml(membershipPeriod)}</text>
       
       <text x="210" y="1125" class="batch">${escapeXml(batch)}</text>
       

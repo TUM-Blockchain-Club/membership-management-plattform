@@ -1,76 +1,142 @@
-import { NextResponse } from "next/server"
-import { getRequiredContractEnv } from "@/lib/server/contractEnv"
-import { loadNftCompositeRecord, NftCompositeError, uploadRenderedNftAsset } from "@/lib/server/nftComposite"
-import { NftRequestAdminError, requireNftRequestAdmin } from "@/lib/server/nftRequestAdmin"
-import { getSupabaseAdminClient } from "@/lib/server/supabaseAdmin"
-import { mintMembershipNft } from "@/lib/server/nftMinting"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { NextResponse } from 'next/server'
+import { getMembershipAssetState } from '@/lib/nftLifecycle'
+import {
+  confirmNftChainOperation,
+  failNftChainOperation,
+  startNftChainOperation,
+} from '@/lib/server/nftChainOperation'
+import { NftRequestAdminError, requireNftRequestAdmin } from '@/lib/server/nftRequestAdmin'
+import {
+  loadMembershipNftRecord,
+  deleteSupersededMembershipPublicAssets,
+  deleteSupersededMembershipSourceImages,
+  renderAndUploadMembershipAssets,
+} from '@/lib/server/membershipNftAssets'
+import { mintMembershipAsset, updateMembershipAsset } from '@/lib/server/solanaMembership'
+import { getSupabaseAdminClient } from '@/lib/server/supabaseAdmin'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
-type RouteContext = {
-  params: Promise<{
-    requestId: string
-  }>
-}
+type RouteContext = { params: Promise<{ requestId: string }> }
 
 export async function POST(request: Request, context: RouteContext) {
+  let operationId: string | null = null
+
   try {
     const { requestId } = await context.params
     const supabase = await createSupabaseServerClient()
     const { user } = await requireNftRequestAdmin(supabase, request)
     const dataClient = getSupabaseAdminClient() ?? supabase
-    const record = await loadNftCompositeRecord(dataClient, requestId)
-    const nftRequest = record.request
+    const record = await loadMembershipNftRecord(dataClient, requestId)
+    const desiredState = getMembershipAssetState(record.member.status)
 
-    if (nftRequest.mint_tx_hash) {
-      return NextResponse.json({ error: "This request has already been minted." }, { status: 409 })
+    if (desiredState === 'revoked') {
+      return NextResponse.json(
+        { error: 'Left, kicked or revoked members cannot receive a membership NFT.' },
+        { status: 409 }
+      )
+    }
+    if (record.request.asset_state === 'burned') {
+      return NextResponse.json({ error: 'This membership NFT has been burned.' }, { status: 409 })
     }
 
-    const recipientWallet = nftRequest.wallet_address?.trim() || getRequiredContractEnv("DEPLOYER_WALLET_PUBLIC_KEY")
-    const renderedAsset = await uploadRenderedNftAsset(dataClient, record)
+    const assetState = desiredState === 'alumni' ? 'alumni' : 'active'
+    const rendered = await renderAndUploadMembershipAssets(dataClient, record, assetState)
+    const operation = record.request.asset_address ? 'update' : 'mint'
+    operationId = await startNftChainOperation(dataClient, requestId, operation)
+    const chainResult = record.request.asset_address
+      ? await updateMembershipAsset({
+          assetAddress: record.request.asset_address,
+          name: `${record.request.display_name} — TBC Membership`,
+          uri: rendered.metadataUrl,
+        })
+      : await mintMembershipAsset({
+          name: `${record.request.display_name} — TBC Membership`,
+          uri: rendered.metadataUrl,
+        })
 
-    const mintResult = await mintMembershipNft({
-      recipientWallet,
-      displayName: nftRequest.display_name,
-      department: record.member?.Department ?? "",
-      imageUri: renderedAsset.imageUrl,
-      funFacts: nftRequest.fun_facts ?? "",
+    const mintedAssetAddress =
+      'assetAddress' in chainResult && typeof chainResult.assetAddress === 'string'
+        ? chainResult.assetAddress
+        : null
+    const assetAddress = record.request.asset_address || mintedAssetAddress
+    await confirmNftChainOperation(dataClient, operationId, {
+      assetAddress: assetAddress ?? undefined,
+      signature: chainResult.signature,
     })
 
+    const now = new Date().toISOString()
     const { data: updatedRequest, error: updateError } = await dataClient
-      .from("nft_requests")
+      .from('nft_requests')
       .update({
-        status: "approved",
-        image_path: renderedAsset.imagePath,
-        image_url: renderedAsset.imageUrl,
-        reviewed_at: new Date().toISOString(),
+        status: 'approved',
+        reviewed_at: now,
         reviewed_by: user?.id ?? null,
         review_note: null,
-        mint_tx_hash: mintResult.hash,
+        rendered_image_path: rendered.imagePath,
+        image_url: rendered.imageUrl,
+        metadata_path: rendered.metadataPath,
+        metadata_url: rendered.metadataUrl,
+        metadata_version: rendered.metadataVersion,
+        approved_display_name: record.request.display_name,
+        approved_fun_facts: record.request.fun_facts,
+        approved_image_path: record.request.image_path,
+        approved_image_bucket: record.request.request_image_bucket,
+        chain_network: chainResult.network,
+        collection_address: 'collectionAddress' in chainResult ? chainResult.collectionAddress : undefined,
+        asset_address: assetAddress,
+        owner_address: 'ownerAddress' in chainResult ? chainResult.ownerAddress : undefined,
+        custody_status: record.request.asset_address ? undefined : 'club',
+        asset_state: assetState,
+        mint_tx_hash: record.request.asset_address ? undefined : chainResult.signature,
+        update_tx_hash: record.request.asset_address ? chainResult.signature : undefined,
+        minted_at: record.request.asset_address ? undefined : now,
+        updated_on_chain_at: now,
+        last_chain_error: null,
+        reconciled_at: now,
       })
-      .eq("id", requestId)
-      .select("id, member_id, status, display_name, fun_facts, wallet_address, image_path, image_url, created_at, reviewed_at, reviewed_by, review_note, mint_tx_hash")
+      .eq('id', requestId)
+      .select('*')
       .single()
 
-    if (updateError) {
+    if (updateError || !updatedRequest) {
       return NextResponse.json(
         {
-          error: `Minted on-chain (${mintResult.hash}) but failed to save the request update: ${updateError.message}`,
-          mintTxHash: mintResult.hash,
+          error: `Confirmed on Solana (${chainResult.signature}) but failed to save the request: ${updateError?.message || 'unknown database error'}`,
+          assetAddress,
+          transactionSignature: chainResult.signature,
         },
         { status: 500 }
       )
     }
 
-    return NextResponse.json({
-      request: updatedRequest,
-      mintTxHash: mintResult.hash,
-    })
-  } catch (error) {
-    if (error instanceof NftRequestAdminError || error instanceof NftCompositeError) {
-      return NextResponse.json({ error: error.message }, { status: error.status })
+    if (record.request.asset_address) {
+      await Promise.all([
+        deleteSupersededMembershipPublicAssets(dataClient, record, [
+          rendered.imagePath,
+          rendered.metadataPath,
+        ]),
+        deleteSupersededMembershipSourceImages(dataClient, record, {
+          bucket: record.request.request_image_bucket,
+          path: record.request.image_path,
+        }),
+      ])
     }
 
-    const message = error instanceof Error ? error.message : "Minting failed."
+    return NextResponse.json({
+      request: updatedRequest,
+      assetAddress,
+      transactionSignature: chainResult.signature,
+      operation,
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Solana membership operation failed.'
+    if (operationId) {
+      const dataClient = getSupabaseAdminClient()
+      if (dataClient) await failNftChainOperation(dataClient, operationId, message)
+    }
+    if (error instanceof NftRequestAdminError) {
+      return NextResponse.json({ error: message }, { status: error.status })
+    }
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }

@@ -10,7 +10,6 @@ type RequestRow = {
   status: string
   display_name: string
   fun_facts: string | null
-  wallet_address: string | null
   image_path: string
   image_url: string
   created_at: string
@@ -18,6 +17,7 @@ type RequestRow = {
   reviewed_by: string | null
   review_note: string | null
   mint_tx_hash: string | null
+  [key: string]: unknown
 }
 
 type MemberSummary = {
@@ -28,6 +28,8 @@ type MemberSummary = {
   picture: unknown | null
   degree_at_uni: string | null
   highlight: string | null
+  status: string | null
+  batch: string | null
 }
 
 
@@ -51,6 +53,8 @@ const normalizeMember = (member: Record<string, unknown>): MemberSummary => {
   const rawPicture = member.Picture ?? member.picture ?? null
   const rawDegreeAtUni = member.degree_at_uni ?? null
   const rawHighlight = member.highlight ?? null
+  const rawStatus = member.Status ?? member.status ?? null
+  const rawBatch = member.Batch ?? member.batch ?? null
 
   return {
     id: Number.isFinite(normalizedId) ? normalizedId : 0,
@@ -60,6 +64,8 @@ const normalizeMember = (member: Record<string, unknown>): MemberSummary => {
     picture: rawPicture,
     degree_at_uni: typeof rawDegreeAtUni === "string" ? rawDegreeAtUni.trim() || null : null,
     highlight: typeof rawHighlight === "string" ? rawHighlight.trim() || null : null,
+    status: typeof rawStatus === "string" ? rawStatus.trim() || null : null,
+    batch: rawBatch == null ? null : String(rawBatch),
   }
 }
 
@@ -72,7 +78,7 @@ export async function GET(request: Request) {
 
     const { data: requestRows, error: requestError } = await dataClient
       .from("nft_requests")
-      .select("id, member_id, status, display_name, fun_facts, wallet_address, image_path, image_url, created_at, reviewed_at, reviewed_by, review_note, mint_tx_hash")
+      .select("*")
       .order("created_at", { ascending: false })
 
     if (requestError) {
@@ -91,7 +97,7 @@ export async function GET(request: Request) {
     if (memberIds.length > 0) {
       const { data: memberRows, error: memberError } = await dataClient
         .from("members_main")
-        .select('id, Name, Picture, Department, "TBC Email", degree_at_uni, highlight')
+        .select('id, Name, Picture, Department, "TBC Email", degree_at_uni, highlight, Status, Batch')
         .in("id", memberIds)
 
       if (memberError) {
