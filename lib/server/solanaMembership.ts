@@ -44,8 +44,8 @@ const parseSecretKey = (value: string) => {
 }
 
 const GENESIS_HASHES: Record<SolanaNetwork, string> = {
-  devnet: 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1',
-  'mainnet-beta': '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+  devnet: 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG',
+  'mainnet-beta': '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2',
 }
 
 let networkAssertion: Promise<void> | null = null
