@@ -24,8 +24,8 @@ const required = (key) => {
 
 const network = process.env.SOLANA_NETWORK?.trim() || 'devnet'
 const genesisHashes = {
-  devnet: 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1',
-  'mainnet-beta': '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp',
+  devnet: 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG',
+  'mainnet-beta': '5eykt4UsFv8P8NJdTREpY1vzqKqZKvdpKuc147dw2',
 }
 if (!genesisHashes[network]) throw new Error('SOLANA_NETWORK must be devnet or mainnet-beta.')
 const rpcUrl = required('SOLANA_RPC_URL')

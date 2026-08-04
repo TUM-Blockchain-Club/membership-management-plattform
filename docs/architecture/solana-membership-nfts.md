@@ -75,6 +75,15 @@ same values for the intended Vercel preview environment before testing minting.
 The collection creation command uploads collection metadata to
 `nft-public-assets`. It prints public addresses and a transaction signature only.
 
+Run the disposable on-chain lifecycle test with:
+
+```bash
+pnpm solana:test-lifecycle
+```
+
+It uses public prototype metadata, verifies mint/update/claim/burn on the
+configured network, and removes the temporary hosted files afterward.
+
 ## Failure recovery
 
 Every blockchain action creates a row in `nft_chain_operations` before signing.

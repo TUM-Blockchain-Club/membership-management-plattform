@@ -10,6 +10,7 @@
     "lint": "eslint",
     "test:nft": "node --test tests/nft-lifecycle.test.ts",
     "solana:create-collection": "node scripts/create-solana-collection.mjs",
+    "solana:test-lifecycle": "node scripts/test-solana-membership-lifecycle.mjs",
     "test:coffee-chats": "playwright test tests/coffee-chats.spec.ts",
     "bench:members:server": "node scripts/bench-members-server.mjs",
     "bench:members:browser": "node scripts/bench-members-browser.mjs"
