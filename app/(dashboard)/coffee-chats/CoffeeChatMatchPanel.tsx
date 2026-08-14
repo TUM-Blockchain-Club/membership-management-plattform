@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import type { CoffeeChatMatch } from '@/lib/coffee-chats/home'
 import { dateToCalendarDate } from '@/lib/coffee-chats/rounds'
+import { isCoffeeChatsDemoClient } from '@/lib/coffee-chats/demo'
 
 export function CoffeeChatMatchPanel({ initialMatch }: { initialMatch: CoffeeChatMatch }) {
   const [match, setMatch] = useState(initialMatch)
@@ -25,6 +26,20 @@ export function CoffeeChatMatchPanel({ initialMatch }: { initialMatch: CoffeeCha
 
   function submitMeeting(intent: 'complete-meeting' | 'upload-selfie', file = selfieFile) {
     startTransition(async () => {
+      if (isCoffeeChatsDemoClient()) {
+        setMatch((current) => ({
+          ...current,
+          pair: {
+            ...current.pair,
+            status: intent === 'complete-meeting' ? 'met' : current.pair.status,
+            rating: rating ? Number(rating) : current.pair.rating,
+            highlightNote: highlightNote.trim() || current.pair.highlightNote,
+          },
+        }))
+        toast.success(intent === 'complete-meeting' ? 'Demo meeting completed.' : 'Demo selfie selected.')
+        return
+      }
+
       const form = new FormData()
       form.append('pairId', match.pair.id)
       form.append('intent', intent)

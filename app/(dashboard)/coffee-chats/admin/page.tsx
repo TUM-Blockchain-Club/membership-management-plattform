@@ -16,6 +16,7 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { localDateToUtcIso } from '@/lib/coffee-chats/rounds'
 import { DashboardContext } from '@/app/dashboard/DashboardContext'
+import { demoRounds, isCoffeeChatsDemoClient } from '@/lib/coffee-chats/demo'
 
 interface Round {
   id: string
@@ -50,6 +51,15 @@ export default function CoffeeChatsAdminPage() {
     }
 
     async function load() {
+      if (isCoffeeChatsDemoClient()) {
+        setIsAdmin(true)
+        setRounds(demoRounds)
+        setSignupCounts({ 'demo-round-august-2026': 12, 'demo-round-july-2026': 18 })
+        setPairCounts({ 'demo-round-august-2026': 0, 'demo-round-july-2026': 9 })
+        setLoading(false)
+        return
+      }
+
       const { data: { user } } = await supabase.auth.getUser()
       const { data: adminResult } = await supabase.rpc('check_email_can_manage_coffee_chats', {
         check_email: user?.email ?? '',
@@ -100,6 +110,20 @@ export default function CoffeeChatsAdminPage() {
     }
 
     startTransition(async () => {
+      if (isCoffeeChatsDemoClient()) {
+        const round: Round = {
+          id: crypto.randomUUID(),
+          month: newMonth,
+          status: 'open',
+          signup_deadline: newSignupDeadline || null,
+          meet_deadline: newMeetDeadline || null,
+          created_at: new Date().toISOString(),
+        }
+        setRounds((current) => [round, ...current])
+        toast.success(`Demo round ${newMonth} created.`)
+        return
+      }
+
       const { data, error } = await supabase.from('cc_rounds').insert({
         month: newMonth,
         signup_deadline: newSignupDeadline ? localDateToUtcIso(newSignupDeadline) : null,
@@ -124,6 +148,15 @@ export default function CoffeeChatsAdminPage() {
 
   function handleRunPairing(roundId: string) {
     startTransition(async () => {
+      if (isCoffeeChatsDemoClient()) {
+        setRounds((current) => current.map((round) =>
+          round.id === roundId ? { ...round, status: 'paired' } : round
+        ))
+        setPairCounts((current) => ({ ...current, [roundId]: 6 }))
+        toast.success('Demo pairing completed: 12 members in 6 pairs.')
+        return
+      }
+
       const res = await fetch('/api/coffee-chats/run-pairing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

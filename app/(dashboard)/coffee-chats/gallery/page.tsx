@@ -2,6 +2,7 @@ import { getCoffeeChatAdminClient } from '@/lib/coffee-chats/supabase'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { ImagesIcon } from 'lucide-react'
+import { coffeeChatsDemoEnabled, demoGallery } from '@/lib/coffee-chats/demo'
 
 interface GalleryPair {
   id: string
@@ -12,6 +13,10 @@ interface GalleryPair {
 }
 
 export default async function GalleryPage() {
+  if (coffeeChatsDemoEnabled) {
+    return <GalleryContent pairs={demoGallery.map((pair) => ({ ...pair, selfieUrl: pair.selfie_url }))} />
+  }
+
   const admin = getCoffeeChatAdminClient()
   if (!admin) {
     return (
@@ -46,6 +51,15 @@ export default async function GalleryPage() {
     )
   ).filter((pair) => pair !== null)
 
+  return <GalleryContent pairs={validPairs} />
+}
+
+function GalleryContent({ pairs: validPairs }: { pairs: Array<{
+  id: string
+  selfieUrl: string
+  highlight_note: string | null
+  round: { month: string } | null
+}> }) {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-1">

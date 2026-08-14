@@ -26,6 +26,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { filterKnownMembers, type KnownMemberOption } from '@/lib/coffee-chats/profiles'
+import { demoMember, isCoffeeChatsDemoClient } from '@/lib/coffee-chats/demo'
 
 const CORE_INTEREST_OPTIONS = [
   'Blockchain', 'DeFi', 'Web3', 'Smart Contracts',
@@ -65,6 +66,22 @@ export default function CoffeeChatsSetupPage() {
 
   useEffect(() => {
     async function loadProfile() {
+      if (isCoffeeChatsDemoClient()) {
+        setInterests(demoMember.cc_interests)
+        setStudyProgramme(demoMember.cc_study_programme)
+        setFavouriteCoffee(demoMember.cc_favourite_coffee)
+        setFavouriteSpots(demoMember.cc_favourite_spots.join(', '))
+        setFunFact(demoMember.cc_fun_fact)
+        setKnownMembers([
+          { id: 2, name: 'Alex Morgan', department: 'IT & Development' },
+          { id: 3, name: 'Mina Bauer', department: 'Research' },
+          { id: 4, name: 'Jonas Keller', department: 'Industry' },
+        ])
+        setAlreadyKnow([3])
+        setLoading(false)
+        return
+      }
+
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) {
         setLoading(false)
@@ -134,6 +151,11 @@ export default function CoffeeChatsSetupPage() {
     }
 
     startTransition(async () => {
+      if (isCoffeeChatsDemoClient()) {
+        toast.success('Demo matching preferences saved.')
+        return
+      }
+
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { toast.error('Not signed in'); return }
 

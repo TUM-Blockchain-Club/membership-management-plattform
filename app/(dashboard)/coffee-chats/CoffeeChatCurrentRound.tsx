@@ -28,6 +28,7 @@ import { Spinner } from '@/components/ui/spinner'
 import { CoffeeChatMatchPanel } from './CoffeeChatMatchPanel'
 import { getCoffeeChatNextStep } from '@/lib/coffee-chats/experience'
 import type { CoffeeChatHomeData } from '@/lib/coffee-chats/home'
+import { isCoffeeChatsDemoClient } from '@/lib/coffee-chats/demo'
 
 function formatMonth(value: string): string {
   const [year, month] = value.split('-').map(Number)
@@ -73,6 +74,12 @@ export function CoffeeChatCurrentRound({ initialData }: { initialData: CoffeeCha
 
   function handleSignup() {
     startTransition(async () => {
+      if (isCoffeeChatsDemoClient()) {
+        setIsSignedUp(true)
+        toast.success('Demo signup completed.')
+        return
+      }
+
       const response = await fetch('/api/coffee-chats/signup', { method: 'POST' })
       const json = await response.json() as { ok?: boolean; alreadySignedUp?: boolean; error?: string }
 

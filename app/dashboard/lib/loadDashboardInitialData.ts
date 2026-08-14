@@ -11,6 +11,7 @@ import {
 } from '@/lib/devBypass'
 import { getSupabaseAdminClient } from '@/lib/server/supabaseAdmin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { coffeeChatsDemoEnabled, demoDashboardMember } from '@/lib/coffee-chats/demo'
 
 type AccessResponse = boolean | null
 
@@ -187,6 +188,17 @@ const loadUpcomingEvents = async (
 }
 
 export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'all'): Promise<DashboardInitialData> => {
+  if (coffeeChatsDemoEnabled) {
+    return {
+      allMembers: [demoDashboardMember],
+      canManageNftRequests: false,
+      events: [],
+      hasSpecialAccess: true,
+      member: demoDashboardMember,
+      message: null,
+      viewedMemberHasSpecialAccess: true,
+    }
+  }
   const totalStartedAt = now()
   const supabase = await createSupabaseServerClient()
   const request = await getRequestForCurrentHost()

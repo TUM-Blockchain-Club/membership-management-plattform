@@ -2,6 +2,7 @@ import 'server-only'
 
 import { getCoffeeChatAdminClient } from '@/lib/coffee-chats/supabase'
 import { getCoffeeChatViewer } from '@/lib/coffee-chats/viewer'
+import { coffeeChatsDemoEnabled, demoMatch, demoMember, demoRound } from '@/lib/coffee-chats/demo'
 
 export type CoffeeChatRoundSummary = {
   id: string
@@ -94,6 +95,22 @@ function toRoundSummary(round: RoundRow): CoffeeChatRoundSummary {
 }
 
 export async function loadCoffeeChatHome(): Promise<CoffeeChatHomeData | null> {
+  if (coffeeChatsDemoEnabled) {
+    return {
+      firstName: demoMember.Name.split(' ')[0],
+      isProfileComplete: true,
+      isSignedUp: true,
+      openRound: {
+        id: demoRound.id,
+        month: demoRound.month,
+        status: demoRound.status,
+        signupDeadline: demoRound.signup_deadline,
+        meetDeadline: demoRound.meet_deadline,
+      },
+      match: demoMatch,
+    }
+  }
+
   const viewer = await getCoffeeChatViewer()
   if (!viewer) return null
 
