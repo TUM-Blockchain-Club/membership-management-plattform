@@ -25,6 +25,7 @@ import {
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Progress } from '@/components/ui/progress'
 import { Spinner } from '@/components/ui/spinner'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CoffeeChatMatchPanel } from './CoffeeChatMatchPanel'
 import { getCoffeeChatNextStep } from '@/lib/coffee-chats/experience'
 import type { CoffeeChatHomeData } from '@/lib/coffee-chats/home'
@@ -45,11 +46,36 @@ function formatDate(value: string): string {
   }).format(new Date(value))
 }
 
-export function CoffeeChatCurrentRound({ initialData }: { initialData: CoffeeChatHomeData }) {
+type DemoScenario = 'preferences' | 'join' | 'waiting' | 'matched' | 'completed'
+
+export function CoffeeChatCurrentRound({
+  initialData,
+  demoMode = false,
+}: {
+  initialData: CoffeeChatHomeData
+  demoMode?: boolean
+}) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [isSignedUp, setIsSignedUp] = useState(initialData.isSignedUp)
-  const match = initialData.match
+  const [demoScenario, setDemoScenario] = useState<DemoScenario>('matched')
+  const profileIsComplete = demoMode
+    ? demoScenario !== 'preferences'
+    : initialData.isProfileComplete
+  const effectiveSignedUp = demoMode
+    ? demoScenario === 'waiting' || demoScenario === 'matched' || demoScenario === 'completed'
+    : isSignedUp
+  const match = demoMode
+    ? demoScenario === 'matched' || demoScenario === 'completed'
+      ? initialData.match && {
+          ...initialData.match,
+          pair: {
+            ...initialData.match.pair,
+            status: demoScenario === 'completed' ? 'met' : 'pending',
+          },
+        }
+      : null
+    : initialData.match
   const activeMatch = match && (
     match.pair.status !== 'met' ||
     !initialData.openRound ||
@@ -59,14 +85,14 @@ export function CoffeeChatCurrentRound({ initialData }: { initialData: CoffeeCha
     : null
   const nextStep = getCoffeeChatNextStep({
     hasMatch: Boolean(activeMatch),
-    isProfileComplete: initialData.isProfileComplete,
-    isSignedUp,
+    isProfileComplete: profileIsComplete,
+    isSignedUp: effectiveSignedUp,
     matchIsComplete: activeMatch?.pair.status === 'met',
     roundIsOpen: Boolean(initialData.openRound),
   })
   const completedSteps = [
-    initialData.isProfileComplete,
-    isSignedUp || Boolean(activeMatch),
+    profileIsComplete,
+    effectiveSignedUp || Boolean(activeMatch),
     Boolean(activeMatch),
     activeMatch?.pair.status === 'met',
   ].filter(Boolean).length
@@ -76,6 +102,7 @@ export function CoffeeChatCurrentRound({ initialData }: { initialData: CoffeeCha
     startTransition(async () => {
       if (isCoffeeChatsDemoClient()) {
         setIsSignedUp(true)
+        setDemoScenario('waiting')
         toast.success('Demo signup completed.')
         return
       }
@@ -100,6 +127,29 @@ export function CoffeeChatCurrentRound({ initialData }: { initialData: CoffeeCha
 
   return (
     <div className="flex flex-col gap-6">
+      {demoMode && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardHeader>
+            <CardTitle>Demo state</CardTitle>
+            <CardDescription>Switch between every stage of the member journey.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Select value={demoScenario} onValueChange={(value) => setDemoScenario(value as DemoScenario)}>
+              <SelectTrigger className="w-full sm:w-64" aria-label="Demo state">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="preferences">1. Set preferences</SelectItem>
+                <SelectItem value="join">2. Join round</SelectItem>
+                <SelectItem value="waiting">3. Waiting for match</SelectItem>
+                <SelectItem value="matched">4. Match ready</SelectItem>
+                <SelectItem value="completed">5. Meeting completed</SelectItem>
+              </SelectContent>
+            </Select>
+          </CardContent>
+        </Card>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>
@@ -206,7 +256,7 @@ export function CoffeeChatCurrentRound({ initialData }: { initialData: CoffeeCha
       )}
 
       {(nextStep.kind === 'match' || nextStep.kind === 'completed') && activeMatch && (
-        <CoffeeChatMatchPanel initialMatch={activeMatch} />
+        <CoffeeChatMatchPanel key={demoScenario} initialMatch={activeMatch} />
       )}
 
       {nextStep.kind === 'idle' && (
