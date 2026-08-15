@@ -40,10 +40,7 @@ begin
       jsonb_build_object(
         'person1_id', first_member_id,
         'person2_id', second_member_id,
-        'person3_id', null,
-        'icebreaker_q1', 'Question one',
-        'icebreaker_q2', 'Question two',
-        'icebreaker_q3', 'Question three'
+        'person3_id', null
       )
     )
   );

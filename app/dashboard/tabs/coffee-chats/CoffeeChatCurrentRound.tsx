@@ -27,9 +27,11 @@ import { Progress } from '@/components/ui/progress'
 import { Spinner } from '@/components/ui/spinner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { CoffeeChatMatchPanel } from './CoffeeChatMatchPanel'
-import { getCoffeeChatNextStep } from '@/lib/coffee-chats/experience'
-import type { CoffeeChatHomeData } from '@/lib/coffee-chats/home'
-import { isCoffeeChatsDemoClient } from '@/lib/coffee-chats/demo'
+import {
+  type CoffeeChatHomeData,
+  getCoffeeChatNextStep,
+  isCoffeeChatsDemoClient,
+} from '@/lib/coffee-chats'
 
 function formatMonth(value: string): string {
   const [year, month] = value.split('-').map(Number)
@@ -108,7 +110,7 @@ export function CoffeeChatCurrentRound({
       }
 
       const response = await fetch('/api/coffee-chats/signup', { method: 'POST' })
-      const json = await response.json() as { ok?: boolean; alreadySignedUp?: boolean; error?: string }
+      const json = (await response.json()) as { ok?: boolean; alreadySignedUp?: boolean; error?: string }
 
       if (!response.ok || !json.ok) {
         toast.error(json.error ?? 'We could not add you to this round. Please try again.')
@@ -201,7 +203,7 @@ export function CoffeeChatCurrentRound({
           <CardHeader>
             <CardTitle>Start with matching preferences</CardTitle>
             <CardDescription>
-              Choose at least one interest. Three to five interests usually produce a more useful match.
+              Set your preferred meeting spots and choose any members you want to avoid being paired with.
             </CardDescription>
           </CardHeader>
           <CardContent>

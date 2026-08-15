@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react'
 import { redirect } from 'next/navigation'
-import { CoffeeChatsNavigation } from './CoffeeChatsNavigation'
-import { getCoffeeChatViewer } from '@/lib/coffee-chats/viewer'
-import { coffeeChatsDemoEnabled } from '@/lib/coffee-chats/demo'
+import { CoffeeChatsNavigation } from '@/app/dashboard/tabs/coffee-chats/CoffeeChatsNavigation'
+import { coffeeChatsDemoEnabled } from '@/lib/coffee-chats'
+import { getCoffeeChatViewer } from '@/lib/server/coffeeChats'
 
 export default async function CoffeeChatsLayout({ children }: { children: ReactNode }) {
   if (!coffeeChatsDemoEnabled) {
@@ -24,7 +24,7 @@ export default async function CoffeeChatsLayout({ children }: { children: ReactN
             <p className="text-xs font-medium text-amber-400">Demo mode · fake review data</p>
           )}
           <p className="text-sm text-muted-foreground sm:text-base">
-            Meet one member each month, get useful conversation starters, and keep the club connected.
+            Meet one member each month over coffee and keep the club connected.
           </p>
         </div>
         <CoffeeChatsNavigation />

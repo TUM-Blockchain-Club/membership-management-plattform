@@ -28,13 +28,55 @@ as $$
   select coalesce(public.check_email_has_special_access(check_email), false)
     or exists (
       select 1
-      from public.members_main
-      where lower("TBC Email") = lower(check_email)
-        and btrim("Role") = 'Board Member'
+      from public.members_main m
+      where lower(m."TBC Email") = lower(check_email)
+        and (
+          btrim(m."Role") = 'Board Member'
+          or exists (
+            select 1 from public.cc_admins ca where ca.member_id = m.id
+          )
+        )
     );
 $$;
 
 grant execute on function public.check_email_can_manage_coffee_chats(text) to authenticated;
+
+create table if not exists public.cc_admins (
+  member_id bigint primary key references public.members_main(id) on delete cascade,
+  assigned_by bigint references public.members_main(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+alter table public.cc_admins enable row level security;
+
+drop policy if exists "cc_admins select authenticated" on public.cc_admins;
+create policy "cc_admins select authenticated"
+  on public.cc_admins for select to authenticated
+  using (true);
+
+drop policy if exists "cc_admins manage board only" on public.cc_admins;
+create policy "cc_admins manage board only"
+  on public.cc_admins for all to authenticated
+  using (
+    exists (
+      select 1
+      from public.members_main m
+      where lower(m."TBC Email") = lower((select auth.jwt()) ->> 'email')
+        and btrim(m."Role") = 'Board Member'
+    )
+    or coalesce(public.check_email_has_special_access((select auth.jwt()) ->> 'email'), false)
+  )
+  with check (
+    exists (
+      select 1
+      from public.members_main m
+      where lower(m."TBC Email") = lower((select auth.jwt()) ->> 'email')
+        and btrim(m."Role") = 'Board Member'
+    )
+    or coalesce(public.check_email_has_special_access((select auth.jwt()) ->> 'email'), false)
+  );
+
+grant select, insert, delete on public.cc_admins to authenticated;
 
 create table if not exists public.cc_rounds (
   id uuid primary key default gen_random_uuid(),
@@ -91,7 +133,7 @@ create table if not exists public.cc_pairs (
     and (person3_id is null or (person3_id <> person1_id and person3_id <> person2_id))
   ),
   constraint cc_pairs_status_check check (status in ('pending', 'met', 'skipped')),
-  constraint cc_pairs_rating_check check (rating between 1 and 5),
+  constraint cc_pairs_rating_check check (rating is null or rating between 1 and 5),
   constraint cc_pairs_highlight_length_check check (char_length(highlight_note) <= 500)
 );
 
@@ -130,7 +172,6 @@ create policy "cc own signups insert"
       from public.members_main member
       where member.id = public.current_member_id()
         and member.cc_active
-        and cardinality(member.cc_interests) > 0
     )
     and exists (
       select 1

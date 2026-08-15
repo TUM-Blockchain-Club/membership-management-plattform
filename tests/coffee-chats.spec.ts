@@ -1,13 +1,19 @@
 import { expect, test } from '@playwright/test'
 
-import { MAX_SELFIE_BYTES, validateSelfieUpload } from '../lib/coffee-chats/uploads'
-import { dateToCalendarDate, getSignupError, localDateTimeToUtcIso, localDateToUtcIso } from '../lib/coffee-chats/rounds'
-import { runPairing } from '../lib/coffee-chats/pairing'
-import { escapeEmailHtml } from '../lib/coffee-chats/emails'
-import { filterKnownMembers } from '../lib/coffee-chats/profiles'
-import { getCoffeeChatNextStep } from '../lib/coffee-chats/experience'
-import { buildMeetingUpdate } from '../lib/coffee-chats/meeting'
-import { canShowCoffeeChatAdmin } from '../lib/coffee-chats/access'
+import {
+  buildMeetingUpdate,
+  canShowCoffeeChatAdmin,
+  dateToCalendarDate,
+  escapeEmailHtml,
+  filterKnownMembers,
+  getCoffeeChatNextStep,
+  getSignupError,
+  localDateTimeToUtcIso,
+  localDateToUtcIso,
+  MAX_SELFIE_BYTES,
+  runPairing,
+  validateSelfieUpload,
+} from '../lib/coffee-chats'
 import { getDashboardTabForPathname } from '../app/dashboard/lib/routes'
 
 test('selfie upload rejects non-image bytes disguised as JPEG', () => {
@@ -177,15 +183,24 @@ test('a completed previous match does not hide a newly open round', () => {
   })
 })
 
+test('Coffee Chat administration is visible for assigned coffee chat admins', () => {
+  expect(
+    canShowCoffeeChatAdmin({
+      forceMemberView: false,
+      hasSpecialAccess: false,
+      isBoardMember: false,
+      isCoffeeChatAdmin: true,
+    }),
+  ).toBe(true)
+})
+
 test('uploading a selfie alone does not complete the meeting', () => {
   expect(
     buildMeetingUpdate({
       intent: 'upload-selfie',
       signOffField: 'person1_signed_off',
       selfiePath: 'round/pair-selfie.webp',
-      driveUrl: null,
       dateMet: null,
-      rating: null,
       highlightNote: null,
     }),
   ).toEqual({ selfie_path: 'round/pair-selfie.webp' })
@@ -196,17 +211,15 @@ test('completing a meeting explicitly records status and sign-off', () => {
     buildMeetingUpdate({
       intent: 'complete-meeting',
       signOffField: 'person2_signed_off',
-      selfiePath: null,
-      driveUrl: null,
+      selfiePath: 'round/selfie.jpg',
       dateMet: '2026-07-28',
-      rating: 5,
       highlightNote: 'Talked about account abstraction.',
     }),
   ).toEqual({
     person2_signed_off: true,
     status: 'met',
+    selfie_path: 'round/selfie.jpg',
     date_met: '2026-07-28',
-    rating: 5,
     highlight_note: 'Talked about account abstraction.',
   })
 })

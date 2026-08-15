@@ -18,7 +18,7 @@ import { useDashboardStats } from '@/app/dashboard/tabs/stats/useDashboardStats'
 import { auth } from '@/lib/auth'
 import { memberService } from '@/lib/members'
 import { supabase } from '@/lib/supabase'
-import { canShowCoffeeChatAdmin } from '@/lib/coffee-chats/access'
+import { canShowCoffeeChatAdmin } from '@/lib/coffee-chats'
 import type {
   DashboardMember,
   DashboardMessage,
@@ -97,6 +97,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     forceMemberView,
     hasSpecialAccess,
     isBoardMember: member?.Role === 'Board Member',
+    isCoffeeChatAdmin: initialData.canManageCoffeeChats,
   })
 
   const activeTab = routeTab

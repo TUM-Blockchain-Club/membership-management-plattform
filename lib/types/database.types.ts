@@ -71,6 +71,12 @@ export interface CoffeeChatRound {
   created_at: string
 }
 
+export interface CoffeeChatAdmin {
+  member_id: number
+  assigned_by: number | null
+  created_at: string
+}
+
 export interface CoffeeChatSignup {
   id: string
   round_id: string
@@ -84,17 +90,17 @@ export interface CoffeeChatPair {
   person1_id: number
   person2_id: number
   person3_id: number | null
-  icebreaker_q1: string | null
-  icebreaker_q2: string | null
-  icebreaker_q3: string | null
+  icebreaker_q1?: string | null
+  icebreaker_q2?: string | null
+  icebreaker_q3?: string | null
   status: 'pending' | 'met' | 'skipped'
   selfie_path: string | null
-  drive_url: string | null
+  drive_url?: string | null
   date_met: string | null
   person1_signed_off: boolean
   person2_signed_off: boolean
   person3_signed_off: boolean
-  rating: number | null
+  rating?: number | null
   highlight_note: string | null
   created_at: string
 }
@@ -150,6 +156,27 @@ export interface Database {
         Insert: Omit<Member, 'id' | 'created_at'>
         Update: Partial<Omit<Member, 'id' | 'created_at'>>
         Relationships: []
+      }
+      cc_admins: {
+        Row: CoffeeChatAdmin & Record<string, unknown>
+        Insert: CoffeeChatAdmin
+        Update: Partial<CoffeeChatAdmin>
+        Relationships: [
+          {
+            foreignKeyName: 'cc_admins_member_id_fkey'
+            columns: ['member_id']
+            isOneToOne: true
+            referencedRelation: 'members_main'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'cc_admins_assigned_by_fkey'
+            columns: ['assigned_by']
+            isOneToOne: false
+            referencedRelation: 'members_main'
+            referencedColumns: ['id']
+          },
+        ]
       }
       cc_rounds: {
         Row: CoffeeChatRound & Record<string, unknown>

@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { syncSelfie } from '@/lib/coffee-chats/drive'
-import { MAX_SELFIE_BYTES, validateSelfieUpload } from '@/lib/coffee-chats/uploads'
-import { getCoffeeChatAdminClient } from '@/lib/coffee-chats/supabase'
-import { buildMeetingUpdate } from '@/lib/coffee-chats/meeting'
+import {
+  buildMeetingUpdate,
+  MAX_SELFIE_BYTES,
+  validateSelfieUpload,
+} from '@/lib/coffee-chats'
+import { getCoffeeChatAdminClient } from '@/lib/server/coffeeChats'
 
 export async function POST(request: Request) {
   try {
@@ -31,7 +33,6 @@ export async function POST(request: Request) {
     const pairId = formData.get('pairId')
     const intent = formData.get('intent')
     const dateMet = formData.get('dateMet')
-    const rating = formData.get('rating')
     const highlightNote = formData.get('highlightNote')
     const selfieFile = formData.get('selfie') as File | null
 
@@ -43,9 +44,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'A valid meeting action is required.' }, { status: 400 })
     }
 
-    const parsedRating = rating === null || rating === '' ? null : Number(rating)
-    if (parsedRating !== null && (!Number.isInteger(parsedRating) || parsedRating < 1 || parsedRating > 5)) {
-      return NextResponse.json({ error: 'rating must be an integer from 1 to 5' }, { status: 400 })
+    if (intent === 'complete-meeting' && (!selfieFile || selfieFile.size === 0)) {
+      return NextResponse.json({ error: 'A selfie is required to complete the meeting.' }, { status: 400 })
     }
 
     if (intent === 'complete-meeting' && typeof highlightNote === 'string' && highlightNote.length > 500) {
@@ -97,9 +97,8 @@ export async function POST(request: Request) {
       memberId === p2 ? 'person2_signed_off' :
       'person3_signed_off'
 
-    // Handle selfie upload
+    // Handle selfie upload to Supabase Storage
     let selfiePath: string | null = null
-    let driveUrl: string | null = null
 
     if (selfieFile && selfieFile.size > 0) {
       if (selfieFile.size > MAX_SELFIE_BYTES) {
@@ -130,36 +129,13 @@ export async function POST(request: Request) {
       }
 
       selfiePath = uploadData.path
-
-      const { data: roundData } = await admin
-        .from('cc_rounds')
-        .select('month')
-        .eq('id', pair.round_id)
-        .maybeSingle()
-
-      const { data: partners } = await admin
-        .from('members_main')
-        .select('Name')
-        .in('id', [p1, p2, ...(p3 ? [p3] : [])])
-
-      const names = (partners ?? []).map((partner) => partner.Name ?? 'Member')
-      const driveResult = await syncSelfie(
-        buffer,
-        pairId,
-        roundData?.month ?? 'unknown',
-        names,
-        imageType,
-      )
-      if (driveResult) driveUrl = driveResult.webViewLink
     }
 
     const update = buildMeetingUpdate({
       intent,
       signOffField,
       selfiePath,
-      driveUrl,
       dateMet: typeof dateMet === 'string' ? dateMet : null,
-      rating: parsedRating,
       highlightNote: typeof highlightNote === 'string' ? highlightNote : null,
     })
 
@@ -179,7 +155,7 @@ export async function POST(request: Request) {
       ? await admin.storage.from('coffee-chat-selfies').createSignedUrl(selfiePath, 60 * 60)
       : { data: null }
 
-    return NextResponse.json({ ok: true, selfieUrl: signedSelfie?.signedUrl ?? null, driveUrl })
+    return NextResponse.json({ ok: true, selfieUrl: signedSelfie?.signedUrl ?? null })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Log meeting failed'
     return NextResponse.json({ error: message }, { status: 500 })

@@ -1,9 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { runPairing } from '@/lib/coffee-chats/pairing'
-import { getQuestionsForPair } from '@/lib/coffee-chats/icebreakers'
-import { sendMatchEmail } from '@/lib/coffee-chats/emails'
-import { getCoffeeChatAdminClient } from '@/lib/coffee-chats/supabase'
+import { runPairing } from '@/lib/coffee-chats'
+import { getCoffeeChatAdminClient, sendMatchEmail } from '@/lib/server/coffeeChats'
 
 export async function POST(request: Request) {
   try {
@@ -111,21 +109,12 @@ export async function POST(request: Request) {
     const memberMap = new Map(members.map((m) => [m.id as number, m]))
 
     const pairInserts = pairs.map((pair) => {
-      const m1 = memberMap.get(pair.person1Id)
-      const m2 = memberMap.get(pair.person2Id)
       const m3 = pair.person3Id ? memberMap.get(pair.person3Id) : null
-
-      const interests1 = (m1?.cc_interests as string[] | null) ?? []
-      const interests2 = (m2?.cc_interests as string[] | null) ?? []
-      const [q1, q2, q3] = getQuestionsForPair(interests1, interests2)
 
       return {
         person1_id: pair.person1Id,
         person2_id: pair.person2Id,
         person3_id: m3 ? pair.person3Id ?? null : null,
-        icebreaker_q1: q1,
-        icebreaker_q2: q2,
-        icebreaker_q3: q3,
       }
     })
 
@@ -155,11 +144,6 @@ export async function POST(request: Request) {
       const p1 = memberMap.get(pair.person1_id as number)
       const p2 = memberMap.get(pair.person2_id as number)
       const p3 = pair.person3_id ? memberMap.get(pair.person3_id as number) : null
-      const questions: [string, string, string] = [
-        pair.icebreaker_q1 as string,
-        pair.icebreaker_q2 as string,
-        pair.icebreaker_q3 as string,
-      ]
 
       type Participant = { member: NonNullable<typeof p1>; partner: typeof p2; third: typeof p3 | null }
       const participants = (
@@ -179,7 +163,6 @@ export async function POST(request: Request) {
           thirdPersonName: third ? (third.Name as string | null) ?? undefined : undefined,
           thirdPersonEmail: third ? (third['TBC Email'] as string | null) ?? undefined : undefined,
           month,
-          questions,
           meetDeadline,
         }),
       )

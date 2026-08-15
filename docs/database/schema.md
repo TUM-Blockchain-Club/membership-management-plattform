@@ -452,9 +452,21 @@ Applies coffee-chat columns to `members_main` and creates three new tables.
 | `cc_study_programme` | `text` | Free-form study programme string. |
 | `cc_already_know` | `bigint[]` | Member IDs the person already knows well (used for exclusion). |
 | `cc_favourite_coffee` | `text` | Favourite coffee drink. |
-| `cc_favourite_spots` | `text[]` | Favourite Munich coffee spots. |
-| `cc_fun_fact` | `text` | Ice-breaker fun fact. |
-| `cc_active` | `boolean` | Whether the member opts into coffee chats. Default `false`. |
+| `cc_favourite_spots` | `text[]` | Favourite Munich coffee spots / meeting place recommendation. |
+| `cc_fun_fact` | `text` | Optional profile note. |
+| `cc_active` | `boolean` | Whether the member opted in by saving preferences. Default `false`. |
+
+### `public.cc_admins`
+
+Stores designated Coffee Chat administrators assigned by Board Members.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `member_id` | `bigint` | Primary key. References `members_main(id)`. Cascades delete. |
+| `assigned_by` | `bigint` | Member ID of the board member who assigned this admin. |
+| `created_at` | `timestamptz` | Assignment timestamp. |
+
+RLS: all authenticated users can read; board members and explicit special-access users can insert/delete.
 
 ### `public.cc_rounds`
 
@@ -500,11 +512,9 @@ Matched pairs or trios for a round.
 | `person3_id` | `bigint` | Optional third member (trio for odd counts). |
 | `icebreaker_q1/q2/q3` | `text` | Auto-generated ice-breaker questions. |
 | `status` | `text` | `pending`, `met`, or `skipped`. |
-| `selfie_path` | `text` | Private Supabase Storage object path. APIs issue short-lived signed URLs. |
-| `drive_url` | `text` | Optional Google Drive web-view URL. |
+| `selfie_path` | `text` | Private Supabase Storage object path (`coffee-chat-selfies`). APIs issue short-lived signed URLs. |
 | `date_met` | `date` | Date the pair met. |
 | `person1/2/3_signed_off` | `boolean` | Individual sign-off flags. |
-| `rating` | `int` | 1–5 rating. |
 | `highlight_note` | `text` | Short highlight note. |
 | `created_at` | `timestamptz` | Creation timestamp. |
 

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getCoffeeChatAdminClient } from '@/lib/coffee-chats/supabase'
+import { getCoffeeChatAdminClient } from '@/lib/server/coffeeChats'
 
 export async function GET() {
   try {

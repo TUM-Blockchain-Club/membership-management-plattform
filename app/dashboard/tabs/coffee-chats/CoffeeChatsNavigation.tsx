@@ -25,9 +25,10 @@ export function CoffeeChatsNavigation() {
   return (
     <nav aria-label="Coffee Chats" className="flex flex-wrap gap-2">
       {items.map(({ href, label, icon: Icon }) => {
-        const isActive = href === '/coffee-chats'
-          ? pathname === href || pathname === '/coffee-chats/join' || pathname === '/coffee-chats/my-match'
-          : pathname === href
+        const isActive =
+          href === '/coffee-chats'
+            ? pathname === href || pathname === '/coffee-chats/join' || pathname === '/coffee-chats/my-match'
+            : pathname === href
 
         return (
           <Button
