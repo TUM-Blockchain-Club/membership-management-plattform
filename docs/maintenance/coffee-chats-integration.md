@@ -17,11 +17,15 @@ checklist of every member except the signed-in member for `cc_already_know`.
 Those member IDs are treated as pairing exclusions whenever another complete
 matching is available.
 
+At least one interest is required before saving and joining. Three to five are
+recommended in the UI. Other profile details and acquaintance exclusions are
+optional and progressively disclosed.
+
 ## Data and authorization
 
 - Apply `supabase/coffee_chats.sql` before deploying the routes.
 - The migration adds the `members_main.cc_*` profile columns and creates
-  `cc_rounds`, `cc_signups`, and `cc_pairs`.
+  `cc_admins`, `cc_rounds`, `cc_signups`, and `cc_pairs`.
 - Only one round can be open at a time. Pair creation and the transition to
   `paired` happen in one locked database transaction through
   `commit_coffee_chat_pairing`.
@@ -44,6 +48,7 @@ public URLs. Supabase Storage is the only selfie storage provider.
 ## Verification
 
 ```bash
+pnpm test
 pnpm test:coffee-chats
 pnpm exec tsc --noEmit
 pnpm lint
@@ -52,3 +57,5 @@ pnpm build
 
 The database transaction check is in `tests/coffee-chats-db.sql` and must run
 against the target Supabase database inside its built-in rollback transaction.
+The protected production browser workflow is documented in
+`docs/maintenance/coffee-chats-production-e2e.md`.

@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:coffee-chats": "playwright test tests/coffee-chats.spec.ts",
+    "test": "playwright test --config=playwright.unit.config.ts",
+    "test:coffee-chats": "playwright test --config=playwright.unit.config.ts tests/coffee-chats.spec.ts",
+    "test:e2e:prod": "playwright test --config=playwright.config.ts",
     "bench:members:server": "node scripts/bench-members-server.mjs",
     "bench:members:browser": "node scripts/bench-members-browser.mjs"
   },

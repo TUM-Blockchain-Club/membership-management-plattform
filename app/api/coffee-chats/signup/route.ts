@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getSignupError } from '@/lib/coffee-chats'
+import { getCoffeeChatProfileError, getSignupError } from '@/lib/coffee-chats'
 import { sendSignupConfirmEmail } from '@/lib/server/coffeeChats'
 
 export async function POST() {
@@ -15,7 +15,7 @@ export async function POST() {
     // Resolve member row
     const { data: member, error: memberError } = await supabase
       .from('members_main')
-      .select('id, Name, "TBC Email", cc_active')
+      .select('id, Name, "TBC Email", cc_active, cc_interests')
       .ilike('"TBC Email"', user.email ?? '')
       .maybeSingle()
 
@@ -23,9 +23,10 @@ export async function POST() {
       return NextResponse.json({ error: 'Member profile not found' }, { status: 404 })
     }
 
-    if (!member.cc_active) {
+    const profileError = getCoffeeChatProfileError(member.cc_interests ?? [])
+    if (!member.cc_active || profileError) {
       return NextResponse.json(
-        { error: 'Set up your Coffee Chat preferences before joining a round.' },
+        { error: profileError ?? 'Set up your Coffee Chat preferences before joining a round.' },
         { status: 400 },
       )
     }

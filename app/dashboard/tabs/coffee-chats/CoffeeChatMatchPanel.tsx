@@ -113,6 +113,22 @@ export function CoffeeChatMatchPanel({ initialMatch }: { initialMatch: CoffeeCha
         ))}
       </div>
 
+      {match.pair.icebreakers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Conversation starters</CardTitle>
+            <CardDescription>Use these if you want an easy way into the conversation.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm text-foreground">
+              {match.pair.icebreakers.map((question) => (
+                <li key={question}>{question}</li>
+              ))}
+            </ol>
+          </CardContent>
+        </Card>
+      )}
+
       {match.pair.selfieUrl && (
         <Card>
           <CardHeader>

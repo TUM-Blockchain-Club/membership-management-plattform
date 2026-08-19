@@ -44,6 +44,7 @@ The root route redirects authenticated users to `/dashboard` and unauthenticated
 ## Common Commands
 
 ```bash
+pnpm test
 pnpm exec tsc --noEmit
 pnpm lint
 pnpm build

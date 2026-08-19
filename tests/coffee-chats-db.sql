@@ -8,6 +8,10 @@ declare
   inserted_count integer;
   replay_rejected boolean := false;
 begin
+  if not has_table_privilege('authenticated', 'public.cc_rounds', 'INSERT') then
+    raise exception 'Authenticated Coffee Chat admins cannot insert rounds';
+  end if;
+
   select id into first_member_id
   from public.members_main
   order by id

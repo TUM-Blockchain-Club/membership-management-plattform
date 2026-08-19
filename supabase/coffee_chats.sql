@@ -18,6 +18,12 @@ alter table public.members_main add column if not exists cc_active boolean not n
 create index if not exists members_main_tbc_email_lower_idx
   on public.members_main (lower("TBC Email"));
 
+create table if not exists public.cc_admins (
+  member_id bigint primary key references public.members_main(id) on delete cascade,
+  assigned_by bigint references public.members_main(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
 create or replace function public.check_email_can_manage_coffee_chats(check_email text)
 returns boolean
 language sql
@@ -39,13 +45,8 @@ as $$
     );
 $$;
 
+revoke all on function public.check_email_can_manage_coffee_chats(text) from public, anon;
 grant execute on function public.check_email_can_manage_coffee_chats(text) to authenticated;
-
-create table if not exists public.cc_admins (
-  member_id bigint primary key references public.members_main(id) on delete cascade,
-  assigned_by bigint references public.members_main(id) on delete set null,
-  created_at timestamptz not null default now()
-);
 
 alter table public.cc_admins enable row level security;
 
@@ -120,7 +121,6 @@ create table if not exists public.cc_pairs (
   icebreaker_q3 text,
   status text not null default 'pending',
   selfie_path text,
-  drive_url text,
   date_met date,
   person1_signed_off boolean not null default false,
   person2_signed_off boolean not null default false,
@@ -136,6 +136,8 @@ create table if not exists public.cc_pairs (
   constraint cc_pairs_rating_check check (rating is null or rating between 1 and 5),
   constraint cc_pairs_highlight_length_check check (char_length(highlight_note) <= 500)
 );
+
+alter table public.cc_pairs drop column if exists drive_url;
 
 create index if not exists cc_pairs_round_id_idx on public.cc_pairs (round_id);
 create index if not exists cc_pairs_person1_id_idx on public.cc_pairs (person1_id);
@@ -172,6 +174,7 @@ create policy "cc own signups insert"
       from public.members_main member
       where member.id = public.current_member_id()
         and member.cc_active
+        and coalesce(cardinality(member.cc_interests), 0) > 0
     )
     and exists (
       select 1
@@ -208,7 +211,7 @@ create policy "cc admin pairs"
   using (public.check_email_can_manage_coffee_chats((select auth.jwt()) ->> 'email'))
   with check (public.check_email_can_manage_coffee_chats((select auth.jwt()) ->> 'email'));
 
-grant select on public.cc_rounds to authenticated;
+grant select, insert on public.cc_rounds to authenticated;
 grant select, insert, delete on public.cc_signups to authenticated;
 grant select on public.cc_pairs to authenticated;
 

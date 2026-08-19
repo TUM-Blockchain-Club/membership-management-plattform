@@ -74,12 +74,19 @@ type RoundRow = {
 type PairRow = {
   id: string
   status: string
+  icebreaker_q1: string | null
+  icebreaker_q2: string | null
+  icebreaker_q3: string | null
   person1_id: number
   person2_id: number
   person3_id: number | null
   selfie_path: string | null
   date_met: string | null
   highlight_note: string | null
+}
+
+type PairWithRoundRow = PairRow & {
+  cc_rounds: RoundRow | RoundRow[]
 }
 
 type PartnerRow = {
@@ -136,19 +143,12 @@ export async function loadCoffeeChatHome(): Promise<CoffeeChatHomeData | null> {
         .select('id, Name, cc_active, cc_interests')
         .ilike('"TBC Email"', viewer.email ?? '')
         .maybeSingle()
-  const [memberResult, openRoundResult, latestRoundResult] = await Promise.all([
+  const [memberResult, openRoundResult] = await Promise.all([
     memberQuery,
     dataClient
       .from('cc_rounds')
       .select('id, month, status, signup_deadline, meet_deadline')
       .eq('status', 'open')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
-    dataClient
-      .from('cc_rounds')
-      .select('id, month, status, signup_deadline, meet_deadline')
-      .in('status', ['paired', 'closed'])
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle(),
@@ -158,8 +158,10 @@ export async function loadCoffeeChatHome(): Promise<CoffeeChatHomeData | null> {
   if (!member) return null
 
   const openRound = openRoundResult.data as RoundRow | null
-  const latestRound = latestRoundResult.data as RoundRow | null
-  const [signupResult, pairResult] = await Promise.all([
+  const pairFilter = `person1_id.eq.${member.id},person2_id.eq.${member.id},person3_id.eq.${member.id}`
+  const pairColumns =
+    'id, status, person1_id, person2_id, person3_id, icebreaker_q1, icebreaker_q2, icebreaker_q3, selfie_path, date_met, highlight_note, created_at, cc_rounds!inner(id, month, status, signup_deadline, meet_deadline)'
+  const [signupResult, pendingPairResult, latestPairResult] = await Promise.all([
     openRound
       ? (viewer.isDevBypass ? dataClient : supabase)
           .from('cc_signups')
@@ -168,20 +170,28 @@ export async function loadCoffeeChatHome(): Promise<CoffeeChatHomeData | null> {
           .eq('member_id', member.id)
           .maybeSingle()
       : Promise.resolve({ data: null }),
-    latestRound
-      ? dataClient
-          .from('cc_pairs')
-          .select('id, status, person1_id, person2_id, person3_id, selfie_path, date_met, highlight_note')
-          .eq('round_id', latestRound.id)
-          .or(`person1_id.eq.${member.id},person2_id.eq.${member.id},person3_id.eq.${member.id}`)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
+    dataClient
+      .from('cc_pairs')
+      .select(pairColumns)
+      .or(pairFilter)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    dataClient
+      .from('cc_pairs')
+      .select(pairColumns)
+      .or(pairFilter)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ])
 
-  const pair = pairResult.data as PairRow | null
+  const pair = (pendingPairResult.data ?? latestPairResult.data) as PairWithRoundRow | null
+  const pairRound = Array.isArray(pair?.cc_rounds) ? pair.cc_rounds[0] : pair?.cc_rounds
   let match: CoffeeChatMatch | null = null
 
-  if (pair && latestRound) {
+  if (pair && pairRound) {
     const partnerIds = [pair.person1_id, pair.person2_id, pair.person3_id].filter(
       (id): id is number => id !== null && id !== member.id,
     )
@@ -199,6 +209,9 @@ export async function loadCoffeeChatHome(): Promise<CoffeeChatHomeData | null> {
       pair: {
         id: pair.id,
         status: pair.status,
+        icebreakers: [pair.icebreaker_q1, pair.icebreaker_q2, pair.icebreaker_q3].filter(
+          (question): question is string => Boolean(question),
+        ),
         selfieUrl: selfieResult.data?.signedUrl ?? null,
         dateMet: pair.date_met,
         highlightNote: pair.highlight_note,
@@ -212,7 +225,7 @@ export async function loadCoffeeChatHome(): Promise<CoffeeChatHomeData | null> {
         favouriteSpots: partner.cc_favourite_spots ?? [],
         funFact: partner.cc_fun_fact,
       })),
-      round: toRoundSummary(latestRound),
+      round: toRoundSummary(pairRound),
     }
   }
 

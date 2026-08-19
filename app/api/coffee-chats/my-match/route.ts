@@ -27,30 +27,34 @@ export async function GET() {
       return NextResponse.json({ error: 'Admin client unavailable' }, { status: 500 })
     }
 
-    // Find the most recent paired round
-    const { data: latestRound } = await admin
-      .from('cc_rounds')
-      .select('id, month, meet_deadline')
-      .in('status', ['paired', 'closed'])
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .maybeSingle()
+    // Prefer this member's latest unfinished pair, then fall back to their latest pair.
+    const pairColumns =
+      'id, person1_id, person2_id, person3_id, icebreaker_q1, icebreaker_q2, icebreaker_q3, status, selfie_path, date_met, person1_signed_off, person2_signed_off, person3_signed_off, rating, highlight_note, created_at, cc_rounds!inner(id, month, meet_deadline)'
+    const pairFilter = `person1_id.eq.${memberId},person2_id.eq.${memberId},person3_id.eq.${memberId}`
+    const [pendingPairResult, latestPairResult] = await Promise.all([
+      admin
+        .from('cc_pairs')
+        .select(pairColumns)
+        .or(pairFilter)
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      admin
+        .from('cc_pairs')
+        .select(pairColumns)
+        .or(pairFilter)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+    ])
+    const pair = pendingPairResult.data ?? latestPairResult.data
 
-    if (!latestRound) {
+    if (!pair) {
       return NextResponse.json({ match: null })
     }
 
-    // Find this member's pair in that round
-    const { data: pair } = await admin
-      .from('cc_pairs')
-      .select('id, person1_id, person2_id, person3_id, icebreaker_q1, icebreaker_q2, icebreaker_q3, status, selfie_path, date_met, person1_signed_off, person2_signed_off, person3_signed_off, rating, highlight_note')
-      .eq('round_id', latestRound.id)
-      .or(`person1_id.eq.${memberId},person2_id.eq.${memberId},person3_id.eq.${memberId}`)
-      .maybeSingle()
-
-    if (!pair) {
-      return NextResponse.json({ match: null, round: latestRound })
-    }
+    const pairRound = Array.isArray(pair.cc_rounds) ? pair.cc_rounds[0] : pair.cc_rounds
 
     // Load partner info
     const partnerIds = [pair.person1_id, pair.person2_id, pair.person3_id]
@@ -61,7 +65,23 @@ export async function GET() {
       .select('id, Name, "TBC Email", Department, cc_interests, cc_favourite_coffee, cc_favourite_spots, cc_fun_fact')
       .in('id', partnerIds)
 
-    const { selfie_path: selfiePath, ...pairData } = pair
+    const selfiePath = pair.selfie_path
+    const pairData = {
+      id: pair.id,
+      person1_id: pair.person1_id,
+      person2_id: pair.person2_id,
+      person3_id: pair.person3_id,
+      icebreaker_q1: pair.icebreaker_q1,
+      icebreaker_q2: pair.icebreaker_q2,
+      icebreaker_q3: pair.icebreaker_q3,
+      status: pair.status,
+      date_met: pair.date_met,
+      person1_signed_off: pair.person1_signed_off,
+      person2_signed_off: pair.person2_signed_off,
+      person3_signed_off: pair.person3_signed_off,
+      rating: pair.rating,
+      highlight_note: pair.highlight_note,
+    }
     const { data: signedSelfie } = selfiePath
       ? await admin.storage.from('coffee-chat-selfies').createSignedUrl(selfiePath, 60 * 60)
       : { data: null }
@@ -70,7 +90,7 @@ export async function GET() {
       match: {
         pair: { ...pairData, selfie_url: signedSelfie?.signedUrl ?? null },
         partners: partners ?? [],
-        round: latestRound,
+        round: pairRound,
       },
     })
   } catch (err) {

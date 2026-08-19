@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 import { runPairing } from '@/lib/coffee-chats'
+import { getQuestionsForPair } from '@/lib/coffee-chat-icebreakers'
 import { getCoffeeChatAdminClient, sendMatchEmail } from '@/lib/server/coffeeChats'
 
 export async function POST(request: Request) {
@@ -109,12 +110,24 @@ export async function POST(request: Request) {
     const memberMap = new Map(members.map((m) => [m.id as number, m]))
 
     const pairInserts = pairs.map((pair) => {
+      const m1 = memberMap.get(pair.person1Id)
+      const m2 = memberMap.get(pair.person2Id)
       const m3 = pair.person3Id ? memberMap.get(pair.person3Id) : null
+      const [icebreakerQ1, icebreakerQ2, icebreakerQ3] = getQuestionsForPair(
+        (m1?.cc_interests as string[] | null) ?? [],
+        [
+          ...((m2?.cc_interests as string[] | null) ?? []),
+          ...((m3?.cc_interests as string[] | null) ?? []),
+        ],
+      )
 
       return {
         person1_id: pair.person1Id,
         person2_id: pair.person2Id,
         person3_id: m3 ? pair.person3Id ?? null : null,
+        icebreaker_q1: icebreakerQ1,
+        icebreaker_q2: icebreakerQ2,
+        icebreaker_q3: icebreakerQ3,
       }
     })
 

@@ -6,6 +6,7 @@ import {
   dateToCalendarDate,
   escapeEmailHtml,
   filterKnownMembers,
+  getCoffeeChatProfileError,
   getCoffeeChatNextStep,
   getSignupError,
   localDateTimeToUtcIso,
@@ -15,6 +16,7 @@ import {
   validateSelfieUpload,
 } from '../lib/coffee-chats'
 import { getDashboardTabForPathname } from '../app/dashboard/lib/routes'
+import { getQuestionsForPair } from '../lib/coffee-chat-icebreakers'
 
 test('selfie upload rejects non-image bytes disguised as JPEG', () => {
   expect(() =>
@@ -52,12 +54,48 @@ test('admin deadlines are converted from local Munich time to UTC', () => {
   }
 })
 
+test('admin deadlines respect Munich winter time', () => {
+  const previousTimezone = process.env.TZ
+  process.env.TZ = 'Europe/Berlin'
+
+  try {
+    expect(localDateTimeToUtcIso('2026-12-15T18:00')).toBe('2026-12-15T17:00:00.000Z')
+  } finally {
+    if (previousTimezone) process.env.TZ = previousTimezone
+    else delete process.env.TZ
+  }
+})
+
+test('admin deadlines before 02:00 stay on the correct UTC calendar day', () => {
+  const previousTimezone = process.env.TZ
+  process.env.TZ = 'Europe/Berlin'
+
+  try {
+    expect(localDateTimeToUtcIso('2026-07-28T01:30')).toBe('2026-07-27T23:30:00.000Z')
+  } finally {
+    if (previousTimezone) process.env.TZ = previousTimezone
+    else delete process.env.TZ
+  }
+})
+
 test('admin deadline dates default to local midnight', () => {
   const previousTimezone = process.env.TZ
   process.env.TZ = 'Europe/Berlin'
 
   try {
     expect(localDateToUtcIso('2026-07-28')).toBe('2026-07-27T22:00:00.000Z')
+  } finally {
+    if (previousTimezone) process.env.TZ = previousTimezone
+    else delete process.env.TZ
+  }
+})
+
+test('admin deadline dates respect Munich winter midnight', () => {
+  const previousTimezone = process.env.TZ
+  process.env.TZ = 'Europe/Berlin'
+
+  try {
+    expect(localDateToUtcIso('2026-12-15')).toBe('2026-12-14T23:00:00.000Z')
   } finally {
     if (previousTimezone) process.env.TZ = previousTimezone
     else delete process.env.TZ
@@ -93,6 +131,21 @@ test('pairing avoids an excluded pair when a valid complete matching exists', ()
   }
 })
 
+test('pairing creates three icebreakers from member interests', () => {
+  const originalRandom = Math.random
+  Math.random = () => 0
+
+  try {
+    expect(getQuestionsForPair(['Software Dev'], ['Travel'])).toEqual([
+      'What is the most interesting technical problem you have worked on recently?',
+      'What place have you visited that completely defied your expectations?',
+      'How did you first hear about TBC and what made you join?',
+    ])
+  } finally {
+    Math.random = originalRandom
+  }
+})
+
 test('email HTML escapes member-controlled text', () => {
   expect(escapeEmailHtml('<img src=x onerror=alert(1)> & "quoted"')).toBe(
     '&lt;img src=x onerror=alert(1)&gt; &amp; &quot;quoted&quot;',
@@ -107,6 +160,10 @@ test('known-member search matches names and departments case-insensitively', () 
 
   expect(filterKnownMembers(members, 'research')).toEqual([members[0]])
   expect(filterKnownMembers(members, 'GRACE')).toEqual([members[1]])
+})
+
+test('Coffee Chat profiles require at least one interest', () => {
+  expect(getCoffeeChatProfileError([])).toBe('Select at least one interest before saving.')
 })
 
 test('dashboard routing keeps every Coffee Chats page in the Coffee Chats tab', () => {

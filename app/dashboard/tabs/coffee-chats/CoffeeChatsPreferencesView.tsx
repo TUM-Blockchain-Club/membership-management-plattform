@@ -18,13 +18,39 @@ import {
 import { Input } from '@/components/ui/input'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
+import { Textarea } from '@/components/ui/textarea'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   demoMember,
   filterKnownMembers,
+  getCoffeeChatProfileError,
   isCoffeeChatsDemoClient,
   type KnownMemberOption,
 } from '@/lib/coffee-chats'
+
+const INTEREST_OPTIONS = [
+  'Blockchain',
+  'DeFi',
+  'NFTs',
+  'Web3',
+  'Smart Contracts',
+  'Solidity',
+  'Research',
+  'Finance',
+  'Trading',
+  'Investing',
+  'Software Dev',
+  'Design',
+  'Marketing',
+  'Legal',
+  'VC & Startups',
+  'AI / ML',
+  'Sports',
+  'Music',
+  'Travel',
+  'Gaming',
+] as const
 
 type MemberDirectoryRow = {
   id: number
@@ -37,10 +63,15 @@ export function CoffeeChatsPreferencesView() {
   const [isPending, startTransition] = useTransition()
   const [loading, setLoading] = useState(true)
 
+  const [interests, setInterests] = useState<string[]>([])
+  const [studyProgramme, setStudyProgramme] = useState('')
+  const [favouriteCoffee, setFavouriteCoffee] = useState('')
   const [favouriteSpots, setFavouriteSpots] = useState('')
+  const [funFact, setFunFact] = useState('')
   const [knownMembers, setKnownMembers] = useState<KnownMemberOption[]>([])
   const [alreadyKnow, setAlreadyKnow] = useState<number[]>([])
   const [memberSearch, setMemberSearch] = useState('')
+  const [showInterestError, setShowInterestError] = useState(false)
 
   const filteredKnownMembers = useMemo(
     () => filterKnownMembers(knownMembers, memberSearch),
@@ -50,7 +81,11 @@ export function CoffeeChatsPreferencesView() {
   useEffect(() => {
     async function loadProfile() {
       if (isCoffeeChatsDemoClient()) {
+        setInterests(demoMember.cc_interests)
+        setStudyProgramme(demoMember.cc_study_programme)
+        setFavouriteCoffee(demoMember.cc_favourite_coffee)
         setFavouriteSpots(demoMember.cc_favourite_spots.join(', '))
+        setFunFact(demoMember.cc_fun_fact)
         setKnownMembers([
           { id: 2, name: 'Alex Morgan', department: 'IT & Development' },
           { id: 3, name: 'Mina Bauer', department: 'Research' },
@@ -72,7 +107,9 @@ export function CoffeeChatsPreferencesView() {
       const [{ data }, { data: members }] = await Promise.all([
         supabase
           .from('members_main')
-          .select('id, cc_already_know, cc_favourite_spots')
+          .select(
+            'id, cc_interests, cc_study_programme, cc_already_know, cc_favourite_coffee, cc_favourite_spots, cc_fun_fact',
+          )
           .ilike('"TBC Email"', user.email ?? '')
           .maybeSingle(),
         supabase.from('members_main').select('id, Name, Department').order('Name', { ascending: true }),
@@ -84,10 +121,14 @@ export function CoffeeChatsPreferencesView() {
           (member) => member.id !== currentMemberId,
         )
         const selectableMemberIds = new Set(directory.map((member) => member.id))
+        setInterests((data.cc_interests as string[] | null) ?? [])
+        setStudyProgramme((data.cc_study_programme as string | null) ?? '')
+        setFavouriteCoffee((data.cc_favourite_coffee as string | null) ?? '')
         setAlreadyKnow(
           ((data.cc_already_know as number[] | null) ?? []).filter((id) => selectableMemberIds.has(id)),
         )
         setFavouriteSpots(((data.cc_favourite_spots as string[] | null) ?? []).join(', '))
+        setFunFact((data.cc_fun_fact as string | null) ?? '')
         setKnownMembers(
           directory.map((member) => ({
             id: member.id,
@@ -112,6 +153,14 @@ export function CoffeeChatsPreferencesView() {
   }
 
   function handleSave() {
+    const profileError = getCoffeeChatProfileError(interests)
+    if (profileError) {
+      setShowInterestError(true)
+      toast.error(profileError)
+      return
+    }
+    setShowInterestError(false)
+
     startTransition(async () => {
       if (isCoffeeChatsDemoClient()) {
         toast.success('Matching preferences saved.')
@@ -134,8 +183,12 @@ export function CoffeeChatsPreferencesView() {
       const { error } = await supabase
         .from('members_main')
         .update({
+          cc_interests: interests,
+          cc_study_programme: studyProgramme.trim() || null,
           cc_already_know: alreadyKnow,
+          cc_favourite_coffee: favouriteCoffee.trim() || null,
           cc_favourite_spots: spotsArray.length ? spotsArray : null,
+          cc_fun_fact: funFact.trim() || null,
           cc_active: true,
         })
         .ilike('"TBC Email"', user.email ?? '')
@@ -162,23 +215,74 @@ export function CoffeeChatsPreferencesView() {
       <div className="flex max-w-2xl flex-col gap-1">
         <h3 className="text-xl font-semibold tracking-tight text-foreground">Matching preferences</h3>
         <p className="text-sm text-muted-foreground">
-          Recommend your favourite meeting spots and select any members you prefer to avoid being paired with.
+          Share what you would like to talk about and who you would like to meet.
         </p>
       </div>
 
-      {/* Meeting place recommendation */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Interests</CardTitle>
+          <CardDescription>Select at least one topic. Three to five give the best matching signal.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Field data-invalid={showInterestError || undefined}>
+            <ToggleGroup
+              type="multiple"
+              variant="outline"
+              spacing={2}
+              value={interests}
+              onValueChange={(value) => {
+                setInterests(value)
+                if (value.length > 0) setShowInterestError(false)
+              }}
+              className="flex w-full flex-wrap justify-start"
+              aria-label="Coffee Chat interests"
+            >
+              {INTEREST_OPTIONS.map((interest) => (
+                <ToggleGroupItem key={interest} value={interest} aria-label={`Toggle ${interest}`}>
+                  {interest}
+                </ToggleGroupItem>
+              ))}
+            </ToggleGroup>
+            <FieldDescription>
+              {showInterestError
+                ? 'Select at least one interest before saving.'
+                : `${interests.length} selected`}
+            </FieldDescription>
+          </Field>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
             <MapPinIcon className="size-5 text-primary" />
-            <CardTitle>Meeting place recommendation</CardTitle>
+            <CardTitle>About you</CardTitle>
           </div>
           <CardDescription>
-            Recommend your favorite cafés or meeting spots in Munich to help your match choose where to meet.
+            Optional details give your match useful conversation starters.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <FieldGroup>
+            <Field>
+              <FieldLabel htmlFor="study-programme">Study programme</FieldLabel>
+              <Input
+                id="study-programme"
+                placeholder="e.g. MSc Informatics, TUM"
+                value={studyProgramme}
+                onChange={(event) => setStudyProgramme(event.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="favourite-coffee">Favourite coffee drink</FieldLabel>
+              <Input
+                id="favourite-coffee"
+                placeholder="e.g. Flat white, oat latte, black coffee"
+                value={favouriteCoffee}
+                onChange={(event) => setFavouriteCoffee(event.target.value)}
+              />
+            </Field>
             <Field>
               <FieldLabel htmlFor="meeting-spots">Recommended coffee spots</FieldLabel>
               <Input
@@ -189,11 +293,21 @@ export function CoffeeChatsPreferencesView() {
               />
               <FieldDescription>Separate multiple locations with commas.</FieldDescription>
             </Field>
+            <Field>
+              <FieldLabel htmlFor="fun-fact">Fun fact</FieldLabel>
+              <Textarea
+                id="fun-fact"
+                placeholder="Something your match can use as an icebreaker…"
+                value={funFact}
+                onChange={(event) => setFunFact(event.target.value)}
+                className="resize-none"
+                rows={3}
+              />
+            </Field>
           </FieldGroup>
         </CardContent>
       </Card>
 
-      {/* People to avoid */}
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">

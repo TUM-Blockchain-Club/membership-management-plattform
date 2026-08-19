@@ -22,17 +22,14 @@ export function canShowCoffeeChatAdmin(input: CoffeeChatAdminViewInput): boolean
 
 export function localDateToUtcIso(dateString: string): string {
   const [year, month, day] = dateString.split('-').map(Number)
-  const utcDate = new Date(Date.UTC(year, month - 1, day - 1, 22, 0, 0))
-  return utcDate.toISOString()
+  return new Date(year, month - 1, day).toISOString()
 }
 
 export function localDateTimeToUtcIso(dateTimeString: string): string {
   const [datePart, timePart = '00:00'] = dateTimeString.split('T')
   const [year, month, day] = datePart.split('-').map(Number)
   const [hour, minute] = timePart.split(':').map(Number)
-  const utcHour = (hour - 2 + 24) % 24
-  const utcDate = new Date(Date.UTC(year, month - 1, day, utcHour, minute, 0))
-  return utcDate.toISOString()
+  return new Date(year, month - 1, day, hour, minute).toISOString()
 }
 
 export function dateToCalendarDate(date: Date, timeZone = 'Europe/Berlin'): string {
@@ -53,6 +50,10 @@ export function getSignupError(
     return 'The signup deadline for this round has passed.'
   }
   return null
+}
+
+export function getCoffeeChatProfileError(interests: string[]): string | null {
+  return interests.length > 0 ? null : 'Select at least one interest before saving.'
 }
 
 /* ==========================================================================
@@ -289,6 +290,7 @@ export type CoffeeChatMatch = {
   pair: {
     id: string
     status: string
+    icebreakers: string[]
     selfieUrl: string | null
     dateMet: string | null
     highlightNote: string | null
@@ -378,6 +380,11 @@ export const demoMatch: CoffeeChatMatch = {
   pair: {
     id: 'demo-pair-1',
     status: 'pending',
+    icebreakers: [
+      'What first pulled you into blockchain — was there a specific project or moment?',
+      'What place have you visited that completely defied your expectations?',
+      'How did you first hear about TBC and what made you join?',
+    ],
     selfieUrl: null,
     dateMet: null,
     highlightNote: null,

@@ -95,7 +95,6 @@ export interface CoffeeChatPair {
   icebreaker_q3?: string | null
   status: 'pending' | 'met' | 'skipped'
   selfie_path: string | null
-  drive_url?: string | null
   date_met: string | null
   person1_signed_off: boolean
   person2_signed_off: boolean
