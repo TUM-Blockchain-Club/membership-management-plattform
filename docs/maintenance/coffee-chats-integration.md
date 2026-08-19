@@ -12,13 +12,10 @@ and the latest outstanding match. The old `/coffee-chats/join` and
 `/coffee-chats/my-match` URLs redirect to this default route for compatibility.
 Preferences, gallery, and authorized admin tools are secondary routes.
 
-The profile includes a searchable checklist of every member except the signed-in
-member for `cc_already_know`. Those member IDs are treated as pairing exclusions
-whenever another complete matching is available.
-
-At least one interest is required before saving and joining. Three to five are
-recommended in the UI. Other profile details and acquaintance exclusions are
-optional and progressively disclosed.
+The preferences page contains meeting-place recommendations and a searchable
+checklist of every member except the signed-in member for `cc_already_know`.
+Those member IDs are treated as pairing exclusions whenever another complete
+matching is available.
 
 ## Data and authorization
 
@@ -31,7 +28,8 @@ optional and progressively disclosed.
 - Admin deadline inputs are interpreted in the administrator's browser timezone
   and converted to UTC ISO timestamps before they are written to Supabase.
 - Member signup and pair reads remain protected by RLS. Administrative actions
-  accept board members and existing explicit special-access users.
+  accept board members and delegated Coffee Chats administrators. Board members
+  can add or remove delegated administrators from the member directory.
 
 ## Selfies
 
@@ -41,10 +39,7 @@ content up to 5 MB, and uploads with the service-role client. The route requires
 an explicit `complete-meeting` or `upload-selfie` intent. Uploading a selfie to
 an already completed meeting never changes pair status or sign-off fields.
 Match and gallery responses expose one-hour signed URLs rather than permanent
-public URLs.
-
-Google Drive backup remains optional through `GOOGLE_SERVICE_ACCOUNT_EMAIL`,
-`GOOGLE_PRIVATE_KEY`, and `GOOGLE_DRIVE_FOLDER_ID`.
+public URLs. Supabase Storage is the only selfie storage provider.
 
 ## Verification
 
