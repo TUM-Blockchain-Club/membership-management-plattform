@@ -3,8 +3,10 @@
 Coffee Chats browser tests run against a deployed application connected to the
 production Supabase project. They are intentionally excluded from pull-request
 CI and can only be started through the `Coffee Chats production E2E` manual
-workflow. The browser origin is fixed to `https://plattform.tum-blockchain.com`
-so authenticated session cookies cannot be sent to another host.
+workflow. The browser origin is restricted to `plattform.tum-blockchain.com`,
+`preview.plattform.tum-blockchain.com`, or this project's deployment URLs in
+the TUM Blockchain Vercel team. Other hosts are rejected before authentication
+so session cookies cannot be sent to an arbitrary host.
 
 ## Test seams
 
@@ -48,14 +50,14 @@ production readers never observe its temporary rows.
 
 1. Deploy the commit to be tested.
 2. Start `Coffee Chats production E2E` from GitHub Actions.
-3. Type `PRODUCTION`.
+3. Enter the exact deployment origin without a path and type `PRODUCTION`.
 4. Approve the protected environment run.
 
-For local execution against the same fixed production origin, set the same
-values without committing them and run:
+For local execution against an approved origin, set the same values without
+committing them and run:
 
 ```bash
-pnpm test:e2e:prod
+E2E_BASE_URL=https://plattform.tum-blockchain.com pnpm test:e2e:prod
 ```
 
 The production suite disables traces, screenshots, HTML reports, and uploaded
