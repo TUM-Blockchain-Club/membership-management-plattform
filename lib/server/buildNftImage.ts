@@ -1,4 +1,5 @@
 import sharp from 'sharp';
+import type { OverlayOptions } from 'sharp';
 import path from 'path';
 import fs from 'fs';
 
@@ -151,7 +152,7 @@ export async function buildNftImage(params: {
     </svg>`;
 
   // ── 6. Composite (order = bottom → top) ──────────────────────────────────
-  const layers: sharp.OverlayOptions[] = [];
+  const layers: OverlayOptions[] = [];
 
   // LAYER 1: The Avatar Photo (Bottom)
   if (avatarBuffer) {

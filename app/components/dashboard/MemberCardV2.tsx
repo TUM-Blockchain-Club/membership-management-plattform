@@ -44,12 +44,6 @@ function statusBadgeClass(status: string) {
   return 'bg-secondary border-border text-muted-foreground'
 }
 
-function roleBadgeClass(role: string) {
-  if (role === 'Board Member') return 'bg-yellow-500/10 border-yellow-500/25 text-yellow-400'
-  if (role === 'Core Member')  return 'bg-blue-500/10 border-blue-500/25 text-blue-400'
-  return ''
-}
-
 // ── Component ─────────────────────────────────────────────────────────────
 
 export const MemberCardV2 = memo(function MemberCardV2({

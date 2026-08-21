@@ -102,7 +102,6 @@ export function EditableProfileForm({
   member,
   onInputChange,
   onSave,
-  isBoardMember = false,
   isOwnProfile = true,
   canEditField,
 }: {
