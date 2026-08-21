@@ -176,6 +176,7 @@ function BoardSection({ allMembers }: { allMembers: DashboardMember[] }) {
   const handleRotate = useCallback(
     async (id: string) => {
       const result = await rotate(id)
+      if (result?.token) setActiveToken(result.token)
       return result ?? null
     },
     [rotate]
@@ -241,6 +242,7 @@ function BoardSection({ allMembers }: { allMembers: DashboardMember[] }) {
       <MemberCalendarPicker allMembers={allMembers} />
 
       <LectureEditor
+        key={`${editing?.id ?? 'new'}-${editorOpen ? 'open' : 'closed'}`}
         open={editorOpen}
         initial={editing}
         onCancel={() => setEditorOpen(false)}
@@ -290,6 +292,7 @@ function ActiveLectureBlock({
 
       <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-4">
         <LectureQrDisplay
+          key={token ?? 'no-token'}
           lectureId={lecture.id}
           initialToken={token}
           onRotate={onRotate}

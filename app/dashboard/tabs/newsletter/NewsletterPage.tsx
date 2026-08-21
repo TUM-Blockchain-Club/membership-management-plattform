@@ -43,6 +43,7 @@ import {
 import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { Spinner } from '@/components/ui/spinner'
 import type { GrapesEditorHandle } from './components/GrapesEditor'
 import type { NewsletterAsset, NewsletterDelivery, NewsletterProject } from './components/types'
@@ -154,14 +155,17 @@ function ProjectList({
       {projects.map((project) => (
         <div key={project.id} className="rounded-lg border bg-muted/20 p-3">
           <div className="flex items-start justify-between gap-2">
-            <button
+            <Button
               type="button"
-              className="min-w-0 flex-1 text-left"
+              variant="ghost"
+              className="h-auto min-w-0 flex-1 justify-start px-2 py-1 text-left"
               onClick={() => onLoad(project)}
             >
-              <span className="block truncate text-sm font-medium">{project.name}</span>
-              <span className="block text-xs text-muted-foreground">{formatUpdatedAt(project.updated_at)}</span>
-            </button>
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium">{project.name}</span>
+                <span className="block text-xs text-muted-foreground">{formatUpdatedAt(project.updated_at)}</span>
+              </span>
+            </Button>
             <div className="flex shrink-0 items-center gap-1">
               {currentProjectId === project.id && <Badge variant="secondary">Open</Badge>}
               <Button type="button" variant="ghost" size="icon-sm" onClick={() => onDelete(project)}>
@@ -235,34 +239,37 @@ function AssetLibrary({
           </EmptyHeader>
         </Empty>
       ) : (
-        <div className="grid max-h-80 grid-cols-2 gap-2 overflow-y-auto">
-          {assets.map((asset) => (
-            <div key={asset.path} className="overflow-hidden rounded-lg border bg-muted/20">
-              <button
-                type="button"
-                className="block w-full bg-background p-2"
-                onClick={() => onInsert(asset)}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={asset.src}
-                  alt={asset.name}
-                  className="h-20 w-full rounded-md object-contain"
-                />
-              </button>
-              <div className="flex items-start justify-between gap-1 p-2">
-                <div className="min-w-0">
-                  <p className="truncate text-xs font-medium">{asset.name}</p>
-                  <p className="text-xs text-muted-foreground">{formatBytes(asset.size)}</p>
-                </div>
-                <Button type="button" variant="ghost" size="icon-sm" onClick={() => onDelete(asset)}>
-                  <Trash2Icon />
-                  <span className="sr-only">Delete asset</span>
+        <ScrollArea className="h-80">
+          <div className="grid grid-cols-2 gap-2 pr-3">
+            {assets.map((asset) => (
+              <div key={asset.path} className="overflow-hidden rounded-lg border bg-muted/20">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-auto w-full rounded-none bg-background p-2"
+                  onClick={() => onInsert(asset)}
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={asset.src}
+                    alt={asset.name}
+                    className="h-20 w-full rounded-md object-contain"
+                  />
                 </Button>
+                <div className="flex items-start justify-between gap-1 p-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-medium">{asset.name}</p>
+                    <p className="text-xs text-muted-foreground">{formatBytes(asset.size)}</p>
+                  </div>
+                  <Button type="button" variant="ghost" size="icon-sm" onClick={() => onDelete(asset)}>
+                    <Trash2Icon />
+                    <span className="sr-only">Delete asset</span>
+                  </Button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </ScrollArea>
       )}
     </div>
   )
@@ -596,21 +603,26 @@ export function NewsletterPage({ effectiveHasSpecialAccess }: Props) {
               </div>
 
               {newsletter.mailingLists.length > 0 && (
-                <div className="flex max-h-44 flex-col gap-2 overflow-y-auto rounded-lg border p-2">
-                  {newsletter.mailingLists.map((list) => (
-                    <button
-                      key={list.address}
-                      type="button"
-                      className="rounded-md px-2 py-2 text-left hover:bg-muted"
-                      onClick={() => newsletter.setToAddress(list.address)}
-                    >
-                      <span className="block truncate text-sm font-medium">{list.address}</span>
-                      <span className="block text-xs text-muted-foreground">
-                        {list.name || 'Mailgun list'} · {list.membersCount} members
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                <ScrollArea className="h-44 rounded-lg border p-2">
+                  <div className="flex flex-col gap-2 pr-3">
+                    {newsletter.mailingLists.map((list) => (
+                      <Button
+                        key={list.address}
+                        type="button"
+                        variant="ghost"
+                        className="h-auto justify-start px-2 py-2 text-left"
+                        onClick={() => newsletter.setToAddress(list.address)}
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium">{list.address}</span>
+                          <span className="block text-xs text-muted-foreground">
+                            {list.name || 'Mailgun list'} · {list.membersCount} members
+                          </span>
+                        </span>
+                      </Button>
+                    ))}
+                  </div>
+                </ScrollArea>
               )}
 
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

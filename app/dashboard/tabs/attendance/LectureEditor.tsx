@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { DateTimePicker } from '@/components/date-picker'
 import type { LectureKind, LectureRow, LectureUpsertPayload } from './useAttendance'
 
 type Props = {
@@ -21,18 +22,10 @@ const toLocalInputValue = (iso: string | null): string => {
 }
 
 export function LectureEditor({ open, initial, onCancel, onSubmit, working, error }: Props) {
-  const [title, setTitle] = useState('')
-  const [kind, setKind] = useState<LectureKind>('side')
-  const [scheduledAt, setScheduledAt] = useState('')
-  const [location, setLocation] = useState('')
-
-  useEffect(() => {
-    if (!open) return
-    setTitle(initial?.title ?? '')
-    setKind((initial?.kind as LectureKind) ?? 'side')
-    setScheduledAt(toLocalInputValue(initial?.scheduled_at ?? null))
-    setLocation(initial?.location ?? '')
-  }, [open, initial])
+  const [title, setTitle] = useState(initial?.title ?? '')
+  const [kind, setKind] = useState<LectureKind>((initial?.kind as LectureKind) ?? 'side')
+  const [scheduledAt, setScheduledAt] = useState(toLocalInputValue(initial?.scheduled_at ?? null))
+  const [location, setLocation] = useState(initial?.location ?? '')
 
   if (!open) return null
 
@@ -104,12 +97,11 @@ export function LectureEditor({ open, initial, onCancel, onSubmit, working, erro
             <label className="block text-white/70 text-xs uppercase tracking-wider mb-1.5">
               Scheduled at
             </label>
-            <input
-              type="datetime-local"
+            <DateTimePicker
+              id="lecture-scheduled-at"
               value={scheduledAt}
-              onChange={(e) => setScheduledAt(e.target.value)}
-              required
-              className="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+              onChange={setScheduledAt}
+              placeholder="Pick date"
             />
           </div>
 

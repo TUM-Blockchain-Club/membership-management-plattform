@@ -29,6 +29,11 @@ For the live schema overview, table columns, relationships, RLS summary, storage
   - Creates/updates `public.nft_requests`.
   - Adds NFT request helper functions, indexes, policies, and storage policies.
 
+- `coffee_chats.sql`
+  - Adds Coffee Chat profile columns to `members_main`.
+  - Creates rounds, signups, pairings, board/special-access policies, and the atomic pairing function.
+  - Creates the private `coffee-chat-selfies` bucket used by guarded server-side uploads.
+
 ## Environment Variables
 
 Required for normal app operation:
@@ -69,6 +74,7 @@ For simple SQL changes:
 ```bash
 pnpm exec tsc --noEmit
 pnpm lint
+pnpm test:coffee-chats
 pnpm build
 ```
 

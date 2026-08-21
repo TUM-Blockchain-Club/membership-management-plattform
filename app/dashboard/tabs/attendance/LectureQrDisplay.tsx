@@ -19,7 +19,6 @@ export function LectureQrDisplay({
   onStop,
   stopping,
 }: Props) {
-  const [token, setToken] = useState<string | null>(initialToken)
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
   const [secondsLeft, setSecondsLeft] = useState<number>(CODE_ROTATION_MS / 1000)
   const [error, setError] = useState<string | null>(null)
@@ -27,19 +26,12 @@ export function LectureQrDisplay({
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
-    setToken(initialToken)
-  }, [initialToken])
-
-  useEffect(() => {
     let cancelled = false
-    if (!token) {
-      setQrDataUrl(null)
-      return
-    }
+    if (!initialToken) return
 
     const origin =
       typeof window !== 'undefined' ? window.location.origin : ''
-    const url = `${origin}/attendance/check-in?token=${encodeURIComponent(token)}`
+    const url = `${origin}/attendance/check-in?token=${encodeURIComponent(initialToken)}`
 
     QRCode.toDataURL(url, {
       errorCorrectionLevel: 'M',
@@ -59,10 +51,10 @@ export function LectureQrDisplay({
     return () => {
       cancelled = true
     }
-  }, [token])
+  }, [initialToken])
 
   useEffect(() => {
-    setSecondsLeft(CODE_ROTATION_MS / 1000)
+    if (!initialToken) return
 
     if (countdownTimerRef.current) clearInterval(countdownTimerRef.current)
     countdownTimerRef.current = setInterval(() => {
@@ -73,7 +65,6 @@ export function LectureQrDisplay({
     rotateTimerRef.current = setTimeout(async () => {
       const result = await onRotate(lectureId)
       if (result?.token) {
-        setToken(result.token)
         setError(null)
       } else {
         setError('Lost connection — try refreshing.')
@@ -84,7 +75,7 @@ export function LectureQrDisplay({
       if (rotateTimerRef.current) clearTimeout(rotateTimerRef.current)
       if (countdownTimerRef.current) clearInterval(countdownTimerRef.current)
     }
-  }, [lectureId, onRotate, token])
+  }, [initialToken, lectureId, onRotate])
 
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-4 sm:p-6">

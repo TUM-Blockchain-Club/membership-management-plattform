@@ -11,6 +11,7 @@ import {
 } from '@/lib/devBypass'
 import { getSupabaseAdminClient } from '@/lib/server/supabaseAdmin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
+import { coffeeChatsDemoEnabled, demoDashboardMember } from '@/lib/coffee-chats'
 
 type AccessResponse = boolean | null
 
@@ -187,6 +188,17 @@ const loadUpcomingEvents = async (
 }
 
 export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'all'): Promise<DashboardInitialData> => {
+  if (coffeeChatsDemoEnabled) {
+    return {
+      allMembers: [demoDashboardMember],
+      canManageNftRequests: false,
+      events: [],
+      hasSpecialAccess: true,
+      member: demoDashboardMember,
+      message: null,
+      viewedMemberHasSpecialAccess: true,
+    }
+  }
   const totalStartedAt = now()
   const supabase = await createSupabaseServerClient()
   const request = await getRequestForCurrentHost()
@@ -307,6 +319,9 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'a
   const viewedMemberAccessPromise = supabase.rpc('check_email_has_special_access', {
     check_email: member['TBC Email'],
   })
+  const ccAdminAccessPromise = supabase.rpc('check_email_can_manage_coffee_chats', {
+    check_email: user.email ?? '',
+  })
   const nftAdminAccessPromise = Promise.resolve(isNftAdminMember(member.id))
   const allMembersPromise = routeNeedsMembers(routeTab)
     ? supabase.from('members_main').select(MEMBER_COLUMNS).order('Name', { ascending: true })
@@ -318,11 +333,13 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'a
   const routeDataStartedAt = now()
   const [
     { data: viewedMemberAccessResult },
+    { data: ccAdminAccessResult },
     canManageNftRequests,
     { data: allMembersData, error: allMembersError },
     events,
   ] = await Promise.all([
     viewedMemberAccessPromise,
+    ccAdminAccessPromise,
     nftAdminAccessPromise,
     allMembersPromise,
     eventsPromise,
@@ -352,6 +369,7 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'a
   return {
     allMembers,
     canManageNftRequests,
+    canManageCoffeeChats: (ccAdminAccessResult as AccessResponse) === true || (devBypass && hasLocalDevBypassSpecialAccess()),
     events,
     hasSpecialAccess: (specialAccessResult as AccessResponse) === true || (devBypass && hasLocalDevBypassSpecialAccess()),
     member,

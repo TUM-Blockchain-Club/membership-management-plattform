@@ -3,6 +3,7 @@ import {
   BadgeCheckIcon,
   BarChart3Icon,
   CalendarIcon,
+  CoffeeIcon,
   HexagonIcon,
   LinkIcon,
   LogOutIcon,
@@ -11,6 +12,7 @@ import {
   UsersIcon,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import type { DashboardMember, DashboardTab } from './types'
 
 type DashboardHeaderProps = {
@@ -38,6 +40,12 @@ const TABS: Array<{
     labelDesktop: 'My Profile',
     labelMobile: 'Profile',
     icon: UserIcon,
+  },
+  {
+    key: 'coffee-chats',
+    labelDesktop: 'Coffee Chats',
+    labelMobile: 'Coffee',
+    icon: CoffeeIcon,
   },
   {
     key: 'members',
@@ -160,7 +168,11 @@ export function DashboardHeader({
               variant={activeTab === tab.key ? 'default' : 'ghost'}
               size="lg"
               onClick={() => onTabChange(tab.key)}
-              className={`text-xs sm:text-sm flex-shrink-0 ${activeTab === tab.key ? '' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+              aria-current={activeTab === tab.key ? 'page' : undefined}
+              className={cn(
+                'flex-shrink-0 text-xs sm:text-sm',
+                activeTab !== tab.key && 'text-white/60 hover:bg-white/5 hover:text-white',
+              )}
             >
               <Icon data-icon="inline-start" />
               <span className="hidden sm:inline">{tab.labelDesktop}</span>
