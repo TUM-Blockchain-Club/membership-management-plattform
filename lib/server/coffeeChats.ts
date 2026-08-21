@@ -11,6 +11,7 @@ import {
   demoMember,
   demoRound,
   escapeEmailHtml,
+  isCoffeeChatProfileComplete,
   type CoffeeChatHomeData,
   type CoffeeChatMatch,
   type CoffeeChatRoundSummary,
@@ -231,7 +232,7 @@ export async function loadCoffeeChatHome(): Promise<CoffeeChatHomeData | null> {
 
   return {
     firstName: member.Name?.split(' ')[0] ?? null,
-    isProfileComplete: Boolean(member.cc_active),
+    isProfileComplete: isCoffeeChatProfileComplete(member.cc_active, member.cc_interests),
     isSignedUp: Boolean(signupResult.data),
     openRound: openRound ? toRoundSummary(openRound) : null,
     match,

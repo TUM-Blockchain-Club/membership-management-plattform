@@ -53,12 +53,6 @@ export async function DELETE(
       .map((p) => p.selfie_path as string)
       .filter(Boolean)
 
-    if (selfiePaths.length > 0) {
-      await admin.storage.from('coffee-chat-selfies').remove(selfiePaths).catch((err: unknown) => {
-        console.warn('[coffee-chats/delete-round] storage cleanup warning:', err)
-      })
-    }
-
     // Delete the round (foreign keys cascade to signups and pairs)
     const { error: deleteError } = await admin
       .from('cc_rounds')
@@ -67,6 +61,12 @@ export async function DELETE(
 
     if (deleteError) {
       return NextResponse.json({ error: deleteError.message }, { status: 500 })
+    }
+
+    if (selfiePaths.length > 0) {
+      await admin.storage.from('coffee-chat-selfies').remove(selfiePaths).catch((err: unknown) => {
+        console.warn('[coffee-chats/delete-round] storage cleanup warning:', err)
+      })
     }
 
     return NextResponse.json({ ok: true, deletedRoundId: roundId, month: round.month })

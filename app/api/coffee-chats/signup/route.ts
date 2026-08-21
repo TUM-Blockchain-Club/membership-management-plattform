@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getCoffeeChatProfileError, getSignupError } from '@/lib/coffee-chats'
+import {
+  getCoffeeChatProfileError,
+  getSignupError,
+  isCoffeeChatProfileComplete,
+} from '@/lib/coffee-chats'
 import { sendSignupConfirmEmail } from '@/lib/server/coffeeChats'
 
 export async function POST() {
@@ -24,7 +28,7 @@ export async function POST() {
     }
 
     const profileError = getCoffeeChatProfileError(member.cc_interests ?? [])
-    if (!member.cc_active || profileError) {
+    if (!isCoffeeChatProfileComplete(member.cc_active, member.cc_interests)) {
       return NextResponse.json(
         { error: profileError ?? 'Set up your Coffee Chat preferences before joining a round.' },
         { status: 400 },

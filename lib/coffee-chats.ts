@@ -56,6 +56,17 @@ export function getCoffeeChatProfileError(interests: string[]): string | null {
   return interests.length > 0 ? null : 'Select at least one interest before saving.'
 }
 
+export function isCoffeeChatProfileComplete(
+  active: boolean | null,
+  interests: string[] | null,
+): boolean {
+  return Boolean(active && interests?.length)
+}
+
+export function parseCoffeeChatSpots(value: string): string[] {
+  return value.split(',').map((spot) => spot.trim()).filter(Boolean)
+}
+
 /* ==========================================================================
    3. Member Experience & Step State
    ========================================================================== */
@@ -129,7 +140,6 @@ export const MAX_SELFIE_BYTES = 5 * 1024 * 1024 // 5 MB
 
 export function validateSelfieUpload(
   bytes: Uint8Array,
-  _mimeType?: string,
 ): { contentType: string; extension: 'jpeg' | 'png' | 'webp' } {
   if (bytes.length > MAX_SELFIE_BYTES) {
     throw new Error('Selfies must be 5 MB or smaller.')
@@ -240,7 +250,14 @@ export function runPairing(members: PairingMember[]): PairingResult[] {
   while (pool.length > 0) {
     if (pool.length === 1) {
       if (results.length > 0) {
-        results[results.length - 1].person3Id = pool[0].id
+        const remaining = pool[0]
+        const compatiblePair = results.find((result) => {
+          const first = members.find((member) => member.id === result.person1Id)!
+          const second = members.find((member) => member.id === result.person2Id)!
+          return !shouldExclude(remaining, first) && !shouldExclude(remaining, second)
+        })
+        const targetPair = compatiblePair ?? results[results.length - 1]
+        targetPair.person3Id = remaining.id
       }
       break
     }

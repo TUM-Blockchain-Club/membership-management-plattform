@@ -9,18 +9,28 @@ import {
   getCoffeeChatProfileError,
   getCoffeeChatNextStep,
   getSignupError,
+  isCoffeeChatProfileComplete,
   localDateTimeToUtcIso,
   localDateToUtcIso,
   MAX_SELFIE_BYTES,
+  parseCoffeeChatSpots,
   runPairing,
   validateSelfieUpload,
 } from '../lib/coffee-chats'
 import { getDashboardTabForPathname } from '../app/dashboard/lib/routes'
 import { getQuestionsForPair } from '../lib/coffee-chat-icebreakers'
 
+test('empty optional Coffee Chat spots are stored as an empty list', () => {
+  expect(parseCoffeeChatSpots('')).toEqual([])
+  expect(parseCoffeeChatSpots(' Lost Weekend, , Standl 20 ')).toEqual([
+    'Lost Weekend',
+    'Standl 20',
+  ])
+})
+
 test('selfie upload rejects non-image bytes disguised as JPEG', () => {
   expect(() =>
-    validateSelfieUpload(new Uint8Array([0x74, 0x65, 0x78, 0x74]), 'image/jpeg'),
+    validateSelfieUpload(new Uint8Array([0x74, 0x65, 0x78, 0x74])),
   ).toThrow('The selected file is not a valid JPEG, PNG, or WebP image.')
 })
 
@@ -28,7 +38,7 @@ test('selfie upload rejects files larger than five megabytes', () => {
   const bytes = new Uint8Array(MAX_SELFIE_BYTES + 1)
   bytes.set([0xff, 0xd8, 0xff])
 
-  expect(() => validateSelfieUpload(bytes, 'image/jpeg')).toThrow(
+  expect(() => validateSelfieUpload(bytes)).toThrow(
     'Selfies must be 5 MB or smaller.',
   )
 })
@@ -131,6 +141,41 @@ test('pairing avoids an excluded pair when a valid complete matching exists', ()
   }
 })
 
+test('odd pairing avoids exclusions when a compatible trio exists', () => {
+  const originalRandom = Math.random
+  Math.random = () => 0.999
+
+  try {
+    const groups = runPairing([
+      { id: 3, interests: [], alreadyKnow: [0, 4], priorPartners: [] },
+      { id: 1, interests: [], alreadyKnow: [0], priorPartners: [] },
+      { id: 4, interests: [], alreadyKnow: [2, 3], priorPartners: [] },
+      { id: 0, interests: [], alreadyKnow: [1, 3], priorPartners: [] },
+      { id: 2, interests: [], alreadyKnow: [4], priorPartners: [] },
+    ])
+    const excluded = new Set(['0-1', '0-3', '2-4', '3-4'])
+
+    for (const group of groups) {
+      const ids = [group.person1Id, group.person2Id, group.person3Id].filter(
+        (id): id is number => id !== undefined,
+      )
+      for (let left = 0; left < ids.length; left += 1) {
+        for (let right = left + 1; right < ids.length; right += 1) {
+          expect(excluded).not.toContain([ids[left], ids[right]].sort().join('-'))
+        }
+      }
+    }
+    expect(
+      groups
+        .flatMap((group) => [group.person1Id, group.person2Id, group.person3Id])
+        .filter((id): id is number => id !== undefined)
+        .sort(),
+    ).toEqual([0, 1, 2, 3, 4])
+  } finally {
+    Math.random = originalRandom
+  }
+})
+
 test('pairing creates three icebreakers from member interests', () => {
   const originalRandom = Math.random
   Math.random = () => 0
@@ -164,6 +209,12 @@ test('known-member search matches names and departments case-insensitively', () 
 
 test('Coffee Chat profiles require at least one interest', () => {
   expect(getCoffeeChatProfileError([])).toBe('Select at least one interest before saving.')
+})
+
+test('Coffee Chat profiles are complete only when active with an interest', () => {
+  expect(isCoffeeChatProfileComplete(true, [])).toBe(false)
+  expect(isCoffeeChatProfileComplete(true, ['Travel'])).toBe(true)
+  expect(isCoffeeChatProfileComplete(false, ['Travel'])).toBe(false)
 })
 
 test('dashboard routing keeps every Coffee Chats page in the Coffee Chats tab', () => {

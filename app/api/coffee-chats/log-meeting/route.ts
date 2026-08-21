@@ -110,7 +110,7 @@ export async function POST(request: Request) {
       let imageType
 
       try {
-        imageType = validateSelfieUpload(buffer, selfieFile.type)
+        imageType = validateSelfieUpload(buffer)
       } catch (error) {
         const message = error instanceof Error ? error.message : 'Invalid selfie image'
         return NextResponse.json({ error: message }, { status: 400 })

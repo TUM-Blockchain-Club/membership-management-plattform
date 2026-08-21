@@ -40,4 +40,3 @@ export function withTimePart(value: string, time: string): string {
   if (!date || !time) return date ? `${date}T12:00` : ''
   return `${date}T${time}`
 }
-

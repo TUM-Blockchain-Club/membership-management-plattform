@@ -26,6 +26,7 @@ import {
   filterKnownMembers,
   getCoffeeChatProfileError,
   isCoffeeChatsDemoClient,
+  parseCoffeeChatSpots,
   type KnownMemberOption,
 } from '@/lib/coffee-chats'
 
@@ -175,11 +176,6 @@ export function CoffeeChatsPreferencesView() {
         return
       }
 
-      const spotsArray = favouriteSpots
-        .split(',')
-        .map((s) => s.trim())
-        .filter(Boolean)
-
       const { error } = await supabase
         .from('members_main')
         .update({
@@ -187,7 +183,7 @@ export function CoffeeChatsPreferencesView() {
           cc_study_programme: studyProgramme.trim() || null,
           cc_already_know: alreadyKnow,
           cc_favourite_coffee: favouriteCoffee.trim() || null,
-          cc_favourite_spots: spotsArray.length ? spotsArray : null,
+          cc_favourite_spots: parseCoffeeChatSpots(favouriteSpots),
           cc_fun_fact: funFact.trim() || null,
           cc_active: true,
         })

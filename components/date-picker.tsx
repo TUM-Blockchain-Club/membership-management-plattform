@@ -57,6 +57,19 @@ export function DatePicker({
           onSelect={(date) => onChange(date ? formatDateValue(date) : '')}
           autoFocus
         />
+        {value ? (
+          <div className="border-t p-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full"
+              onClick={() => onChange('')}
+            >
+              Clear date
+            </Button>
+          </div>
+        ) : null}
       </PopoverContent>
     </Popover>
   )
@@ -127,4 +140,3 @@ export function DateTimePicker(props: PickerProps) {
     </div>
   )
 }
-

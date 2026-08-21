@@ -3,10 +3,6 @@ name: Coffee Chats production E2E
 on:
   workflow_dispatch:
     inputs:
-      base_url:
-        description: Deployed URL backed by the production Supabase project
-        required: true
-        default: https://plattform.tum-blockchain.com
       confirm:
         description: Type PRODUCTION to confirm real production data access
         required: true
@@ -26,7 +22,6 @@ jobs:
     env:
       CI: true
       PRODUCTION_CONFIRMATION: ${{ inputs.confirm }}
-      E2E_BASE_URL: ${{ inputs.base_url }}
       E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
       E2E_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
       E2E_DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
@@ -51,12 +46,3 @@ jobs:
       - name: Verify Coffee Chats transaction on production
         run: psql "$E2E_DATABASE_URL" --set ON_ERROR_STOP=on --file tests/coffee-chats-db.sql
       - run: pnpm test:e2e:prod
-      - if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coffee-chats-production-e2e-report
-          path: |
-            playwright-report
-            test-results
-          if-no-files-found: ignore
-          retention-days: 7

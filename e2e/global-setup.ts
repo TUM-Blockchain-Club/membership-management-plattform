@@ -4,6 +4,7 @@ import { chromium, type FullConfig } from '@playwright/test'
 import { createServerClient } from '@supabase/ssr'
 
 type StoredCookie = { name: string; value: string }
+const PRODUCTION_ORIGIN = 'https://plattform.tum-blockchain.com'
 
 async function createAuthState(
   baseURL: string,
@@ -50,8 +51,11 @@ export default async function globalSetup(config: FullConfig) {
   const adminEmail = process.env.E2E_ADMIN_EMAIL
   const adminPassword = process.env.E2E_ADMIN_PASSWORD
 
+  if (!baseURL || new URL(baseURL).origin !== PRODUCTION_ORIGIN) {
+    throw new Error(`Production E2E may only authenticate against ${PRODUCTION_ORIGIN}.`)
+  }
+
   if (
-    !baseURL ||
     !supabaseUrl ||
     !supabaseAnonKey ||
     !memberEmail ||
