@@ -1,6 +1,10 @@
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import {
+  GMAIL_PROVIDER_TOKEN_COOKIE,
+  GMAIL_PROVIDER_TOKEN_COOKIE_PATH,
+} from '@/lib/email-signature/constants'
 
 async function createAuthCallbackClient(response: NextResponse) {
   const cookieStore = await cookies()
@@ -29,21 +33,39 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   const nextParam = requestUrl.searchParams.get('next')
-  const nextPath = nextParam?.startsWith('/') ? nextParam : '/dashboard'
+  const nextPath = nextParam?.startsWith('/') && !nextParam.startsWith('//')
+    ? nextParam
+    : '/dashboard'
   const redirectUrl = new URL(nextPath, requestUrl.origin)
+  const isGmailAuthorization = redirectUrl.pathname === '/email-signature'
 
   if (code) {
     const response = NextResponse.redirect(redirectUrl)
     const supabase = await createAuthCallbackClient(response)
-    const { error } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (error) {
       console.error("🚨 SUPABASE AUTH ERROR:", error.message, error.name)
     }
 
     if (!error) {
+      if (isGmailAuthorization && data.session.provider_token) {
+        response.cookies.set(GMAIL_PROVIDER_TOKEN_COOKIE, data.session.provider_token, {
+          httpOnly: true,
+          maxAge: 5 * 60,
+          path: GMAIL_PROVIDER_TOKEN_COOKIE_PATH,
+          sameSite: 'lax',
+          secure: requestUrl.protocol === 'https:',
+        })
+      }
       return response
     }
+  }
+
+  if (isGmailAuthorization) {
+    const deniedUrl = new URL('/email-signature', requestUrl.origin)
+    deniedUrl.searchParams.set('gmail', 'denied')
+    return NextResponse.redirect(deniedUrl)
   }
 
   const signInUrl = new URL('/signin', requestUrl.origin)

@@ -32,6 +32,7 @@ export type DashboardStats = {
 
 export type DashboardTab =
   | 'profile'
+  | 'email-signature'
   | 'members'
   | 'stats'
   | 'events'
