@@ -28,6 +28,9 @@ SUPABASE_SERVICE_ROLE_KEY=
 DATABASE_URL=
 ```
 
+Use `.env.example` as the complete local template. It also lists optional auth bypass,
+performance profiling, benchmark, and NFT minting variables.
+
 Run the dev server:
 
 ```bash
@@ -41,6 +44,7 @@ The root route redirects authenticated users to `/dashboard` and unauthenticated
 ## Common Commands
 
 ```bash
+pnpm test
 pnpm exec tsc --noEmit
 pnpm lint
 pnpm build

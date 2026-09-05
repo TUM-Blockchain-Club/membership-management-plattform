@@ -16,7 +16,7 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import { nftRequestService } from "@/lib/nftRequests"
 import type { NFTRequest } from "./NftRequestCard"
-import { HexagonIcon } from "./Icons"
+import { HexagonIcon } from 'lucide-react'
 
 interface MintPreviewModalProps {
   request: NFTRequest

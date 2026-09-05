@@ -14,6 +14,20 @@ export async function proxy(request: NextRequest) {
   const isApiRoute = pathname.startsWith('/api')
   const isPublicRoute = isSigninRoute || isAuthCallbackRoute
   const isProtectedPageRoute = !isPublicRoute && !isApiRoute
+  const coffeeChatsDemo = process.env.NEXT_PUBLIC_COFFEE_CHATS_DEMO === 'true'
+
+  if (coffeeChatsDemo) {
+    if (isRootRoute) {
+      const demoUrl = request.nextUrl.clone()
+      demoUrl.pathname = '/coffee-chats'
+      demoUrl.search = ''
+      return NextResponse.redirect(demoUrl)
+    }
+
+    if (pathname.startsWith('/coffee-chats')) {
+      return response
+    }
+  }
 
   if (devBypass) {
     if (isSigninRoute || isRootRoute) {

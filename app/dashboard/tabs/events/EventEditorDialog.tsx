@@ -4,12 +4,14 @@ import { useRef, useState } from 'react'
 import Image from 'next/image'
 import { CameraIcon, ImageIcon, SaveIcon } from 'lucide-react'
 import type { DashboardEvent } from '@/app/components/dashboard/types'
+import { DatePicker } from '@/components/date-picker'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -24,6 +26,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Spinner } from '@/components/ui/spinner'
+import { formatDateValue } from '@/lib/date-picker-values'
 
 export type EventEditorDraft = {
   title: string
@@ -63,7 +66,8 @@ const PRIORITY_OPTIONS = [
 
 const dateInputValue = (value: string) => {
   if (!value) return ''
-  return new Date(value).toISOString().slice(0, 10)
+  const date = new Date(value)
+  return Number.isFinite(date.getTime()) ? formatDateValue(date) : ''
 }
 
 const splitStoredOptions = (value: string | null, options: string[]) => {
@@ -253,11 +257,11 @@ export function EventEditorDialog({
             <div className="grid gap-4 sm:grid-cols-3">
               <Field>
                 <FieldLabel htmlFor="event-start-date">Start date</FieldLabel>
-                <Input id="event-start-date" type="date" value={draft.start_date} onChange={(event) => updateDraft('start_date', event.target.value)} />
+                <DatePicker id="event-start-date" value={draft.start_date} onChange={(value) => updateDraft('start_date', value)} />
               </Field>
               <Field>
                 <FieldLabel htmlFor="event-end-date">End date</FieldLabel>
-                <Input id="event-end-date" type="date" value={draft.end_date} onChange={(event) => updateDraft('end_date', event.target.value)} />
+                <DatePicker id="event-end-date" value={draft.end_date} onChange={(value) => updateDraft('end_date', value)} />
               </Field>
               <Field>
                 <FieldLabel htmlFor="event-city">City</FieldLabel>
@@ -345,7 +349,7 @@ export function EventEditorDialog({
           </FieldGroup>
         </div>
 
-        <div className="shrink-0 flex items-center justify-end gap-2 px-6 py-4 border-t border-border bg-muted/30">
+        <DialogFooter className="shrink-0 border-t bg-muted/30 px-6 py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving || uploading}>
             Cancel
           </Button>
@@ -353,7 +357,7 @@ export function EventEditorDialog({
             {saving ? <Spinner data-icon="inline-start" /> : <SaveIcon data-icon="inline-start" />}
             {saving ? 'Saving...' : isCreate ? 'Create event' : 'Save changes'}
           </Button>
-        </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
