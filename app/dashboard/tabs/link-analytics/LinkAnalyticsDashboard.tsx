@@ -22,6 +22,7 @@ import {
   XIcon,
 } from 'lucide-react'
 import { toast } from 'sonner'
+import { DatePicker } from '@/components/date-picker'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -605,11 +606,10 @@ function MetadataEditor({
           </Field>
           <Field>
             <FieldLabel htmlFor="deployed_at">Deployed At</FieldLabel>
-            <Input
+            <DatePicker
               id="deployed_at"
-              type="date"
               value={form.deployed_at}
-              onChange={(event) => updateForm('deployed_at', event.target.value)}
+              onChange={(value) => updateForm('deployed_at', value)}
             />
           </Field>
           <Field>

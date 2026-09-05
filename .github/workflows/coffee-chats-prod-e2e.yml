@@ -1,0 +1,53 @@
+name: Coffee Chats production E2E
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: Exact production or approved TUM Blockchain preview origin
+        required: true
+        default: https://plattform.tum-blockchain.com
+      confirm:
+        description: Type PRODUCTION to confirm real production data access
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: coffee-chats-production-e2e
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production-e2e
+    env:
+      CI: true
+      PRODUCTION_CONFIRMATION: ${{ inputs.confirm }}
+      E2E_BASE_URL: ${{ inputs.base_url }}
+      E2E_SUPABASE_URL: ${{ secrets.E2E_SUPABASE_URL }}
+      E2E_SUPABASE_ANON_KEY: ${{ secrets.E2E_SUPABASE_ANON_KEY }}
+      E2E_DATABASE_URL: ${{ secrets.E2E_DATABASE_URL }}
+      E2E_MEMBER_EMAIL: ${{ secrets.E2E_MEMBER_EMAIL }}
+      E2E_MEMBER_PASSWORD: ${{ secrets.E2E_MEMBER_PASSWORD }}
+      E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+      E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+    steps:
+      - name: Confirm production run
+        run: test "$PRODUCTION_CONFIRMATION" = PRODUCTION
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.1.3
+          run_install: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Verify Coffee Chats transaction on production
+        run: psql "$E2E_DATABASE_URL" --set ON_ERROR_STOP=on --file tests/coffee-chats-db.sql
+      - run: pnpm test:e2e:prod
