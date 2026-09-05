@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import Script from "next/script";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WebVitalsReporter } from "@/app/components/WebVitalsReporter";
@@ -35,6 +36,12 @@ export default function RootLayout({
           {children}
           <Toaster theme="dark" />
         </TooltipProvider>
+        <Script
+          defer
+          data-domain="plattform.tum-blockchain.com"
+          src="https://plausible.rbg.tum-blockchain.com/js/script.js"
+          strategy="afterInteractive"
+        />
       </body>
     </html>
   );
