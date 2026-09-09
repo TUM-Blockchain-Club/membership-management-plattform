@@ -372,7 +372,7 @@ This section summarizes the active policies. For exact SQL, inspect Supabase or 
 - Authenticated users can read `members_main`.
 - Users can update their own row where `"TBC Email"` matches their auth email.
 - Board members can insert members.
-- Board members can update members in matching departments.
+- Board members can update members across all departments.
 - Special-access emails can insert members and update all members.
 
 Special-access emails are currently encoded in DB policies and app-side admin checks. Keep them synchronized if changing authorization behavior.

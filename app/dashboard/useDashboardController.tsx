@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { formatEventDate, formatEventTime } from '@/app/dashboard/lib/eventFormatters'
 import {
   ADMIN_FIELDS,
+  canEditDashboardMember,
   getEditableMemberPayload,
   getPictureUrl,
   isDashboardMemberAdmin,
@@ -138,21 +139,12 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
   }, [router])
 
   const canEditMember = useCallback((targetMember: DashboardMember) => {
-    if (!member || !targetMember) return false
-
-    if (effectiveHasSpecialAccess) return true
-    if (member.id === targetMember.id) return true
-
-    if (effectiveIsBoardMember && targetMember.Department) {
-      const myDepartments = member.Department?.split(',').map((d) => d.trim()) || []
-      const targetDepartments = targetMember.Department.split(',').map((d) => d.trim())
-
-      return myDepartments.some((myDept) =>
-        targetDepartments.some((targetDept) => myDept.toLowerCase() === targetDept.toLowerCase())
-      )
-    }
-
-    return false
+    return canEditDashboardMember({
+      actor: member,
+      target: targetMember,
+      hasSpecialAccess: effectiveHasSpecialAccess,
+      isBoardMember: effectiveIsBoardMember,
+    })
   }, [effectiveHasSpecialAccess, effectiveIsBoardMember, member])
 
   const canEditField = useCallback((fieldKey: string, isOwnProfile: boolean) => {

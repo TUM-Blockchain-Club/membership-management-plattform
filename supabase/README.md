@@ -25,6 +25,10 @@ For the live schema overview, table columns, relationships, RLS summary, storage
   - Adds hardcoded-vs-soft link status metadata.
   - Adds the private `link-redirect-images` storage bucket.
 
+- `members_board_access.sql`
+  - Allows every board member to update members across all departments.
+  - Replaces the previous matching-department update policy.
+
 - `nft_requests.sql`
   - Creates/updates `public.nft_requests`.
   - Adds NFT request helper functions, indexes, policies, and storage policies.

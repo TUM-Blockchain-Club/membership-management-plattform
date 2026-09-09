@@ -1,5 +1,19 @@
 import type { DashboardMember, EditableMember } from '@/app/components/dashboard/types'
 
+type MemberEditSubject = Pick<DashboardMember, 'id'>
+
+export const canEditDashboardMember = ({
+  actor,
+  target,
+  hasSpecialAccess,
+  isBoardMember,
+}: {
+  actor: MemberEditSubject | null
+  target: MemberEditSubject | null
+  hasSpecialAccess: boolean
+  isBoardMember: boolean
+}) => Boolean(actor && target && (hasSpecialAccess || isBoardMember || actor.id === target.id))
+
 export const ADMIN_FIELDS = ['Role', 'Status', 'Department', 'Semester Joined'] as const
 
 export const EDITABLE_MEMBER_FIELDS = [
