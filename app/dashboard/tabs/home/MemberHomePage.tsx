@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { use } from 'react'
 import {
   ArrowRightIcon,
@@ -10,9 +11,9 @@ import {
   CoffeeIcon,
   HexagonIcon,
   MapPinIcon,
-  UserRoundIcon,
 } from 'lucide-react'
 import { DashboardContext } from '@/app/dashboard/DashboardContext'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -39,6 +40,16 @@ function hasValue(value: unknown) {
 
 function firstName(name: string | null | undefined) {
   return name?.trim().split(/\s+/)[0] || 'Member'
+}
+
+function initials(name: string | null | undefined) {
+  return name
+    ?.trim()
+    .split(/\s+/)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase() || 'TBC'
 }
 
 function formatMonth(value: string | null | undefined) {
@@ -116,6 +127,7 @@ export function MemberHomePage({
   const completedProfileItems = checklist.filter((item) => item.complete).length
   const profileProgress = Math.round((completedProfileItems / checklist.length) * 100)
   const coffeeChat = getCoffeeChatOverview(coffeeChatData)
+  const pictureUrl = dashboard.getPictureUrl(member?.Picture)
   const now = Date.parse(currentTime)
   const upcomingEvents = dashboard.events.filter((event) => {
     const end = Date.parse(event.end_at)
@@ -135,7 +147,7 @@ export function MemberHomePage({
       </header>
 
       <section className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card className="h-full ring-sidebar-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CoffeeIcon aria-hidden="true" />
@@ -146,12 +158,12 @@ export function MemberHomePage({
               <Badge variant="secondary">{coffeeChat.label}</Badge>
             </CardAction>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1">
             <p className="max-w-2xl text-base leading-relaxed text-foreground">
               {coffeeChat.description}
             </p>
           </CardContent>
-          <CardFooter className="justify-end">
+          <CardFooter className="mt-auto justify-end border-sidebar-border bg-muted/30">
             <Button asChild>
               <Link href={coffeeChat.href}>
                 {coffeeChat.action}
@@ -161,15 +173,22 @@ export function MemberHomePage({
           </CardFooter>
         </Card>
 
-        <Card>
+        <Card className="h-full ring-sidebar-border">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserRoundIcon aria-hidden="true" />
-              Your profile
-            </CardTitle>
-            <CardDescription>{completedProfileItems} of {checklist.length} key details completed</CardDescription>
+            <div className="flex items-center gap-3">
+              <Avatar size="lg">
+                {pictureUrl && <AvatarImage src={pictureUrl} alt={member?.Name || 'Member'} />}
+                <AvatarFallback>{initials(member?.Name)}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0">
+                <CardTitle className="flex items-center gap-2">
+                  Your profile
+                </CardTitle>
+                <CardDescription>{completedProfileItems} of {checklist.length} key details completed</CardDescription>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="flex flex-col gap-4">
+          <CardContent className="flex flex-1 flex-col gap-4">
             <Progress value={profileProgress} aria-label={`Profile ${profileProgress}% complete`} />
             <ul className="flex flex-col gap-2">
               {checklist.map((item) => (
@@ -184,7 +203,7 @@ export function MemberHomePage({
               ))}
             </ul>
           </CardContent>
-          <CardFooter className="justify-end">
+          <CardFooter className="mt-auto justify-end border-sidebar-border bg-muted/30">
             <Button asChild variant="outline">
               <Link href="/profile">
                 Edit profile
@@ -196,7 +215,7 @@ export function MemberHomePage({
       </section>
 
       <section className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.5fr)]">
-        <Card className="lg:row-span-1">
+        <Card className="h-full ring-sidebar-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CalendarDaysIcon aria-hidden="true" />
@@ -204,34 +223,61 @@ export function MemberHomePage({
             </CardTitle>
             <CardDescription>The next two opportunities to meet and build with the community.</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col gap-3">
+          <CardContent className="flex flex-1 flex-col gap-3">
             {upcomingEvents.length > 0 ? (
               upcomingEvents.map((event) => {
                 const location = event.city || event.location
-
-                return (
-                  <article key={event.id} className="flex flex-col gap-2 rounded-lg bg-muted/50 p-3">
-                    <div className="flex flex-wrap items-start justify-between gap-2">
-                      <p className="font-medium text-foreground">{event.title}</p>
-                      {event.event_type && <Badge variant="outline">{event.event_type}</Badge>}
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {dashboard.formatEventDate(event.start_at, event.end_at)}
-                    </p>
-                    {location && (
-                      <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <MapPinIcon className="size-4" aria-hidden="true" />
-                        {location}
-                      </p>
+                const eventSummary = (
+                  <article className="flex gap-3 rounded-lg bg-muted/40 p-3 ring-1 ring-sidebar-border transition-colors group-hover:bg-muted/60">
+                    {event.image_url && (
+                      <div className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-muted sm:size-20">
+                        <Image
+                          src={event.image_url}
+                          alt=""
+                          fill
+                          sizes="80px"
+                          className="object-contain p-1"
+                          unoptimized
+                        />
+                      </div>
                     )}
+                    <div className="flex min-w-0 flex-1 flex-col gap-2">
+                      <div className="flex flex-wrap items-start justify-between gap-2">
+                        <p className="font-medium text-foreground">{event.title}</p>
+                        {event.event_type && <Badge variant="outline">{event.event_type}</Badge>}
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {dashboard.formatEventDate(event.start_at, event.end_at)}
+                      </p>
+                      {location && (
+                        <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <MapPinIcon className="size-4" aria-hidden="true" />
+                          {location}
+                        </p>
+                      )}
+                    </div>
                   </article>
+                )
+
+                return event.event_link_url ? (
+                  <a
+                    key={event.id}
+                    href={event.event_link_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="group rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                  >
+                    {eventSummary}
+                  </a>
+                ) : (
+                  <div key={event.id}>{eventSummary}</div>
                 )
               })
             ) : (
               <p className="text-sm text-muted-foreground">No upcoming events yet.</p>
             )}
           </CardContent>
-          <CardFooter className="justify-end">
+          <CardFooter className="mt-auto justify-end border-sidebar-border bg-muted/30">
             <Button asChild variant="outline">
               <Link href="/events">
                 View all events
@@ -241,7 +287,7 @@ export function MemberHomePage({
           </CardFooter>
         </Card>
 
-        <Card>
+        <Card className="h-full ring-sidebar-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <HexagonIcon aria-hidden="true" />
@@ -249,12 +295,12 @@ export function MemberHomePage({
             </CardTitle>
             <CardDescription>Your digital TUM Blockchain Club membership collectible.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1">
             <p className="text-sm leading-relaxed text-muted-foreground">
               Apply for your NFT or follow the review and minting status of your existing request.
             </p>
           </CardContent>
-          <CardFooter className="justify-end">
+          <CardFooter className="mt-auto justify-end border-sidebar-border bg-muted/30">
             <Button asChild variant="outline">
               <Link href="/nft-status">
                 View NFT status
