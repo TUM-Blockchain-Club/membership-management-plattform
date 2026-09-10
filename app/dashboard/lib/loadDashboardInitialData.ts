@@ -67,7 +67,7 @@ const emptyInitialData = (): DashboardInitialData => ({
 
 // 'all' is used by the shared layout to eagerly load every tab's data once.
 const routeNeedsEvents  = (tab: DashboardTab | 'all') => tab === 'events'  || tab === 'all'
-const routeNeedsMembers = (tab: DashboardTab | 'all') => tab === 'members' || tab === 'stats' || tab === 'all'
+const routeNeedsMembers = (tab: DashboardTab | 'all') => tab === 'members' || tab === 'stats' || tab === 'attendance' || tab === 'all'
 const isNftAdminMember = (memberId: number) => NFT_ADMIN_MEMBER_IDS.has(memberId)
 const shouldLogServerPerf = () => process.env.PERF_LOG_SERVER === 'true'
 const now = () => performance.now()

@@ -305,15 +305,34 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     try {
       const updatedData = getEditableMemberPayload(editedMember)
 
-      if (selectedImageFile) {
-        // reserved for future upload flow
-      }
-
       if (creatingMember) {
         const { data: created, error } = await memberService.createMember(updatedData)
         if (error || !created) {
           setMessage({ type: 'error', text: `Failed to create member: ${error?.message || 'Unknown error'}` })
           return
+        }
+
+        if (selectedImageFile) {
+          const { data: pictureUrl, error: uploadError } = await memberService.uploadProfilePicture(
+            String(created.id), selectedImageFile
+          )
+          if (uploadError || !pictureUrl) {
+            setMessage({ type: 'error', text: `Member created but picture upload failed: ${uploadError?.message || 'Unknown error'}` })
+          } else {
+            const { data: withPicture } = await memberService.updateMember(created.id, { Picture: pictureUrl })
+            if (withPicture) {
+              setAllMembers((prev) => [withPicture, ...prev])
+              setViewedMember(withPicture)
+              setCreatingMember(false)
+              setEditing(false)
+              setShowMemberEditorModal(false)
+              setEditedMember(null)
+              setSelectedImageFile(null)
+              setMessage({ type: 'success', text: 'Member created successfully!' })
+              setTimeout(() => setMessage(null), 3000)
+              return
+            }
+          }
         }
 
         setAllMembers((prev) => [created, ...prev])
@@ -329,6 +348,18 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
       }
 
       if (!viewedMember) return
+
+      if (selectedImageFile) {
+        const existingUrl = typeof viewedMember.Picture === 'string' ? viewedMember.Picture : undefined
+        const { data: pictureUrl, error: uploadError } = await memberService.uploadProfilePicture(
+          String(viewedMember.id), selectedImageFile, existingUrl
+        )
+        if (uploadError || !pictureUrl) {
+          setMessage({ type: 'error', text: `Failed to upload picture: ${uploadError?.message || 'Unknown error'}` })
+          return
+        }
+        updatedData.Picture = pictureUrl
+      }
 
       const { data: updatedMember, error: updateError } = await memberService.updateMember(viewedMember.id, updatedData)
       if (updateError || !updatedMember) {

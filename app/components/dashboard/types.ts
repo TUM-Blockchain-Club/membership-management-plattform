@@ -41,6 +41,7 @@ export type DashboardTab =
   | 'nft-approvals'
   | 'nft-status'
   | 'newsletter'
+  | 'attendance'
 
 export type DashboardMessage = {
   type: 'success' | 'error'

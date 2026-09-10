@@ -11,6 +11,7 @@ export const TAB_ROUTES: Record<DashboardTab, string> = {
   'nft-approvals': '/nft-approvals',
   'nft-status': '/nft-status',
   newsletter: '/newsletter',
+  attendance: '/attendance',
 }
 
 const PATHNAME_TO_TAB: Record<string, DashboardTab> = {
@@ -24,6 +25,7 @@ const PATHNAME_TO_TAB: Record<string, DashboardTab> = {
   '/nft-status': 'nft-status',
   '/profile': 'profile',
   '/statistics': 'stats',
+  '/attendance': 'attendance',
 }
 
 export function getDashboardTabForPathname(pathname: string): DashboardTab {

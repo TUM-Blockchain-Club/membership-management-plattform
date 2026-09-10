@@ -25,7 +25,7 @@ export default async function GalleryPage() {
   const admin = getCoffeeChatAdminClient()
   if (!admin) {
     return (
-      <Card className="max-w-lg mx-auto">
+      <Card className="max-w-lg">
         <CardHeader>
           <CardTitle>Gallery unavailable</CardTitle>
           <CardDescription>The server-side Supabase client is not configured.</CardDescription>
