@@ -130,7 +130,7 @@ export function ProfilePage({
 
   const identityCard = (
     <Card className="h-full">
-      <CardHeader className="flex-row items-center gap-2 pb-2">
+      <CardHeader className="flex flex-row items-center gap-2 pb-2">
         <UserRoundIcon className="size-4 text-muted-foreground" aria-hidden="true" />
         <CardTitle className="text-sm font-semibold">Profile</CardTitle>
       </CardHeader>

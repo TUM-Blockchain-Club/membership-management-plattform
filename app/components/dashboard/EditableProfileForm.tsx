@@ -8,8 +8,7 @@ import {
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import UniversityAutocomplete from '@/app/components/UniversityAutocomplete'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
@@ -137,9 +136,16 @@ export function EditableProfileForm({
 
         return (
           <Card key={section.title} className={cn(layout === 'grid' && 'h-full')}>
-            <CardHeader className="flex-row items-center gap-2 pb-2">
-              <span className="text-muted-foreground [&_svg]:size-4">{section.icon}</span>
-              <CardTitle className="text-sm font-semibold">{section.title}</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground [&_svg]:size-4">{section.icon}</span>
+                <CardTitle className="text-sm font-semibold">{section.title}</CardTitle>
+              </div>
+              {section.title === 'Contact' && (
+                <CardDescription className="hidden max-w-xs text-right text-xs sm:block">
+                  Stored securely for internal member communication only.
+                </CardDescription>
+              )}
             </CardHeader>
             <CardContent>
               <FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -207,14 +213,10 @@ export function EditableProfileForm({
                 })}
               </FieldGroup>
 
-              {/* Privacy notice for Contact section */}
               {section.title === 'Contact' && (
-                <Alert className="mt-4 border-border bg-muted/30">
-                  <AlertDescription className="text-xs">
-                    Contact details are stored securely and used only for internal member communication.
-                    They are never shared with third parties.
-                  </AlertDescription>
-                </Alert>
+                <CardDescription className="mt-1 text-xs sm:hidden">
+                  Stored securely for internal member communication only.
+                </CardDescription>
               )}
             </CardContent>
           </Card>
