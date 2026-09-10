@@ -1,4 +1,4 @@
-import { isLocalDevBypassEnabled } from "@/lib/devBypass"
+import { getLocalDevBypassMemberId, isLocalDevBypassEnabled } from "@/lib/devBypass"
 import { getSupabaseAdminClient } from "@/lib/server/supabaseAdmin"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -124,14 +124,14 @@ export const resolveCurrentNftRequestMember = async (
     const localBypassMember = await dataClient
       .from("members_main")
       .select("*")
-      .eq("id", 0)
+      .eq("id", getLocalDevBypassMemberId())
       .maybeSingle()
 
     const normalizedBypassMember = normalizeCurrentMember(localBypassMember.data)
 
     if (!normalizedBypassMember) {
       throw new NftRequestCurrentMemberError(
-        "Local dev bypass requires a members_main row with id = 0.",
+        "Local dev bypass requires the configured members_main row.",
         500
       )
     }

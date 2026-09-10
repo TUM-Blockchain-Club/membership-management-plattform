@@ -1,50 +1,44 @@
+import { NextResponse } from 'next/server'
+import { getMembershipAssetState } from '@/lib/nftLifecycle'
+import { NftRequestAdminError, requireNftRequestAdmin } from '@/lib/server/nftRequestAdmin'
+import {
+  loadMembershipNftRecord,
+  renderMembershipImage,
+} from '@/lib/server/membershipNftAssets'
+import { getSupabaseAdminClient } from '@/lib/server/supabaseAdmin'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
-// app/api/nft-requests/[requestId]/preview-image/route.ts
-import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-import { buildNftImage } from '@/lib/server/buildNftImage';
+export const dynamic = 'force-dynamic'
 
-export const dynamic = 'force-dynamic';
-
-export async function GET(_req: Request, context: { params: Promise<{ requestId: string }> }) {
+export async function GET(request: Request, context: { params: Promise<{ requestId: string }> }) {
   try {
-    const { requestId } = await context.params;
-    if (!requestId) return new NextResponse('No ID', { status: 400 });
-
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SERVICE_KEY;
-    if (!supabaseUrl || !serviceRoleKey) {
-      return new NextResponse('NFT preview is not configured.', { status: 503 });
+    const { requestId } = await context.params
+    const authClient = await createSupabaseServerClient()
+    await requireNftRequestAdmin(authClient, request)
+    const dataClient = getSupabaseAdminClient() ?? authClient
+    const record = await loadMembershipNftRecord(dataClient, requestId)
+    const desiredState = getMembershipAssetState(record.member.status)
+    if (desiredState === 'revoked') {
+      return new NextResponse('This member status cannot receive a membership NFT.', { status: 409 })
     }
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+    const image = await renderMembershipImage(
+      dataClient,
+      record,
+      desiredState === 'alumni' ? 'alumni' : 'active'
+    )
 
-    const { data: rec, error } = await supabase
-      .from('nft_requests')
-      .select('*, members_main (*)')
-      .eq('id', requestId)
-      .maybeSingle();
-
-    if (error || !rec) return new NextResponse('Not found', { status: 404 });
-
-    const m = rec.members_main || {};
-    const buffer = await buildNftImage({
-      nickname:   (m.nickname || rec.display_name || 'NEW MEMBER'),
-      batch:      m.Batch ? String(m.Batch) : '',
-      degreeAtUni: m.degree_at_uni || '',
-      programs: m.highlight || '',
-      department: m.Department || 'Board',
-      imageUrl:   m.nft_avatar,
-    });
-
-    return new NextResponse(new Uint8Array(buffer), {
+    return new NextResponse(new Uint8Array(image), {
       status: 200,
       headers: {
         'Content-Type': 'image/png',
         'Cache-Control': 'no-store, max-age=0',
       },
-    });
-  } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Could not render NFT preview.';
-    return new NextResponse(message, { status: 500 });
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Could not render NFT preview.'
+    if (error instanceof NftRequestAdminError) {
+      return new NextResponse(message, { status: error.status })
+    }
+    return new NextResponse(message, { status: 500 })
   }
 }

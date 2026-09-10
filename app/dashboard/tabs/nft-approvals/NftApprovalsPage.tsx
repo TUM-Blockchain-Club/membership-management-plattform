@@ -3,7 +3,7 @@
 import { NftRequestCard } from "../NftRequestCard"
 import { MintPreviewModal } from "../MintPreviewModal"
 import { RejectModal } from "../RejectModal"
-import { ArrowUpDownIcon, HexagonIcon, SearchIcon } from 'lucide-react'
+import { ArrowUpDownIcon, HexagonIcon, RefreshCwIcon, SearchIcon } from 'lucide-react'
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -18,13 +18,19 @@ export function NftApprovalsPage() {
     error,
     filtered,
     handleApprove,
+    handleApproveClaim,
     handleMint,
+    handleRevoke,
+    handleSyncLifecycle,
     handleRejectConfirm,
+    handleReconcile,
     loading,
+    lifecycleUpdatingId,
     mintingId,
     pendingCount,
     previewingRequest,
     rejectedCount,
+    reconciling,
     rejectingRequest,
     search,
     setError,
@@ -90,6 +96,15 @@ export function NftApprovalsPage() {
           <ArrowUpDownIcon data-icon="inline-start" aria-hidden="true" />
           Sort: {sortOrder === "newest" ? "Newest First" : "Oldest First"}
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => void handleReconcile()}
+          disabled={reconciling}
+          className="rounded-xl border-white/10 bg-white/[0.03] text-sm text-white/70 hover:border-white/20 hover:text-white"
+        >
+          <RefreshCwIcon data-icon="inline-start" aria-hidden="true" />
+          {reconciling ? 'Checking Solana...' : 'Reconcile Solana'}
+        </Button>
       </div>
 
       {error && (
@@ -124,9 +139,13 @@ export function NftApprovalsPage() {
               key={request.id}
               request={request}
               onApprove={handleApprove}
+              onApproveClaim={handleApproveClaim}
               onReject={setRejectingId}
+              onRevoke={handleRevoke}
+              onSyncLifecycle={handleSyncLifecycle}
               isUpdating={updatingId === request.id}
               isMinting={mintingId === request.id}
+              isLifecycleUpdating={lifecycleUpdatingId === request.id}
             />
           ))}
         </div>
