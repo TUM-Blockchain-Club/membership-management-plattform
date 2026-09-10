@@ -269,15 +269,31 @@ export function CoffeeChatsPreferencesView() {
 
   if (loading) {
     return (
-      <div className="flex w-full max-w-4xl flex-col gap-4">
-        <Skeleton className="h-8 w-48" />
-        <Skeleton className="h-64 w-full" />
+      <div className="flex w-full flex-col gap-6" aria-label="Loading matching preferences">
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-7 w-52" />
+          <Skeleton className="h-4 w-96 max-w-full" />
+        </div>
+        <Skeleton className="h-4 w-24" />
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-64 max-w-full" />
+            <Skeleton className="h-4 w-96 max-w-full" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {Array.from({ length: 12 }, (_, index) => (
+                <Skeleton key={index} className="h-11 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     )
   }
 
   return (
-    <div className="flex w-full max-w-4xl flex-col gap-6">
+    <div className="flex w-full flex-col gap-6">
       <div className="flex max-w-2xl flex-col gap-1">
         <h3 className="text-xl font-semibold tracking-tight text-foreground">Matching preferences</h3>
         <p className="text-sm text-muted-foreground">

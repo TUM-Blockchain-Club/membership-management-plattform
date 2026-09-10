@@ -424,9 +424,38 @@ export function CoffeeChatsAdminView() {
 
   if (loading) {
     return (
-      <div className="flex w-full max-w-4xl flex-col gap-4">
-        <Skeleton className="h-7 w-48" />
-        <Skeleton className="h-64 w-full rounded-xl" />
+      <div className="flex w-full flex-col gap-8" aria-label="Loading Coffee Chats admin">
+        <div className="flex flex-col gap-2">
+          <Skeleton className="h-7 w-52" />
+          <Skeleton className="h-4 w-80 max-w-full" />
+        </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-40" />
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <div className="grid gap-4 sm:grid-cols-3">
+              {Array.from({ length: 3 }, (_, index) => (
+                <div key={index} className="flex flex-col gap-2">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-9 w-full" />
+                </div>
+              ))}
+            </div>
+            <Skeleton className="h-9 w-32" />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-5 w-32" />
+            <Skeleton className="h-4 w-72 max-w-full" />
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {Array.from({ length: 4 }, (_, index) => (
+              <Skeleton key={index} className="h-10 w-full" />
+            ))}
+          </CardContent>
+        </Card>
       </div>
     )
   }
@@ -448,7 +477,7 @@ export function CoffeeChatsAdminView() {
   }
 
   return (
-    <div className="flex w-full max-w-4xl flex-col gap-8">
+    <div className="flex w-full flex-col gap-8">
       <div className="flex flex-col gap-1">
         <h3 className="text-xl font-semibold tracking-tight text-foreground">Coffee Chats admin</h3>
         <p className="text-sm text-muted-foreground">Manage rounds, pairings, and administrators.</p>
