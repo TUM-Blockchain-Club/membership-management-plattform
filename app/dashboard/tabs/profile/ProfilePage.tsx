@@ -130,12 +130,12 @@ export function ProfilePage({
 
   const identityCard = (
     <Card className="h-full">
-      <CardHeader className="flex flex-row items-center gap-2 pb-2">
+      <CardHeader className="flex flex-row items-center justify-center gap-2 pb-2">
         <UserRoundIcon className="size-4 text-muted-foreground" aria-hidden="true" />
         <CardTitle className="text-sm font-semibold">Profile</CardTitle>
       </CardHeader>
-      <CardContent className="flex items-start gap-4">
-        <div className="flex shrink-0 flex-col items-start gap-2">
+      <CardContent className="flex flex-col items-center justify-center gap-4 sm:flex-row sm:gap-6">
+        <div className="flex shrink-0 flex-col items-center gap-2">
           <Avatar className={cn('size-24 ring-2 ring-offset-2 ring-offset-background', avatarRingClass(roleLabel, statusLabel))}>
             {pictureUrl && (
               <AvatarImage src={pictureUrl} alt={viewedMember?.Name || 'Member'} />
@@ -183,8 +183,8 @@ export function ProfilePage({
           )}
         </div>
 
-        <div className="min-w-0 flex-1 pt-1">
-          <div className="flex flex-wrap items-center gap-2">
+        <div className="flex min-w-0 flex-col items-center pt-1 text-center">
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <p className="text-base font-medium text-foreground">
               {viewedMember?.Name || 'Member'}
             </p>
@@ -201,7 +201,7 @@ export function ProfilePage({
           </CardDescription>
 
           {!creatingMember && (
-            <div className="mt-3 flex flex-wrap gap-1">
+            <div className="mt-3 flex flex-wrap justify-center gap-1">
               <Badge variant="outline" className={cn('text-xs', roleBadgeClass(roleLabel))}>
                 {roleLabel === 'Board Member' && <StarIcon data-icon="inline-start" />}
                 {roleLabel}
