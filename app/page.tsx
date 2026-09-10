@@ -9,7 +9,7 @@ export default async function Home() {
   const hostname = host.split(':')[0] || 'localhost'
 
   if (isLocalDevBypassEnabled(hostname)) {
-    redirect('/dashboard')
+    redirect('/home')
   }
 
   let isAuthenticated = false
@@ -25,5 +25,5 @@ export default async function Home() {
     redirect('/signin')
   }
 
-  redirect(isAuthenticated ? '/dashboard' : '/signin')
+  redirect(isAuthenticated ? '/home' : '/signin')
 }

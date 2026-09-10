@@ -8,6 +8,7 @@ import {
   ChevronsUpDownIcon,
   CoffeeIcon,
   HexagonIcon,
+  HouseIcon,
   LinkIcon,
   LogOutIcon,
   MailIcon,
@@ -67,6 +68,7 @@ const NAVIGATION_GROUPS: Array<{ label: string; items: NavigationItem[] }> = [
   {
     label: 'Platform',
     items: [
+      { key: 'home', label: 'Home', icon: HouseIcon },
       { key: 'profile', label: 'My Profile', icon: UserIcon },
       { key: 'coffee-chats', label: 'Coffee Chats', icon: CoffeeIcon },
       { key: 'members', label: 'All Members', icon: UsersIcon },

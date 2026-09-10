@@ -1,6 +1,7 @@
 import type { DashboardTab } from '@/app/components/dashboard/types'
 
 export const TAB_ROUTES: Record<DashboardTab, string> = {
+  home: '/home',
   profile: '/profile',
   'coffee-chats': '/coffee-chats',
   members: '/members',
@@ -13,6 +14,7 @@ export const TAB_ROUTES: Record<DashboardTab, string> = {
 }
 
 const PATHNAME_TO_TAB: Record<string, DashboardTab> = {
+  '/home': 'home',
   '/coffee-chats': 'coffee-chats',
   '/events': 'events',
   '/link-analytics': 'link-analytics',
@@ -33,5 +35,5 @@ export function getDashboardTabForPathname(pathname: string): DashboardTab {
     return 'link-analytics'
   }
 
-  return PATHNAME_TO_TAB[pathname] ?? 'profile'
+  return PATHNAME_TO_TAB[pathname] ?? 'home'
 }

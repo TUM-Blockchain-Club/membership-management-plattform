@@ -29,7 +29,7 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   const nextParam = requestUrl.searchParams.get('next')
-  const nextPath = nextParam?.startsWith('/') ? nextParam : '/dashboard'
+  const nextPath = nextParam?.startsWith('/') ? nextParam : '/home'
   const redirectUrl = new URL(nextPath, requestUrl.origin)
 
   if (code) {

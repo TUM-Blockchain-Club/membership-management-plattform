@@ -39,7 +39,7 @@ pnpm dev
 
 Open `http://localhost:3000`.
 
-The root route redirects authenticated users to `/dashboard` and unauthenticated users to `/signin`.
+The root route redirects authenticated users to `/home` and unauthenticated users to `/signin`.
 
 ## Common Commands
 

@@ -74,6 +74,34 @@ async function clearInterests(page: Page) {
 }
 
 test.describe('synthetic Coffee Chats sidebar and questionnaire', () => {
+  test('member home shows the next Coffee Chat step and profile overview', async ({ page }, testInfo) => {
+    const apiWrites = trackApiWrites(page)
+    await page.goto('/')
+
+    await expect(page).toHaveURL(/\/home$/)
+    await expect(page.getByRole('heading', { name: /Welcome back, Yesi/i })).toBeVisible()
+    const coffeeChatCard = page.locator('[data-slot="card"]').filter({
+      hasText: 'Your next step in the monthly member matching.',
+    })
+    await expect(coffeeChatCard.getByText('Coffee Chats', { exact: true })).toBeVisible()
+    await expect(page.getByText('Your profile', { exact: true })).toBeVisible()
+    await expect(page.getByText('No upcoming events yet.')).toBeVisible()
+    if (testInfo.project.name === 'desktop') {
+      await expect(dashboardItem(page, /^Home$/i)).toHaveAttribute('aria-current', 'page')
+    } else {
+      await expect(page.locator('header').getByText('Home', { exact: true })).toBeVisible()
+    }
+
+    await page.screenshot({
+      path: testInfo.outputPath(`member-home-${testInfo.project.name}.png`),
+      fullPage: true,
+    })
+
+    await page.getByRole('link', { name: /View your match/i }).click()
+    await expect(page).toHaveURL(/\/coffee-chats\/my-match$/)
+    expect(apiWrites).toEqual([])
+  })
+
   test('desktop sidebar navigates Coffee Chat routes and collapses without losing active state', async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== 'desktop', 'Desktop sidebar contract')
 

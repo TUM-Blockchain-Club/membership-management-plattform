@@ -218,6 +218,7 @@ test('Coffee Chat profiles are complete only when active with an interest', () =
 })
 
 test('dashboard routing keeps every Coffee Chats page in the Coffee Chats tab', () => {
+  expect(getDashboardTabForPathname('/home')).toBe('home')
   expect(getDashboardTabForPathname('/coffee-chats')).toBe('coffee-chats')
   expect(getDashboardTabForPathname('/coffee-chats/setup')).toBe('coffee-chats')
   expect(getDashboardTabForPathname('/coffee-chats/gallery')).toBe('coffee-chats')
