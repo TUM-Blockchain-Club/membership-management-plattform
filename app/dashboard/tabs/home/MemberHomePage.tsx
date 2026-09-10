@@ -147,7 +147,7 @@ export function MemberHomePage({
       </header>
 
       <section className="grid gap-4 md:grid-cols-2">
-        <Card className="h-full ring-sidebar-border">
+        <Card className="h-full ring-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CoffeeIcon aria-hidden="true" />
@@ -163,7 +163,7 @@ export function MemberHomePage({
               {coffeeChat.description}
             </p>
           </CardContent>
-          <CardFooter className="mt-auto justify-end border-sidebar-border bg-muted/30">
+          <CardFooter className="mt-auto justify-end border-border bg-muted/30">
             <Button asChild>
               <Link href={coffeeChat.href}>
                 {coffeeChat.action}
@@ -173,7 +173,7 @@ export function MemberHomePage({
           </CardFooter>
         </Card>
 
-        <Card className="h-full ring-sidebar-border">
+        <Card className="h-full ring-border">
           <CardHeader>
             <div className="flex items-center gap-3">
               <Avatar size="lg">
@@ -203,7 +203,7 @@ export function MemberHomePage({
               ))}
             </ul>
           </CardContent>
-          <CardFooter className="mt-auto justify-end border-sidebar-border bg-muted/30">
+          <CardFooter className="mt-auto justify-end border-border bg-muted/30">
             <Button asChild variant="outline">
               <Link href="/profile">
                 Edit profile
@@ -215,7 +215,7 @@ export function MemberHomePage({
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">
-        <Card className="h-full ring-sidebar-border">
+        <Card className="h-full ring-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CalendarDaysIcon aria-hidden="true" />
@@ -228,7 +228,7 @@ export function MemberHomePage({
               upcomingEvents.map((event) => {
                 const location = event.city || event.location
                 const eventSummary = (
-                  <article className="flex gap-3 rounded-lg bg-muted/40 p-3 ring-1 ring-sidebar-border transition-colors group-hover:bg-muted/60">
+                  <article className="flex gap-3 rounded-lg bg-muted/40 p-3 ring-1 ring-border transition-colors group-hover:bg-muted/60">
                     {event.image_url && (
                       <div className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-lg bg-muted sm:w-32">
                         <Image
@@ -277,7 +277,7 @@ export function MemberHomePage({
               <p className="text-sm text-muted-foreground">No upcoming events yet.</p>
             )}
           </CardContent>
-          <CardFooter className="mt-auto justify-end border-sidebar-border bg-muted/30">
+          <CardFooter className="mt-auto justify-end border-border bg-muted/30">
             <Button asChild variant="outline">
               <Link href="/events">
                 View all events
@@ -287,7 +287,7 @@ export function MemberHomePage({
           </CardFooter>
         </Card>
 
-        <Card className="h-full ring-sidebar-border">
+        <Card className="h-full ring-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <HexagonIcon aria-hidden="true" />
@@ -300,7 +300,7 @@ export function MemberHomePage({
               Apply for your NFT or follow the review and minting status of your existing request.
             </p>
           </CardContent>
-          <CardFooter className="mt-auto justify-end border-sidebar-border bg-muted/30">
+          <CardFooter className="mt-auto justify-end border-border bg-muted/30">
             <Button asChild variant="outline">
               <Link href="/nft-status">
                 View NFT status

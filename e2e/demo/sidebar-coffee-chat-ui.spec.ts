@@ -92,6 +92,17 @@ test.describe('synthetic Coffee Chats sidebar and questionnaire', () => {
     await expect(page.getByText('No upcoming events yet.')).toBeVisible()
     if (testInfo.project.name === 'desktop') {
       await expect(dashboardItem(page, /^Home$/i)).toHaveAttribute('aria-current', 'page')
+      await page.evaluate(() => {
+        document.documentElement.style.setProperty('--sidebar-border', 'initial')
+      })
+      await expect
+        .poll(() => page.locator('[data-slot="sidebar-container"]').evaluate(
+          (element) => getComputedStyle(element).borderRightColor,
+        ))
+        .toBe('rgba(255, 255, 255, 0.08)')
+      await expect
+        .poll(() => coffeeChatCard.evaluate((element) => getComputedStyle(element).boxShadow))
+        .toContain('rgba(255, 255, 255, 0.08)')
     } else {
       await expect(page.locator('header').getByText('Home', { exact: true })).toBeVisible()
     }
