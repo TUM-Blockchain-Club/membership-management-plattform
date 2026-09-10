@@ -1,4 +1,4 @@
-import { isLocalDevBypassEnabled } from "@/lib/devBypass"
+import { getLocalDevBypassMemberId, isLocalDevBypassEnabled } from "@/lib/devBypass"
 import { getSupabaseAdminClient } from "@/lib/server/supabaseAdmin"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
@@ -112,7 +112,7 @@ export const requireNftRequestAdmin = async (supabase: SupabaseServerClient, req
       const localBypassMember = await dataClient
         .from("members_main")
         .select("*")
-        .eq("id", "0")
+        .eq("id", String(getLocalDevBypassMemberId()))
         .maybeSingle()
 
       const normalizedBypassMember = normalizeAdminMember(localBypassMember.data)

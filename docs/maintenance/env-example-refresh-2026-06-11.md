@@ -13,9 +13,8 @@ API routes, maintenance scripts, and benchmark scripts.
   setup, even though the Next.js app itself does not read it directly.
 - Added benchmark variables used by `scripts/bench-members-server.mjs` and
   `scripts/bench-members-browser.mjs`.
-- Added NFT minting variables used by `lib/server/nftMinting.ts`.
-- Documented that contract variables can also be loaded from `../contracts/.env`
-  during local development via `lib/server/contractEnv.ts`.
+- NFT environment documentation is maintained in `.env.example`; the current
+  implementation uses server-side Solana and Metaplex Core variables.
 
 ## Notes For Future Agents
 
