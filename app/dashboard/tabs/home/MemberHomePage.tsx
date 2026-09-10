@@ -214,7 +214,7 @@ export function MemberHomePage({
         </Card>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.5fr)]">
+      <section className="grid gap-4 md:grid-cols-2">
         <Card className="h-full ring-sidebar-border">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -230,13 +230,13 @@ export function MemberHomePage({
                 const eventSummary = (
                   <article className="flex gap-3 rounded-lg bg-muted/40 p-3 ring-1 ring-sidebar-border transition-colors group-hover:bg-muted/60">
                     {event.image_url && (
-                      <div className="relative size-16 shrink-0 overflow-hidden rounded-lg bg-muted sm:size-20">
+                      <div className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-lg bg-muted sm:w-32">
                         <Image
                           src={event.image_url}
                           alt=""
                           fill
-                          sizes="80px"
-                          className="object-contain p-1"
+                          sizes="128px"
+                          className="object-cover"
                           unoptimized
                         />
                       </div>
