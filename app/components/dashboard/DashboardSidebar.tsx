@@ -70,7 +70,6 @@ const NAVIGATION_GROUPS: Array<{ label: string; items: NavigationItem[] }> = [
     label: 'Platform',
     items: [
       { key: 'home', label: 'Home', icon: HouseIcon },
-      { key: 'profile', label: 'My Profile', icon: UserIcon },
       { key: 'coffee-chats', label: 'Coffee Chats', icon: CoffeeIcon },
       { key: 'members', label: 'All Members', icon: UsersIcon },
       { key: 'events', label: 'Events', icon: CalendarIcon },
@@ -92,6 +91,7 @@ const NAVIGATION_GROUPS: Array<{ label: string; items: NavigationItem[] }> = [
 const NAVIGATION_ITEMS = NAVIGATION_GROUPS.flatMap((group) => group.items)
 
 export function getDashboardTabLabel(tab: DashboardTab) {
+  if (tab === 'profile') return 'My Profile'
   return NAVIGATION_ITEMS.find((item) => item.key === tab)?.label ?? 'Dashboard'
 }
 
@@ -240,6 +240,13 @@ export function DashboardSidebar({
                       <span className="truncate font-normal">{member?.Role || memberEmail}</span>
                     </span>
                   </DropdownMenuLabel>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem onSelect={() => handleNavigation('profile')}>
+                    <UserIcon />
+                    My Profile
+                  </DropdownMenuItem>
                 </DropdownMenuGroup>
                 {canUseMemberViewToggle && (
                   <>
