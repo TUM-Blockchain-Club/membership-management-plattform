@@ -28,6 +28,7 @@ For the live schema overview, table columns, relationships, RLS summary, storage
 - `members_board_access.sql`
   - Allows every board member to update members across all departments.
   - Replaces the previous matching-department update policy.
+  - Lets members choose their own department once when it is empty and protects later department and role changes in the database.
 
 - `nft_requests.sql`
   - Creates/updates the Solana membership request, custody, lifecycle, and receipt schema.
