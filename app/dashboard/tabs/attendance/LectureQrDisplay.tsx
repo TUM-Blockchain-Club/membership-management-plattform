@@ -27,12 +27,14 @@ export function LectureQrDisplay({
   const countdownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- A rotated server token becomes the local QR source.
     setToken(initialToken)
   }, [initialToken])
 
   useEffect(() => {
     let cancelled = false
     if (!token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- Clearing the token must immediately clear its rendered QR code.
       setQrDataUrl(null)
       return
     }
@@ -62,6 +64,7 @@ export function LectureQrDisplay({
   }, [token])
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Each token starts a fresh rotation countdown.
     setSecondsLeft(CODE_ROTATION_MS / 1000)
 
     if (countdownTimerRef.current) clearInterval(countdownTimerRef.current)

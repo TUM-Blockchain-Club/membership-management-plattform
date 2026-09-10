@@ -26,7 +26,7 @@ export const auth = {
 
   signInWithGoogle: async () => {
     const callbackUrl = new URL('/auth/callback', window.location.origin)
-    callbackUrl.searchParams.set('next', '/dashboard')
+    callbackUrl.searchParams.set('next', '/home')
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -39,7 +39,7 @@ export const auth = {
 
   signInWithMagicLink: async (email: string) => {
     const callbackUrl = new URL('/auth/callback', window.location.origin)
-    callbackUrl.searchParams.set('next', '/dashboard')
+    callbackUrl.searchParams.set('next', '/home')
 
     const { data, error } = await supabase.auth.signInWithOtp({
       email,

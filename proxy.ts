@@ -14,11 +14,25 @@ export async function proxy(request: NextRequest) {
   const isApiRoute = pathname.startsWith('/api')
   const isPublicRoute = isSigninRoute || isAuthCallbackRoute
   const isProtectedPageRoute = !isPublicRoute && !isApiRoute
+  const coffeeChatsDemo = process.env.NEXT_PUBLIC_COFFEE_CHATS_DEMO === 'true'
+
+  if (coffeeChatsDemo) {
+    if (isRootRoute) {
+      const demoUrl = request.nextUrl.clone()
+      demoUrl.pathname = '/home'
+      demoUrl.search = ''
+      return NextResponse.redirect(demoUrl)
+    }
+
+    if (pathname === '/home' || pathname.startsWith('/coffee-chats')) {
+      return response
+    }
+  }
 
   if (devBypass) {
     if (isSigninRoute || isRootRoute) {
       const dashboardUrl = request.nextUrl.clone()
-      dashboardUrl.pathname = '/dashboard'
+      dashboardUrl.pathname = '/home'
       dashboardUrl.search = ''
       return NextResponse.redirect(dashboardUrl)
     }
@@ -68,7 +82,7 @@ export async function proxy(request: NextRequest) {
 
   if (isRootRoute) {
     const targetUrl = request.nextUrl.clone()
-    targetUrl.pathname = user ? '/dashboard' : '/signin'
+    targetUrl.pathname = user ? '/home' : '/signin'
     targetUrl.search = ''
     return NextResponse.redirect(targetUrl)
   }
@@ -82,7 +96,7 @@ export async function proxy(request: NextRequest) {
 
   if (user && isSigninRoute) {
     const redirectTarget = request.nextUrl.searchParams.get('next')
-    const safeTarget = redirectTarget?.startsWith('/') ? redirectTarget : '/dashboard'
+    const safeTarget = redirectTarget?.startsWith('/') ? redirectTarget : '/home'
     const dashboardUrl = request.nextUrl.clone()
     dashboardUrl.pathname = safeTarget
     dashboardUrl.search = ''

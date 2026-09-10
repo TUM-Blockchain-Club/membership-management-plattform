@@ -16,6 +16,7 @@ Last inspected against the live Supabase project: 2026-05-26.
   - `supabase/event_interest.sql`
   - `supabase/nft_requests.sql`
   - `supabase/newsletter_projects.sql`
+  - `supabase/coffee_chats.sql`
 - Import tooling:
   - `scripts/import-external-events-csv.mjs`
 
@@ -354,6 +355,8 @@ Constraints and indexes:
 | `has_special_access()` | `boolean` | Checks whether the current user has special admin access. |
 | `check_email_has_special_access(check_email text)` | `boolean` | Checks special access for a supplied email. |
 | `check_email_can_manage_newsletter(check_email text)` | `boolean` | Checks newsletter manager access for board members or special-access users. |
+| `check_email_can_manage_coffee_chats(check_email text)` | `boolean` | Checks Coffee Chat administrator access for board members or special-access users. |
+| `commit_coffee_chat_pairing(target_round_id uuid, pair_rows jsonb)` | `integer` | Locks an open round, validates participants, inserts all pairs, and advances the round atomically. Service-role only. |
 | `can_manage_nft_requests()` | `boolean` | Checks NFT admin permissions. |
 | `allow_only_test_domain()` | `trigger` | Auth-related domain guard. |
 | `block_guest_core_updates_email()` | `trigger` | Prevents restricted email updates. |
@@ -434,11 +437,100 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 | `event-qr-codes` | yes | Event check-in QR codes. |
 | `link-redirect-images` | no | Private board-uploaded visual references for QR/link placements. |
 | `newsletter-assets` | yes | Public reusable images inserted into Mailgun newsletter campaigns. |
+| `coffee-chat-selfies` | no | Private Coffee Chat meeting photos served with short-lived signed URLs. |
 | `nft-images-picks` | yes | NFT request image uploads/picks. |
+
+## Coffee Chats Tables (`supabase/coffee_chats.sql`)
+
+Applies coffee-chat columns to `members_main` and creates three new tables.
+
+### `public.members_main` coffee-chat columns
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `cc_interests` | `text[]` | Selected interest tags. |
+| `cc_study_programme` | `text` | Free-form study programme string. |
+| `cc_already_know` | `bigint[]` | Member IDs the person already knows well (used for exclusion). |
+| `cc_favourite_coffee` | `text` | Favourite coffee drink. |
+| `cc_favourite_spots` | `text[]` | Favourite Munich coffee spots / meeting place recommendation. |
+| `cc_fun_fact` | `text` | Optional profile note. |
+| `cc_active` | `boolean` | Whether the member opted in by saving preferences. Default `false`. |
+
+### `public.cc_admins`
+
+Stores designated Coffee Chat administrators assigned by Board Members.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `member_id` | `bigint` | Primary key. References `members_main(id)`. Cascades delete. |
+| `assigned_by` | `bigint` | Member ID of the board member who assigned this admin. |
+| `created_at` | `timestamptz` | Assignment timestamp. |
+
+RLS: all authenticated users can read; board members and explicit special-access users can insert/delete.
+
+### `public.cc_rounds`
+
+One row per monthly coffee-chat cycle.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `uuid` | Primary key. |
+| `month` | `text` | Human-readable month string, e.g. `2026-07`. |
+| `status` | `text` | `open`, `paired`, or `closed`. |
+| `signup_deadline` | `timestamptz` | Optional deadline shown to members. |
+| `meet_deadline` | `timestamptz` | Optional meeting deadline. |
+| `created_at` | `timestamptz` | Creation timestamp. |
+
+Only one round can be open at a time, month values are unique `YYYY-MM` strings,
+and the signup deadline cannot be later than the meeting deadline. RLS allows all
+authenticated users to read; board members and explicit special-access users can write.
+
+### `public.cc_signups`
+
+Member opt-ins for a round.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `uuid` | Primary key. |
+| `round_id` | `uuid` | References `cc_rounds(id)`. Cascades delete. |
+| `member_id` | `bigint` | References `members_main(id)`. |
+| `signed_up_at` | `timestamptz` | Signup timestamp. |
+
+Unique constraint on `(round_id, member_id)`.
+RLS: members manage their own rows via `current_member_id()`; admins manage all.
+
+### `public.cc_pairs`
+
+Matched pairs or trios for a round.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `uuid` | Primary key. |
+| `round_id` | `uuid` | References `cc_rounds(id)`. |
+| `person1_id` | `bigint` | First member. |
+| `person2_id` | `bigint` | Second member. |
+| `person3_id` | `bigint` | Optional third member (trio for odd counts). |
+| `icebreaker_q1/q2/q3` | `text` | Auto-generated ice-breaker questions. |
+| `status` | `text` | `pending`, `met`, or `skipped`. |
+| `selfie_path` | `text` | Private Supabase Storage object path (`coffee-chat-selfies`). APIs issue short-lived signed URLs. |
+| `date_met` | `date` | Date the pair met. |
+| `person1/2/3_signed_off` | `boolean` | Individual sign-off flags. |
+| `highlight_note` | `text` | Short highlight note. |
+| `created_at` | `timestamptz` | Creation timestamp. |
+
+RLS: each member can see pairs they belong to; board members and explicit
+special-access users manage all. Pair rows and the round status are committed
+atomically by `commit_coffee_chat_pairing(uuid, jsonb)`.
+
+### Storage Bucket `coffee-chat-selfies`
+
+Private bucket. Uploads go through the authenticated Coffee Chat API, which
+verifies pair membership, permits JPEG/PNG/WebP images up to 5 MB, and uses the
+service-role client. Reads use one-hour signed URLs.
 
 ## Known Documentation And Type Gaps
 
-- `lib/types/database.types.ts` is a hand-written partial Supabase type map for member and newsletter tables. It is not a full generated schema.
+- `lib/types/database.types.ts` is a hand-written partial Supabase type map for member, newsletter, and Coffee Chat tables. It is not a full generated schema.
 - `events`, `event_registrations`, `attendance`, `nft_requests`, and link redirect analytics tables are modeled locally in feature files where needed.
 - If you regenerate Supabase types, include all `public` tables and update imports that currently rely on hand-written interfaces.
 

@@ -28,6 +28,7 @@ export function LectureEditor({ open, initial, onCancel, onSubmit, working, erro
 
   useEffect(() => {
     if (!open) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Opening the editor resets its draft from the selected lecture.
     setTitle(initial?.title ?? '')
     setKind((initial?.kind as LectureKind) ?? 'side')
     setScheduledAt(toLocalInputValue(initial?.scheduled_at ?? null))

@@ -31,7 +31,9 @@ export type DashboardStats = {
 }
 
 export type DashboardTab =
+  | 'home'
   | 'profile'
+  | 'coffee-chats'
   | 'members'
   | 'stats'
   | 'events'

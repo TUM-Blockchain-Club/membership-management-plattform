@@ -19,6 +19,7 @@ import { useDashboardStats } from '@/app/dashboard/tabs/stats/useDashboardStats'
 import { auth } from '@/lib/auth'
 import { memberService } from '@/lib/members'
 import { supabase } from '@/lib/supabase'
+import { canShowCoffeeChatAdmin } from '@/lib/coffee-chats'
 import type {
   DashboardMember,
   DashboardMessage,
@@ -33,7 +34,7 @@ type DashboardControllerOptions = {
   initialData: DashboardInitialData
 }
 
-export function useDashboardController(routeTab: DashboardTab = 'profile', options: DashboardControllerOptions) {
+export function useDashboardController(routeTab: DashboardTab = 'home', options: DashboardControllerOptions) {
   const router = useRouter()
   const { initialData } = options
 
@@ -93,6 +94,12 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
   const showLinkAnalyticsTab = (effectiveIsBoardMember || effectiveHasSpecialAccess) && !forceMemberView
   const showNftApprovalsTab = canManageNftRequests && !forceMemberView
   const showNewsletterTab = effectiveIsBoardMember || effectiveHasSpecialAccess
+  const canManageCoffeeChats = canShowCoffeeChatAdmin({
+    forceMemberView,
+    hasSpecialAccess,
+    isBoardMember: member?.Role === 'Board Member',
+    isCoffeeChatAdmin: initialData.canManageCoffeeChats,
+  })
 
   const activeTab = routeTab
 
@@ -209,6 +216,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
   }, [])
 
   const handleTitleClick = useCallback(() => {
+    router.push(TAB_ROUTES.home)
     const now = Date.now()
 
     if (now - lastClickTime > 2000) {
@@ -225,7 +233,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
       void triggerBlockchainEffect()
       setClickCount(0)
     }
-  }, [clickCount, lastClickTime, triggerBlockchainEffect])
+  }, [clickCount, lastClickTime, router, triggerBlockchainEffect])
 
   const handleAddMember = useCallback(() => {
     setCreatingMember(true)
@@ -433,6 +441,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
     boardMembers,
     canEditField,
     canEditMember,
+    canManageCoffeeChats,
     canManageNftRequests,
     coreMembers,
     creatingMember,

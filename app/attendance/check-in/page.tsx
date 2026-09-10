@@ -42,6 +42,7 @@ function CheckInInner() {
 
   useEffect(() => {
     if (!token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- URL validation initializes the result shown by this client-only page.
       setState({ status: 'error', message: 'Missing check-in token in the URL.' })
       return
     }

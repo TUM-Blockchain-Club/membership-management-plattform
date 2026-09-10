@@ -3,7 +3,7 @@
 import { NftRequestCard } from "../NftRequestCard"
 import { MintPreviewModal } from "../MintPreviewModal"
 import { RejectModal } from "../RejectModal"
-import { ArrowUpDownIcon, HexagonIcon, SearchIcon } from "../Icons"
+import { ArrowUpDownIcon, HexagonIcon, SearchIcon } from 'lucide-react'
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
