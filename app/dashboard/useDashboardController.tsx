@@ -4,8 +4,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatEventDate, formatEventTime } from '@/app/dashboard/lib/eventFormatters'
 import {
-  ADMIN_FIELDS,
   canEditDashboardMember,
+  canEditProfileField,
   getEditableMemberPayload,
   getPictureUrl,
   isDashboardMemberAdmin,
@@ -148,22 +148,17 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
   }, [effectiveHasSpecialAccess, effectiveIsBoardMember, member])
 
   const canEditField = useCallback((fieldKey: string, isOwnProfile: boolean) => {
-    if (fieldKey === 'TBC Email') {
-      if (!effectiveHasSpecialAccess || isOwnProfile) return false
-      if (viewedMemberHasSpecialAccess) return false
-      return true
-    }
+    const currentValue = (viewedMember as Record<string, unknown> | null)?.[fieldKey]
 
-    if (effectiveHasSpecialAccess && !isOwnProfile) return true
-
-    if (ADMIN_FIELDS.includes(fieldKey as (typeof ADMIN_FIELDS)[number])) {
-      if (effectiveHasSpecialAccess) return true
-      if (effectiveIsBoardMember && !isOwnProfile) return true
-      return false
-    }
-
-    return true
-  }, [effectiveHasSpecialAccess, effectiveIsBoardMember, viewedMemberHasSpecialAccess])
+    return canEditProfileField({
+      fieldKey,
+      isOwnProfile,
+      currentValue,
+      hasSpecialAccess: effectiveHasSpecialAccess,
+      isBoardMember: effectiveIsBoardMember,
+      targetHasSpecialAccess: viewedMemberHasSpecialAccess,
+    })
+  }, [effectiveHasSpecialAccess, effectiveIsBoardMember, viewedMember, viewedMemberHasSpecialAccess])
 
   const triggerBlockchainEffect = useCallback(async () => {
     const { default: confetti } = await import('canvas-confetti')

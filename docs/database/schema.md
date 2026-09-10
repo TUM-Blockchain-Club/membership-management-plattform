@@ -350,6 +350,7 @@ Constraints and indexes:
 | `can_manage_nft_requests()` | `boolean` | Checks NFT admin permissions. |
 | `allow_only_test_domain()` | `trigger` | Auth-related domain guard. |
 | `block_guest_core_updates_email()` | `trigger` | Prevents restricted email updates. |
+| `enforce_member_role_and_department_changes()` | `trigger` | Allows one initial self-selected department and keeps later department and role changes board/admin managed. |
 | `handle_new_user_members_main()` | `trigger` | Auth/member sync helper. |
 | `handle_new_user_test()` | `trigger` | Test/new-user helper. |
 
@@ -361,6 +362,7 @@ This section summarizes the active policies. For exact SQL, inspect Supabase or 
 
 - Authenticated users can read `members_main`.
 - Users can update their own row where `"TBC Email"` matches their auth email.
+- Users may select their own department once while it is empty; later changes are rejected by a database trigger.
 - Board members can insert members.
 - Board members can update members across all departments.
 - Special-access emails can insert members and update all members.

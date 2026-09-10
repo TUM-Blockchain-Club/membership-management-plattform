@@ -152,6 +152,8 @@ export function EditableProfileForm({
                 {section.fields.map((field) => {
                   const isLocked = !canEditField(field.key, isOwnProfile)
                   const value    = String(rec[field.key] ?? '')
+                  const isInitialDepartmentChoice =
+                    field.key === 'Department' && isOwnProfile && !isLocked && value.trim() === ''
 
                   return (
                     <Field
@@ -206,6 +208,11 @@ export function EditableProfileForm({
                       {isLocked && (
                         <FieldDescription className="text-[11px]">
                           Only admins can change this field.
+                        </FieldDescription>
+                      )}
+                      {isInitialDepartmentChoice && (
+                        <FieldDescription className="text-[11px]">
+                          Choose carefully. After saving, only board members can change this field.
                         </FieldDescription>
                       )}
                     </Field>
