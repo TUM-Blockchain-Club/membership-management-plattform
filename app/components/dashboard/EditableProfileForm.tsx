@@ -102,12 +102,16 @@ export function EditableProfileForm({
   member,
   onInputChange,
   onSave,
+  leadingContent,
+  layout = 'stack',
   isOwnProfile = true,
   canEditField,
 }: {
   member: EditableMember
   onInputChange: (field: string, value: string | number | null) => void
   onSave: () => void
+  leadingContent?: ReactNode
+  layout?: 'stack' | 'grid'
   isBoardMember?: boolean
   isOwnProfile?: boolean
   canEditField: (fieldKey: string, isOwnProfile: boolean) => boolean
@@ -117,8 +121,13 @@ export function EditableProfileForm({
   return (
     <form
       onSubmit={(e) => { e.preventDefault(); onSave() }}
-      className="flex flex-col gap-5"
+      className={cn(
+        layout === 'grid'
+          ? 'grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2'
+          : 'flex flex-col gap-5',
+      )}
     >
+      {leadingContent}
       {FIELD_SECTIONS.map((section) => {
         // Skip sections where every field is empty AND read-only — keep visible if any field has content or is editable
         const hasContent = section.fields.some(
@@ -127,8 +136,8 @@ export function EditableProfileForm({
         if (!hasContent) return null
 
         return (
-          <Card key={section.title}>
-            <CardHeader className="flex-row items-center gap-2 pb-4">
+          <Card key={section.title} className={cn(layout === 'grid' && 'h-full')}>
+            <CardHeader className="flex-row items-center gap-2 pb-2">
               <span className="text-muted-foreground [&_svg]:size-4">{section.icon}</span>
               <CardTitle className="text-sm font-semibold">{section.title}</CardTitle>
             </CardHeader>
@@ -200,7 +209,7 @@ export function EditableProfileForm({
 
               {/* Privacy notice for Contact section */}
               {section.title === 'Contact' && (
-                <Alert className="mt-4">
+                <Alert className="mt-4 border-border bg-muted/30">
                   <AlertDescription className="text-xs">
                     Contact details are stored securely and used only for internal member communication.
                     They are never shared with third parties.

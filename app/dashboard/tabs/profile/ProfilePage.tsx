@@ -8,12 +8,12 @@ import {
   SaveIcon,
   ShieldCheckIcon,
   StarIcon,
+  UserRoundIcon,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { Spinner } from '@/components/ui/spinner'
 import { EditableProfileForm } from '@/app/components/dashboard/EditableProfileForm'
 import { cn } from '@/lib/utils'
@@ -128,8 +128,104 @@ export function ProfilePage({
   // Hidden file input — triggered by the "Change photo" button
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  const identityCard = (
+    <Card className="h-full">
+      <CardHeader className="flex-row items-center gap-2 pb-2">
+        <UserRoundIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+        <CardTitle className="text-sm font-semibold">Profile</CardTitle>
+      </CardHeader>
+      <CardContent className="flex items-start gap-4">
+        <div className="flex shrink-0 flex-col items-start gap-2">
+          <Avatar className={cn('size-24 ring-2 ring-offset-2 ring-offset-background', avatarRingClass(roleLabel, statusLabel))}>
+            {pictureUrl && (
+              <AvatarImage src={pictureUrl} alt={viewedMember?.Name || 'Member'} />
+            )}
+            <AvatarFallback className={cn('bg-gradient-to-br text-2xl font-bold text-white', avatarGradientClass(roleLabel, statusLabel))}>
+              {initials}
+            </AvatarFallback>
+          </Avatar>
+
+          {isOwnProfile && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={uploadingImage}
+                onClick={() => fileInputRef.current?.click()}
+                className="text-xs"
+              >
+                <CameraIcon data-icon="inline-start" />
+                {uploadingImage ? 'Uploading…' : 'Change photo'}
+              </Button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                disabled={uploadingImage}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (!file) return
+                  setUploadingImage(true)
+                  setSelectedImageFile(file)
+                  const reader = new FileReader()
+                  reader.onloadend = () => {
+                    setEditedMember((prev) =>
+                      prev ? { ...prev, Picture: typeof reader.result === 'string' ? reader.result : null } : prev,
+                    )
+                    setUploadingImage(false)
+                  }
+                  reader.readAsDataURL(file)
+                }}
+              />
+            </>
+          )}
+        </div>
+
+        <div className="min-w-0 flex-1 pt-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-base font-medium text-foreground">
+              {viewedMember?.Name || 'Member'}
+            </p>
+            {hasSpecialAccess && isOwnProfile && (
+              <Badge variant="outline" className="bg-secondary px-1.5 py-px text-[10px] text-muted-foreground">
+                <ShieldCheckIcon data-icon="inline-start" />
+                Admin
+              </Badge>
+            )}
+          </div>
+
+          <CardDescription className="mt-0.5 break-words">
+            {viewedMember?.['TBC Email'] || 'No email provided'}
+          </CardDescription>
+
+          {!creatingMember && (
+            <div className="mt-3 flex flex-wrap gap-1">
+              <Badge variant="outline" className={cn('text-xs', roleBadgeClass(roleLabel))}>
+                {roleLabel === 'Board Member' && <StarIcon data-icon="inline-start" />}
+                {roleLabel}
+              </Badge>
+              {statusLabel && (
+                <Badge variant="outline" className={cn('text-xs', statusBadgeClass(statusLabel))}>
+                  {statusLabel}
+                </Badge>
+              )}
+              {departmentLabel && (
+                <Badge variant="outline" className="bg-secondary text-xs text-muted-foreground">
+                  <Building2Icon data-icon="inline-start" />
+                  {departmentLabel}
+                </Badge>
+              )}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
+
   return (
-    <div>
+    <div className="flex flex-col gap-4">
 
       {/* ── Back button ─────────────────────────────────────────────── */}
       {isViewingOther && (
@@ -146,134 +242,34 @@ export function ProfilePage({
         </div>
       )}
 
-      {/* ── Identity card ──────────────────────────────────────────── */}
-      <Card className="mb-6">
-        <CardHeader className="flex-row items-start gap-5 pb-5">
+      {editedMember ? (
+        <>
+          <EditableProfileForm
+            member={editedMember}
+            onInputChange={handleInputChange}
+            onSave={handleSave}
+            leadingContent={identityCard}
+            layout="grid"
+            isBoardMember={member?.Role === 'Board Member'}
+            isOwnProfile={isOwnProfile}
+            canEditField={canEditField}
+          />
 
-          {/* Avatar + upload button stacked */}
-          <div className="flex flex-col items-start gap-2 shrink-0">
-            <Avatar className={cn('size-36 ring-2 ring-offset-2 ring-offset-background', avatarRingClass(roleLabel, statusLabel))}>
-              {pictureUrl && (
-                <AvatarImage src={pictureUrl} alt={viewedMember?.Name || 'Member'} />
-              )}
-              <AvatarFallback className={cn('bg-gradient-to-br text-white font-bold text-4xl', avatarGradientClass(roleLabel, statusLabel))}>
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-
-            {/* Explicit upload button — only shown on own profile */}
-            {isOwnProfile && (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={uploadingImage}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="text-xs"
-                >
-                  <CameraIcon data-icon="inline-start" />
-                  {uploadingImage ? 'Uploading…' : 'Change photo'}
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="sr-only"
-                  disabled={uploadingImage}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0]
-                    if (!file) return
-                    setUploadingImage(true)
-                    setSelectedImageFile(file)
-                    const reader = new FileReader()
-                    reader.onloadend = () => {
-                      setEditedMember((prev) =>
-                        prev ? { ...prev, Picture: typeof reader.result === 'string' ? reader.result : null } : prev,
-                      )
-                      setUploadingImage(false)
-                    }
-                    reader.readAsDataURL(file)
-                  }}
-                />
-              </>
-            )}
+          <div className="flex justify-end pt-1">
+            <Button onClick={handleSave} disabled={saving || uploadingImage}>
+              {saving
+                ? <Spinner data-icon="inline-start" />
+                : <SaveIcon data-icon="inline-start" />
+              }
+              {saving ? 'Saving…' : 'Save changes'}
+            </Button>
           </div>
-
-          {/* Name + email + badges */}
-          <div className="flex-1 min-w-0 pt-1">
-            <div className="flex items-center gap-2 flex-wrap">
-              <CardTitle className="text-base">
-                {viewedMember?.Name || 'Member'}
-              </CardTitle>
-              {hasSpecialAccess && isOwnProfile && (
-                <Badge variant="outline" className="text-[10px] px-1.5 py-px bg-secondary border-border text-muted-foreground">
-                  <ShieldCheckIcon data-icon="inline-start" />
-                  Admin
-                </Badge>
-              )}
-            </div>
-
-            <CardDescription className="mt-0.5">
-              {viewedMember?.['TBC Email'] || 'No email provided'}
-            </CardDescription>
-
-            {!creatingMember && (
-              <div className="flex flex-wrap gap-1 mt-2">
-                <Badge variant="outline" className={cn('text-xs', roleBadgeClass(roleLabel))}>
-                  {roleLabel === 'Board Member' && <StarIcon data-icon="inline-start" />}
-                  {roleLabel}
-                </Badge>
-                {statusLabel && (
-                  <Badge variant="outline" className={cn('text-xs', statusBadgeClass(statusLabel))}>
-                    {statusLabel}
-                  </Badge>
-                )}
-                {departmentLabel && (
-                  <Badge variant="outline" className="text-xs bg-secondary border-border text-muted-foreground">
-                    <Building2Icon data-icon="inline-start" />
-                    {departmentLabel}
-                  </Badge>
-                )}
-              </div>
-            )}
-          </div>
-
-        </CardHeader>
-
-        <Separator />
-
-        {/* ── Form: always visible ────────────────────────────────── */}
-        <CardContent className="pt-6">
-          {editedMember ? (
-            <>
-              <EditableProfileForm
-                member={editedMember}
-                onInputChange={handleInputChange}
-                onSave={handleSave}
-                isBoardMember={member?.Role === 'Board Member'}
-                isOwnProfile={isOwnProfile}
-                canEditField={canEditField}
-              />
-
-              {/* Save at bottom — SCC pattern */}
-              <div className="flex justify-end pt-6">
-                <Button onClick={handleSave} disabled={saving}>
-                  {saving
-                    ? <Spinner data-icon="inline-start" />
-                    : <SaveIcon data-icon="inline-start" />
-                  }
-                  {saving ? 'Saving…' : 'Save changes'}
-                </Button>
-              </div>
-            </>
-          ) : (
-            // Brief loading state while setEditedMember initialises
-            <div className="flex items-center justify-center py-12">
-              <Spinner className="text-muted-foreground" />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        </>
+      ) : (
+        <div className="flex items-center justify-center py-12">
+          <Spinner className="text-muted-foreground" />
+        </div>
+      )}
 
     </div>
   )
