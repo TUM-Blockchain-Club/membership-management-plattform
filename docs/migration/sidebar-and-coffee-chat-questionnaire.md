@@ -9,6 +9,12 @@ The sidebar replaces the horizontal dashboard navigation. It collapses on
 desktop and opens as a sheet on mobile. Account actions remain part of the
 shared shell. Existing dark theme tokens and feature layouts are retained.
 
+Navigation is grouped into Platform and Administration using `SidebarGroup`.
+Grouping does not grant or remove access: each entry retains its existing
+visibility rules. Sidebar surfaces use neutral selection tones, and panel
+dividers explicitly use `border-sidebar-border` rather than the default text
+color. Header, menu, and account spacing share the same collapsed/mobile shell.
+
 Coffee Chat matching preferences are the platform's multi-step questionnaire.
 The questionnaire collects the existing matching profile fields and saves them
 through the existing member update path. At least one interest is required;

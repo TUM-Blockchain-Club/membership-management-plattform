@@ -57,21 +57,35 @@ type DashboardNavigationProps = {
   pictureUrl: string | null
 }
 
-const NAVIGATION_ITEMS: Array<{
+type NavigationItem = {
   key: DashboardTab
   label: string
   icon: ComponentType<SVGProps<SVGSVGElement>>
-}> = [
-  { key: 'profile', label: 'My Profile', icon: UserIcon },
-  { key: 'coffee-chats', label: 'Coffee Chats', icon: CoffeeIcon },
-  { key: 'members', label: 'All Members', icon: UsersIcon },
-  { key: 'events', label: 'Events', icon: CalendarIcon },
-  { key: 'stats', label: 'Statistics', icon: BarChart3Icon },
-  { key: 'link-analytics', label: 'Link Analytics', icon: LinkIcon },
-  { key: 'nft-approvals', label: 'NFT Approvals', icon: HexagonIcon },
-  { key: 'nft-status', label: 'NFT Status', icon: HexagonIcon },
-  { key: 'newsletter', label: 'Newsletter', icon: MailIcon },
+}
+
+const NAVIGATION_GROUPS: Array<{ label: string; items: NavigationItem[] }> = [
+  {
+    label: 'Platform',
+    items: [
+      { key: 'profile', label: 'My Profile', icon: UserIcon },
+      { key: 'coffee-chats', label: 'Coffee Chats', icon: CoffeeIcon },
+      { key: 'members', label: 'All Members', icon: UsersIcon },
+      { key: 'events', label: 'Events', icon: CalendarIcon },
+      { key: 'nft-status', label: 'NFT Status', icon: HexagonIcon },
+    ],
+  },
+  {
+    label: 'Administration',
+    items: [
+      { key: 'stats', label: 'Statistics', icon: BarChart3Icon },
+      { key: 'link-analytics', label: 'Link Analytics', icon: LinkIcon },
+      { key: 'nft-approvals', label: 'NFT Approvals', icon: HexagonIcon },
+      { key: 'newsletter', label: 'Newsletter', icon: MailIcon },
+    ],
+  },
 ]
+
+const NAVIGATION_ITEMS = NAVIGATION_GROUPS.flatMap((group) => group.items)
 
 export function getDashboardTabLabel(tab: DashboardTab) {
   return NAVIGATION_ITEMS.find((item) => item.key === tab)?.label ?? 'Dashboard'
@@ -105,12 +119,12 @@ export function DashboardSidebar({
   const { isMobile, setOpenMobile } = useSidebar()
   const memberName = member?.Name || 'Member'
   const memberEmail = member?.['TBC Email'] || 'TBC member account'
-  const visibleItems = NAVIGATION_ITEMS.filter((item) => {
+  const isItemVisible = (item: NavigationItem) => {
     if (item.key === 'nft-approvals') return showNftApprovalsTab
     if (item.key === 'link-analytics') return showLinkAnalyticsTab
     if (item.key === 'newsletter') return showNewsletterTab
     return true
-  })
+  }
 
   const handleNavigation = (tab: DashboardTab) => {
     onTabChange(tab)
@@ -119,7 +133,7 @@ export function DashboardSidebar({
 
   return (
     <Sidebar collapsible="icon">
-      <SidebarHeader>
+      <SidebarHeader className="p-3 pb-2 group-data-[collapsible=icon]:p-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton
@@ -144,37 +158,50 @@ export function DashboardSidebar({
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <nav aria-label="Dashboard navigation">
-              <SidebarMenu>
-                {visibleItems.map((item) => {
-                  const Icon = item.icon
+      <SidebarContent className="gap-2 py-2">
+        <nav aria-label="Dashboard navigation">
+          {NAVIGATION_GROUPS.map((group) => {
+            const visibleItems = group.items.filter(isItemVisible)
+            if (visibleItems.length === 0) return null
 
-                  return (
-                    <SidebarMenuItem key={item.key}>
-                      <SidebarMenuButton
-                        type="button"
-                        tooltip={item.label}
-                        isActive={activeTab === item.key}
-                        onClick={() => handleNavigation(item.key)}
-                        aria-current={activeTab === item.key ? 'page' : undefined}
-                      >
-                        <Icon />
-                        <span>{item.label}</span>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}
-              </SidebarMenu>
-            </nav>
-          </SidebarGroupContent>
-        </SidebarGroup>
+            return (
+              <SidebarGroup
+                key={group.label}
+                className="px-3 py-1 group-data-[collapsible=icon]:px-2"
+              >
+                <SidebarGroupLabel className="mb-1 px-3 text-[0.6875rem] tracking-wide text-sidebar-foreground/50">
+                  {group.label}
+                </SidebarGroupLabel>
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {visibleItems.map((item) => {
+                      const Icon = item.icon
+
+                      return (
+                        <SidebarMenuItem key={item.key}>
+                          <SidebarMenuButton
+                            type="button"
+                            tooltip={item.label}
+                            isActive={activeTab === item.key}
+                            onClick={() => handleNavigation(item.key)}
+                            aria-current={activeTab === item.key ? 'page' : undefined}
+                            className="h-9 px-3 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:px-2"
+                          >
+                            <Icon />
+                            <span>{item.label}</span>
+                          </SidebarMenuButton>
+                        </SidebarMenuItem>
+                      )
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            )
+          })}
+        </nav>
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="p-3 pt-2 group-data-[collapsible=icon]:p-2">
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>

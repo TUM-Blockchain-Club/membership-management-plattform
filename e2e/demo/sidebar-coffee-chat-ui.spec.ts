@@ -82,6 +82,8 @@ test.describe('synthetic Coffee Chats sidebar and questionnaire', () => {
 
     const nav = sidebar(page)
     await expect(nav).toHaveAttribute('data-state', 'expanded')
+    await expect(dashboardNavigation(page).getByText('Platform', { exact: true })).toBeVisible()
+    await expect(dashboardNavigation(page).getByText('Administration', { exact: true })).toBeVisible()
     await expect(dashboardItem(page, /Coffee Chats/i)).toBeVisible()
 
     await page.screenshot({

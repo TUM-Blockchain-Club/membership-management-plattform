@@ -25,13 +25,13 @@
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.07);
   --ring: rgba(59, 130, 246, 0.4);
-  --sidebar: #171717;
+  --sidebar: #151515;
   --sidebar-foreground: #f2f2f2;
   --sidebar-primary: #3b82f6;
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: rgba(59, 130, 246, 0.14);
+  --sidebar-accent: rgba(255, 255, 255, 0.075);
   --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-border: rgba(255, 255, 255, 0.065);
   --sidebar-ring: rgba(59, 130, 246, 0.4);
   --radius: 0.5rem;
 }
