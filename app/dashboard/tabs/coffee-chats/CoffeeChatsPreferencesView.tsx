@@ -269,7 +269,7 @@ export function CoffeeChatsPreferencesView() {
 
   if (loading) {
     return (
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-4">
+      <div className="flex w-full max-w-4xl flex-col gap-4">
         <Skeleton className="h-8 w-48" />
         <Skeleton className="h-64 w-full" />
       </div>
@@ -277,7 +277,7 @@ export function CoffeeChatsPreferencesView() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-6">
+    <div className="flex w-full max-w-4xl flex-col gap-6">
       <div className="flex max-w-2xl flex-col gap-1">
         <h3 className="text-xl font-semibold tracking-tight text-foreground">Matching preferences</h3>
         <p className="text-sm text-muted-foreground">

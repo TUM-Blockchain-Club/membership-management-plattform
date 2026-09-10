@@ -424,7 +424,7 @@ export function CoffeeChatsAdminView() {
 
   if (loading) {
     return (
-      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+      <div className="flex w-full max-w-4xl flex-col gap-4">
         <Skeleton className="h-7 w-48" />
         <Skeleton className="h-64 w-full rounded-xl" />
       </div>
@@ -433,7 +433,7 @@ export function CoffeeChatsAdminView() {
 
   if (!canManageCoffeeChats || !isAdmin) {
     return (
-      <Empty className="mx-auto max-w-lg border">
+      <Empty className="max-w-lg border">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <UsersIcon />
@@ -448,7 +448,7 @@ export function CoffeeChatsAdminView() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
+    <div className="flex w-full max-w-4xl flex-col gap-8">
       <div className="flex flex-col gap-1">
         <h3 className="text-xl font-semibold tracking-tight text-foreground">Coffee Chats admin</h3>
         <p className="text-sm text-muted-foreground">Manage rounds, pairings, and administrators.</p>
