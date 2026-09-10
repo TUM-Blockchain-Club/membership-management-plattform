@@ -143,7 +143,7 @@ export function EditableProfileForm({
               </div>
               {section.title === 'Contact' && (
                 <CardDescription className="hidden max-w-xs text-right text-xs sm:block">
-                  Stored securely for internal member communication only.
+                  Stored for internal member communication only.
                 </CardDescription>
               )}
             </CardHeader>
@@ -215,7 +215,7 @@ export function EditableProfileForm({
 
               {section.title === 'Contact' && (
                 <CardDescription className="mt-1 text-xs sm:hidden">
-                  Stored securely for internal member communication only.
+                  Stored for internal member communication only.
                 </CardDescription>
               )}
             </CardContent>
