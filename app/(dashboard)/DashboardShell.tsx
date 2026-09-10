@@ -20,7 +20,7 @@ export function DashboardShell({
 
   return (
     <DashboardContext.Provider value={dashboard}>
-      {/* DashboardFrame renders the sticky header + nav — it persists because
+      {/* DashboardFrame renders the sidebar and content — it persists because
           this shell component lives in the layout and never unmounts. */}
       <DashboardFrame dashboard={dashboard}>
         {children}

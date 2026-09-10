@@ -1,8 +1,8 @@
 # Coffee Chats integration
 
 Coffee Chats is a native authenticated dashboard tab under `/coffee-chats`.
-Its routes live in the `(dashboard)` route group so the shared dashboard header,
-navigation, account controls, background, and footer remain mounted. Do not add
+Its routes live in the `(dashboard)` route group so the shared dashboard sidebar,
+account controls, background, and footer remain mounted. Do not add
 a second Coffee Chats application shell or a standalone "Back to Dashboard"
 control.
 
