@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { canEditDashboardMember } from '../app/dashboard/lib/memberUtils.ts'
+import {
+  canEditDashboardMember,
+  canEditProfileField,
+} from '../app/dashboard/lib/memberUtils.ts'
 
 test('board members can edit members from every department', () => {
   const boardMember = { id: 1 }
@@ -50,5 +53,44 @@ test('special-access users retain access to other members', () => {
       isBoardMember: false,
     }),
     true
+  )
+})
+
+test('members can select their own department once when it is empty', () => {
+  assert.equal(
+    canEditProfileField({
+      fieldKey: 'Department',
+      isOwnProfile: true,
+      currentValue: null,
+      hasSpecialAccess: false,
+      isBoardMember: false,
+      targetHasSpecialAccess: false,
+    }),
+    true
+  )
+  assert.equal(
+    canEditProfileField({
+      fieldKey: 'Department',
+      isOwnProfile: true,
+      currentValue: 'Research',
+      hasSpecialAccess: false,
+      isBoardMember: false,
+      targetHasSpecialAccess: false,
+    }),
+    false
+  )
+})
+
+test('members cannot use an empty department to edit another profile', () => {
+  assert.equal(
+    canEditProfileField({
+      fieldKey: 'Department',
+      isOwnProfile: false,
+      currentValue: null,
+      hasSpecialAccess: false,
+      isBoardMember: false,
+      targetHasSpecialAccess: false,
+    }),
+    false
   )
 })

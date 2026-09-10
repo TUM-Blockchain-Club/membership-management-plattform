@@ -8,8 +8,7 @@ import {
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import UniversityAutocomplete from '@/app/components/UniversityAutocomplete'
-import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
@@ -102,12 +101,16 @@ export function EditableProfileForm({
   member,
   onInputChange,
   onSave,
+  leadingContent,
+  layout = 'stack',
   isOwnProfile = true,
   canEditField,
 }: {
   member: EditableMember
   onInputChange: (field: string, value: string | number | null) => void
   onSave: () => void
+  leadingContent?: ReactNode
+  layout?: 'stack' | 'grid'
   isBoardMember?: boolean
   isOwnProfile?: boolean
   canEditField: (fieldKey: string, isOwnProfile: boolean) => boolean
@@ -117,8 +120,13 @@ export function EditableProfileForm({
   return (
     <form
       onSubmit={(e) => { e.preventDefault(); onSave() }}
-      className="flex flex-col gap-5"
+      className={cn(
+        layout === 'grid'
+          ? 'grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2'
+          : 'flex flex-col gap-5',
+      )}
     >
+      {leadingContent}
       {FIELD_SECTIONS.map((section) => {
         // Skip sections where every field is empty AND read-only — keep visible if any field has content or is editable
         const hasContent = section.fields.some(
@@ -127,16 +135,25 @@ export function EditableProfileForm({
         if (!hasContent) return null
 
         return (
-          <Card key={section.title}>
-            <CardHeader className="flex-row items-center gap-2 pb-4">
-              <span className="text-muted-foreground [&_svg]:size-4">{section.icon}</span>
-              <CardTitle className="text-sm font-semibold">{section.title}</CardTitle>
+          <Card key={section.title} className={cn(layout === 'grid' && 'h-full')}>
+            <CardHeader className="flex flex-row items-center justify-between gap-3 pb-2">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground [&_svg]:size-4">{section.icon}</span>
+                <CardTitle className="text-sm font-semibold">{section.title}</CardTitle>
+              </div>
+              {section.title === 'Contact' && (
+                <CardDescription className="hidden max-w-xs text-right text-xs sm:block">
+                  Stored for internal member communication only.
+                </CardDescription>
+              )}
             </CardHeader>
             <CardContent>
               <FieldGroup className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {section.fields.map((field) => {
                   const isLocked = !canEditField(field.key, isOwnProfile)
                   const value    = String(rec[field.key] ?? '')
+                  const isInitialDepartmentChoice =
+                    field.key === 'Department' && isOwnProfile && !isLocked && value.trim() === ''
 
                   return (
                     <Field
@@ -193,19 +210,20 @@ export function EditableProfileForm({
                           Only admins can change this field.
                         </FieldDescription>
                       )}
+                      {isInitialDepartmentChoice && (
+                        <FieldDescription className="text-[11px]">
+                          Choose carefully. After saving, only board members can change this field.
+                        </FieldDescription>
+                      )}
                     </Field>
                   )
                 })}
               </FieldGroup>
 
-              {/* Privacy notice for Contact section */}
               {section.title === 'Contact' && (
-                <Alert className="mt-4">
-                  <AlertDescription className="text-xs">
-                    Contact details are stored securely and used only for internal member communication.
-                    They are never shared with third parties.
-                  </AlertDescription>
-                </Alert>
+                <CardDescription className="mt-1 text-xs sm:hidden">
+                  Stored for internal member communication only.
+                </CardDescription>
               )}
             </CardContent>
           </Card>
