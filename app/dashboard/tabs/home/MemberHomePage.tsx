@@ -8,9 +8,9 @@ import {
   CheckCircle2Icon,
   CircleIcon,
   CoffeeIcon,
+  HexagonIcon,
   MapPinIcon,
   UserRoundIcon,
-  UsersIcon,
 } from 'lucide-react'
 import { DashboardContext } from '@/app/dashboard/DashboardContext'
 import { Badge } from '@/components/ui/badge'
@@ -29,7 +29,6 @@ import { getCoffeeChatNextStep, type CoffeeChatHomeData } from '@/lib/coffee-cha
 
 const PROFILE_CHECKLIST = [
   { key: 'Picture', label: 'Profile photo' },
-  { key: 'Department', label: 'Department' },
   { key: 'Area of Expertise', label: 'Area of expertise' },
   { key: 'Linkedin', label: 'LinkedIn' },
 ] as const
@@ -118,31 +117,24 @@ export function MemberHomePage({
   const profileProgress = Math.round((completedProfileItems / checklist.length) * 100)
   const coffeeChat = getCoffeeChatOverview(coffeeChatData)
   const now = Date.parse(currentTime)
-  const upcomingEvent = dashboard.events.find((event) => {
+  const upcomingEvents = dashboard.events.filter((event) => {
     const end = Date.parse(event.end_at)
     return Number.isNaN(end) || end >= now
-  })
-  const eventLocation = upcomingEvent?.city || upcomingEvent?.location
+  }).slice(0, 2)
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6">
-      <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div className="flex flex-col gap-1">
-          <p className="text-sm font-medium text-muted-foreground">Member home</p>
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
-            Welcome back, {firstName(member?.Name)}
-          </h1>
-          <p className="text-sm text-muted-foreground sm:text-base">
-            Here is what matters for you right now.
-          </p>
-        </div>
+      <header className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-2xl font-semibold tracking-tight text-foreground sm:text-3xl">
+          Welcome back, {firstName(member?.Name)}
+        </h1>
         <div className="flex flex-wrap gap-2">
           {member?.Role && <Badge variant="secondary">{member.Role}</Badge>}
           {member?.Department && <Badge variant="outline">{member.Department}</Badge>}
         </div>
       </header>
 
-      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]">
+      <section className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -203,29 +195,38 @@ export function MemberHomePage({
         </Card>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2">
-        <Card>
+      <section className="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_minmax(18rem,0.5fr)]">
+        <Card className="lg:row-span-1">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CalendarDaysIcon aria-hidden="true" />
-              Upcoming event
+              Upcoming events
             </CardTitle>
-            <CardDescription>Your next opportunity to meet and build with the community.</CardDescription>
+            <CardDescription>The next two opportunities to meet and build with the community.</CardDescription>
           </CardHeader>
-          <CardContent>
-            {upcomingEvent ? (
-              <div className="flex flex-col gap-2">
-                <p className="font-medium text-foreground">{upcomingEvent.title}</p>
-                <p className="text-sm text-muted-foreground">
-                  {dashboard.formatEventDate(upcomingEvent.start_at, upcomingEvent.end_at)}
-                </p>
-                {eventLocation && (
-                  <p className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <MapPinIcon className="size-4" aria-hidden="true" />
-                    {eventLocation}
-                  </p>
-                )}
-              </div>
+          <CardContent className="flex flex-col gap-3">
+            {upcomingEvents.length > 0 ? (
+              upcomingEvents.map((event) => {
+                const location = event.city || event.location
+
+                return (
+                  <article key={event.id} className="flex flex-col gap-2 rounded-lg bg-muted/50 p-3">
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <p className="font-medium text-foreground">{event.title}</p>
+                      {event.event_type && <Badge variant="outline">{event.event_type}</Badge>}
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {dashboard.formatEventDate(event.start_at, event.end_at)}
+                    </p>
+                    {location && (
+                      <p className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <MapPinIcon className="size-4" aria-hidden="true" />
+                        {location}
+                      </p>
+                    )}
+                  </article>
+                )
+              })
             ) : (
               <p className="text-sm text-muted-foreground">No upcoming events yet.</p>
             )}
@@ -242,29 +243,25 @@ export function MemberHomePage({
 
         <Card>
           <CardHeader>
-            <CardTitle>Explore the platform</CardTitle>
-            <CardDescription>Jump directly to the areas members use most.</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <HexagonIcon aria-hidden="true" />
+              Membership NFT
+            </CardTitle>
+            <CardDescription>Your digital TUM Blockchain Club membership collectible.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-2 sm:grid-cols-2">
-            <Button asChild variant="outline" className="justify-start">
-              <Link href="/members">
-                <UsersIcon data-icon="inline-start" />
-                All members
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="justify-start">
-              <Link href="/events">
-                <CalendarDaysIcon data-icon="inline-start" />
-                Events
-              </Link>
-            </Button>
-            <Button asChild variant="outline" className="justify-start sm:col-span-2">
-              <Link href="/coffee-chats">
-                <CoffeeIcon data-icon="inline-start" />
-                Coffee Chats
-              </Link>
-            </Button>
+          <CardContent>
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              Apply for your NFT or follow the review and minting status of your existing request.
+            </p>
           </CardContent>
+          <CardFooter className="justify-end">
+            <Button asChild variant="outline">
+              <Link href="/nft-status">
+                View NFT status
+                <ArrowRightIcon data-icon="inline-end" />
+              </Link>
+            </Button>
+          </CardFooter>
         </Card>
       </section>
     </main>

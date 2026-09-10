@@ -85,6 +85,10 @@ test.describe('synthetic Coffee Chats sidebar and questionnaire', () => {
     })
     await expect(coffeeChatCard.getByText('Coffee Chats', { exact: true })).toBeVisible()
     await expect(page.getByText('Your profile', { exact: true })).toBeVisible()
+    await expect(page.getByText('Member home', { exact: true })).toHaveCount(0)
+    await expect(page.getByText('Here is what matters for you right now.')).toHaveCount(0)
+    await expect(page.getByText('Membership NFT', { exact: true })).toBeVisible()
+    await expect(page.getByText('1 of 3 key details completed')).toBeVisible()
     await expect(page.getByText('No upcoming events yet.')).toBeVisible()
     if (testInfo.project.name === 'desktop') {
       await expect(dashboardItem(page, /^Home$/i)).toHaveAttribute('aria-current', 'page')
