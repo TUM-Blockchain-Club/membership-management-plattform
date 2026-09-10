@@ -241,6 +241,13 @@ export function DashboardSidebar({
                     </span>
                   </DropdownMenuLabel>
                 </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem onSelect={() => handleNavigation('profile')}>
+                    <UserIcon />
+                    My Profile
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
                 {canUseMemberViewToggle && (
                   <>
                     <DropdownMenuSeparator />
