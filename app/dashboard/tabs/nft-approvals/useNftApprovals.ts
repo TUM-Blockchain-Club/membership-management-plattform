@@ -98,7 +98,7 @@ const toUiRequest = (request: AdminQueueRequestRow, requestImage: string): NFTRe
     memberInitials: getInitials(memberName),
     requestImage,
     displayName: request.display_name,
-    highlight: getMemberText(request.member, "highlight", "Highlight"),
+    highlight: request.fun_facts,
     submittedAt: formatSubmittedAt(request.created_at),
     submittedAtValue: request.created_at,
     status: request.status,

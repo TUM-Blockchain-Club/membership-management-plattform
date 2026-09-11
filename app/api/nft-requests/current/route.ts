@@ -55,6 +55,7 @@ export async function GET(request: Request) {
       member: {
         id: member.ID,
         name: member.Name,
+        batch: member.Batch,
         email: member["TBC Email"],
         department: member.Department,
       },

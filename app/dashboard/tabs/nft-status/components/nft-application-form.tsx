@@ -21,7 +21,6 @@ export function NftApplicationForm({ state }: NftStatusSectionsProps) {
     hasConsented,
     saving,
     selectedFileName,
-    setBatch,
     setDisplayName,
     setDisplayNameManuallyEdited,
     setFunFacts,
@@ -61,12 +60,13 @@ export function NftApplicationForm({ state }: NftStatusSectionsProps) {
             type="text"
             name="batch"
             value={batch}
-            onChange={(event) => setBatch(event.target.value)}
-            placeholder="e.g. 8"
-            disabled={saving}
-            autoComplete="off"
-            className="h-14 border-white/10 bg-black/30 text-white focus-visible:border-cyan-400/50"
+            readOnly
+            aria-readonly="true"
+            className="h-14 border-white/10 bg-black/30 text-white/70"
           />
+          <FieldDescription className="text-white/45">
+            Batch comes from your member profile and is used for the NFT metadata.
+          </FieldDescription>
         </Field>
       </FieldGroup>
 
@@ -206,9 +206,9 @@ function NftConsentField({
           </FieldDescription>
           <FieldDescription className="text-xs text-gray-400">
             By checking this box, I also agree to the TUM Blockchain Club&apos;s{' '}
-            <a href="/terms" target="_blank" className="text-blue-400 hover:underline">Terms of Service</a>
+            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Terms of Service</a>
             {' '}and{' '}
-            <a href="/privacy" target="_blank" className="text-blue-400 hover:underline">Privacy Policy</a>.
+            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Privacy Policy</a>.
           </FieldDescription>
         </FieldContent>
       </Field>

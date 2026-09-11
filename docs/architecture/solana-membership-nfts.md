@@ -42,6 +42,12 @@ No email address, internal member ID, credential ID, or full legal name is
 written into NFT metadata. Public fields are display name, portrait, department,
 batch/club period, member flex, and membership status.
 
+The batch displayed in the request form is read-only and comes from
+`members_main.Batch`. This keeps the member form, board preview, rendered
+artwork, and on-chain metadata on the same authoritative value. Public
+`/terms` and `/privacy` routes explain the publication and retention model
+before consent is submitted.
+
 ## Signing and authority
 
 The Next.js server reads the club signer from Vercel environment variables. The
@@ -71,6 +77,10 @@ same values for the intended Vercel preview environment before testing minting.
 5. Set `SOLANA_COLLECTION_ADDRESS` locally and in the Vercel preview environment.
 6. Test mint, profile update, alumni update, claim/recovery, burn, and reconciliation.
 7. Repeat with separate mainnet authority/configuration only after devnet acceptance.
+
+Devnet and mainnet must use different signer keypairs, RPC configuration, and
+collection addresses. Keep each private key only in the matching local or
+Vercel environment.
 
 The collection creation command uploads collection metadata to
 `nft-public-assets`. It prints public addresses and a transaction signature only.

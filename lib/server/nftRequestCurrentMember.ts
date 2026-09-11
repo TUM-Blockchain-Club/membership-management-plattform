@@ -7,6 +7,7 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient
 export type CurrentNftRequestMember = {
   ID: number
   Name: string | null
+  Batch: string | null
   Department: string | null
   "TBC Email": string | null
   UUID: string | null
@@ -50,6 +51,7 @@ const normalizeCurrentMember = (row: Record<string, unknown> | null): CurrentNft
   }
 
   const rawName = row.Name ?? row.name
+  const rawBatch = row.Batch ?? row.batch
   const rawDepartment = row.Department ?? row.department
   const rawEmail = row["TBC Email"] ?? row.tbc_email ?? row.email
   const rawUuid = row.UUID ?? row.uuid
@@ -59,6 +61,12 @@ const normalizeCurrentMember = (row: Record<string, unknown> | null): CurrentNft
   return {
     ID: normalizedId,
     Name: typeof rawName === "string" ? rawName : null,
+    Batch:
+      typeof rawBatch === "string"
+        ? rawBatch
+        : typeof rawBatch === "number"
+          ? String(rawBatch)
+          : null,
     Department: typeof rawDepartment === "string" ? rawDepartment : null,
     "TBC Email": typeof rawEmail === "string" ? rawEmail : null,
     UUID: typeof rawUuid === "string" ? rawUuid : null,

@@ -49,6 +49,8 @@ export async function POST(request: Request, context: RouteContext) {
       .update({
         owner_address: record.claim_wallet_address,
         custody_status: 'member',
+        claim_wallet_address: null,
+        claim_requested_at: null,
         claimed_at: now,
         update_tx_hash: result.signature,
         updated_on_chain_at: now,

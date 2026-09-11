@@ -5,7 +5,7 @@ import {
   NftRequestCurrentMemberError,
   resolveCurrentNftRequestMember,
 } from '@/lib/server/nftRequestCurrentMember'
-import { getSupabaseAdminClient } from '@/lib/server/supabaseAdmin'
+import { requireNftRequestAdmin } from '@/lib/server/nftRequestAdmin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 export const dynamic = 'force-dynamic'
@@ -36,28 +36,36 @@ export async function GET(request: NextRequest) {
   const requestId = request.nextUrl.searchParams.get('id')?.trim()
   if (!requestId) return new NextResponse('Missing request id.', { status: 400 })
 
-  const supabase = await createSupabaseServerClient()
-  const { data: row, error: rowError } = await supabase
-    .from('nft_requests')
-    .select('image_path, request_image_bucket')
-    .eq('id', requestId)
-    .maybeSingle()
-  if (rowError || !row) return new NextResponse('Image not found.', { status: 404 })
+  try {
+    const supabase = await createSupabaseServerClient()
+    const { member, dataClient } = await resolveCurrentNftRequestMember(supabase, request)
+    const { data: row, error: rowError } = await dataClient
+      .from('nft_requests')
+      .select('member_id, image_path, request_image_bucket')
+      .eq('id', requestId)
+      .maybeSingle()
+    if (rowError || !row) return new NextResponse('Image not found.', { status: 404 })
 
-  const storageClient = getSupabaseAdminClient() ?? supabase
-  const { data, error } = await storageClient.storage
-    .from(row.request_image_bucket || NFT_REQUEST_IMAGE_BUCKET)
-    .download(row.image_path)
-  if (error || !data) return new NextResponse('Image not found.', { status: 404 })
+    if (Number(row.member_id) !== member.ID) {
+      await requireNftRequestAdmin(supabase, request)
+    }
 
-  return new NextResponse(await data.arrayBuffer(), {
-    status: 200,
-    headers: {
-      'Cache-Control': 'private, no-store, max-age=0',
-      'Content-Length': String(data.size),
-      'Content-Type': data.type || 'application/octet-stream',
-    },
-  })
+    const { data, error } = await dataClient.storage
+      .from(row.request_image_bucket || NFT_REQUEST_IMAGE_BUCKET)
+      .download(row.image_path)
+    if (error || !data) return new NextResponse('Image not found.', { status: 404 })
+
+    return new NextResponse(await data.arrayBuffer(), {
+      status: 200,
+      headers: {
+        'Cache-Control': 'private, no-store, max-age=0',
+        'Content-Length': String(data.size),
+        'Content-Type': data.type || 'application/octet-stream',
+      },
+    })
+  } catch {
+    return new NextResponse('Image not found.', { status: 404 })
+  }
 }
 
 export async function POST(request: Request) {

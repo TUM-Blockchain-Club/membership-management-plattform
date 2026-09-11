@@ -88,6 +88,7 @@ export type CurrentNftRequestResponse = {
   member: {
     id: number
     name: string | null
+    batch: string | null
     email: string | null
     department: string | null
   }

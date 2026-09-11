@@ -78,7 +78,6 @@ const loadCurrentNftRequest = async (): Promise<CurrentNftRequestResponse> => {
 export function useNftStatus(member: DashboardMember | null) {
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [displayName, setDisplayName] = useState("")
-  const [batch, setBatch] = useState("")
   const [hasConsented, setHasConsented] = useState(false)
   const [displayNameManuallyEdited, setDisplayNameManuallyEdited] = useState(false)
   const [funFacts, setFunFacts] = useState("")
@@ -94,6 +93,7 @@ export function useNftStatus(member: DashboardMember | null) {
   const [currentMemberProfile, setCurrentMemberProfile] = useState<{
     id: number
     name: string | null
+    batch: string | null
     email: string | null
     department: string | null
   } | null>(null)
@@ -124,6 +124,7 @@ export function useNftStatus(member: DashboardMember | null) {
   )
 
   const selectedFileName = selectedFile?.name ?? null
+  const batch = currentMemberProfile?.batch?.trim() || "Not set"
   const currentMemberName = currentMemberProfile?.name?.trim() || member?.Name?.trim() || null
   const loadingExistingRequest = isLoading && !existingRequest && !requestLookupError
   const statusCopy = getRequestStatusCopy(existingRequest, loadingExistingRequest)
@@ -310,7 +311,6 @@ export function useNftStatus(member: DashboardMember | null) {
     requestLookupError,
     saving,
     selectedFileName,
-    setBatch,
     setDeleteConfirmationArmed: (armed: boolean) => {
       setDeleteConfirmationRequestId(armed ? existingRequest?.id ?? null : null)
     },
