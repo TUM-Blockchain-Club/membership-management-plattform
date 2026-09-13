@@ -8,7 +8,7 @@ import { SocialBrandIcon } from './SocialBrandIcon'
 export function MemberSocialLinks({ member }: { member: DashboardMember }) {
   const email = member['TBC Email']?.trim()
   if (!email && !SOCIAL_PLATFORMS.some(platform => member[platform]?.trim())) return null
-  return <div className="flex flex-wrap items-center gap-1" aria-label="Contact and social profiles">
+  return <div className="flex flex-wrap items-center justify-end gap-1" aria-label="Contact and social profiles">
     {email && <Button asChild variant="outline" size="icon-sm" title={`Email ${email}`}>
       <a href={`mailto:${encodeURIComponent(email)}`} aria-label={`Email ${member.Name || 'Member'}: ${email}`}>
         <MailIcon aria-hidden="true" />

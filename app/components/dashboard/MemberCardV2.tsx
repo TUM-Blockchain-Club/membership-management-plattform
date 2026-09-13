@@ -7,7 +7,6 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
 import { cn } from '@/lib/utils'
 import type { DashboardMember } from './types'
 
@@ -100,14 +99,15 @@ export const MemberCardV2 = memo(function MemberCardV2({
     : 'bg-indigo-500/10 border-indigo-500/25 text-indigo-300'
 
   return (
-    <Card className="py-0 group transition-colors hover:bg-white/[0.025]">
-      <CardContent className="p-4 flex flex-col gap-3">
+    <Card data-member-card className="h-full overflow-hidden py-0 transition-colors hover:border-muted-foreground/30">
+      <CardContent className="grid min-h-44 h-full grid-cols-[34%_minmax(0,1fr)] p-0">
 
         {/* ── Identity row ─────────────────────────────────── */}
-        <div className="flex items-start gap-3 sm:gap-4">
-          <Avatar className={cn('size-14 sm:size-16 md:size-20 ring-2 shrink-0', avatarRingClass(roleLabel, statusLabel))}>
+        <div className="flex items-center justify-center py-4 pl-4">
+          <Avatar className={cn('aspect-square h-auto w-full rounded-full ring-2', avatarRingClass(roleLabel, statusLabel))}>
             {pictureUrl && (
               <AvatarImage
+                className="rounded-full object-cover object-center"
                 src={pictureUrl}
                 alt={member?.Name || 'Member'}
                 decoding="async"
@@ -115,14 +115,16 @@ export const MemberCardV2 = memo(function MemberCardV2({
                 fetchPriority={isOwnProfile ? 'high' : 'low'}
               />
             )}
-            <AvatarFallback className={cn('bg-gradient-to-br text-foreground font-bold text-lg sm:text-xl md:text-2xl', avatarFallbackClass(roleLabel, statusLabel))}>
+            <AvatarFallback className={cn('bg-gradient-to-br text-foreground font-bold text-3xl', avatarFallbackClass(roleLabel, statusLabel))}>
               {initials}
             </AvatarFallback>
           </Avatar>
+        </div>
 
-          <div className="flex-1 min-w-0">
+        <div className="flex min-w-0 flex-col gap-3 p-3 sm:p-4">
+          <div className="min-w-0">
             <div className="flex items-start gap-1.5">
-              <p className="text-sm sm:text-base font-semibold text-foreground truncate leading-snug flex-1">
+              <p className="text-sm sm:text-base font-semibold text-foreground leading-snug flex-1 min-w-0 break-words">
                 {member?.Name}
               </p>
               {specialLabel && (
@@ -132,7 +134,7 @@ export const MemberCardV2 = memo(function MemberCardV2({
               )}
             </div>
 
-            <p className={cn('text-xs sm:text-sm font-medium mt-0.5 truncate', roleTextClass(roleLabel))}>
+            <p className={cn('text-xs font-medium mt-1 leading-relaxed', roleTextClass(roleLabel))}>
               {roleLabel}
               {isCoreMember && departmentLabel ? ` · ${departmentLabel}` : ''}
             </p>
@@ -146,37 +148,35 @@ export const MemberCardV2 = memo(function MemberCardV2({
                   </Badge>
                 )}
                 {!isCoreMember && departmentLabel && (
-                  <Badge variant="outline" className="text-[10px] h-5 px-1.5 bg-secondary border-border text-muted-foreground truncate max-w-[140px]">
+                  <Badge variant="outline" className="text-[10px] min-h-5 px-1.5 bg-secondary border-border text-muted-foreground whitespace-normal">
                     {departmentLabel}
                   </Badge>
                 )}
               </div>
             )}
           </div>
-        </div>
 
-        {/* ── Footer: contact actions + edit ────────────────── */}
-        <Separator />
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <MemberSocialLinks member={member} />
-          {canEdit && (onEditSelf || onEditOther) && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleEdit}
-              className={cn(
-                'ml-auto shrink-0 text-xs',
-                isOwnProfile
-                  ? 'border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300'
-                  : 'border-border text-muted-foreground hover:text-foreground hover:bg-secondary',
-              )}
-            >
-              <EditIcon data-icon="inline-start" />
-              {isOwnProfile ? 'My Profile' : 'Edit'}
-            </Button>
-          )}
+          {/* Actions stay in the detail column; the portrait spans the full card. */}
+          <div className="mt-auto flex flex-col items-end gap-2">
+            {canEdit && (onEditSelf || onEditOther) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEdit}
+                className={cn(
+                  'ml-auto shrink-0 text-xs',
+                  isOwnProfile
+                    ? 'border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300'
+                    : 'border-border text-muted-foreground hover:text-foreground hover:bg-secondary',
+                )}
+              >
+                <EditIcon data-icon="inline-start" />
+                {isOwnProfile ? 'My Profile' : 'Edit'}
+              </Button>
+            )}
+            <MemberSocialLinks member={member} />
+          </div>
         </div>
-
       </CardContent>
     </Card>
   )
