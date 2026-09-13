@@ -309,7 +309,7 @@ export function MemberHomePage({
             </div>
           </CardContent>
           <CardFooter className="mt-auto justify-end border-border bg-muted/30">
-            <Button asChild variant="outline">
+            <Button asChild>
               <Link href="/nft-status">
                 View NFT status
                 <ArrowRightIcon data-icon="inline-end" />
