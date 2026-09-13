@@ -78,7 +78,6 @@ export const MemberCardV2 = memo(function MemberCardV2({
   const roleLabel       = member?.Role?.trim()       || 'Member'
   const statusLabel     = member?.Status?.trim()     || ''
   const departmentLabel = member?.Department?.trim() || ''
-  const emailLabel      = member?.['TBC Email']?.trim() || 'No email'
   const pictureUrl      = getPictureUrl(member?.Picture)
   const initials        = member?.Name?.split(' ').map((n: string) => n[0]).join('').slice(0, 2) || '?'
 
@@ -156,19 +155,17 @@ export const MemberCardV2 = memo(function MemberCardV2({
           </div>
         </div>
 
-        <MemberSocialLinks member={member} />
-
-        {/* ── Footer: email + edit ──────────────────────────── */}
+        {/* ── Footer: contact actions + edit ────────────────── */}
         <Separator />
-        <div className="flex items-center justify-between gap-2">
-          <p className="text-xs sm:text-sm text-muted-foreground truncate flex-1">{emailLabel}</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <MemberSocialLinks member={member} />
           {canEdit && (onEditSelf || onEditOther) && (
             <Button
               variant="outline"
               size="sm"
               onClick={handleEdit}
               className={cn(
-                'shrink-0 text-xs',
+                'ml-auto shrink-0 text-xs',
                 isOwnProfile
                   ? 'border-blue-500/30 text-blue-400 hover:bg-blue-500/10 hover:text-blue-300'
                   : 'border-border text-muted-foreground hover:text-foreground hover:bg-secondary',
