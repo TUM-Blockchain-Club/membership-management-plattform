@@ -1,4 +1,5 @@
 import { NftDraftPreview } from './nft-draft-preview'
+import { NftLegalDialog } from './nft-legal-dialog'
 import { useId } from 'react'
 import { NFT_CONSENT_TEXT, NFT_LEGAL_VERSION } from '@/lib/nftLegal'
 import { AlertTriangleIcon, Building2Icon, CopyIcon, FileImageIcon, WalletIcon } from 'lucide-react'
@@ -264,9 +265,9 @@ export function NftConsentField({
           </FieldDescription>
           <FieldDescription className="text-xs text-gray-400">
             Version {NFT_LEGAL_VERSION}. Read the{' '}
-            <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Terms of Service</a>
+            <NftLegalDialog document="terms" />
             {' '}and{' '}
-            <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Privacy Policy</a>.
+            <NftLegalDialog document="privacy" />.
           </FieldDescription>
         </FieldContent>
       </Field>

@@ -52,9 +52,11 @@ batch/club period, member flex, and membership status.
 
 The batch displayed in the request form is read-only and comes from
 `members_main.Batch`. This keeps the member form, board preview, rendered
-artwork, and on-chain metadata on the same authoritative value. Public
-`/terms` and `/privacy` routes explain the publication and retention model
-before consent is submitted.
+artwork, and on-chain metadata on the same authoritative value. The application
+and consent-renewal forms show Terms and Privacy in scrollable Radix dialogs,
+preserving form state. Reading or closing a dialog does not grant consent.
+Both dialogs use the same versioned legal text as the consent evidence. Existing
+`/terms` and `/privacy` URLs remain available for references in accepted documents.
 
 ## Signing and authority
 
