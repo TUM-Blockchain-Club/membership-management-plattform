@@ -336,6 +336,7 @@ export function useNftStatus(member: DashboardMember | null) {
     requestLookupError,
     requestedWalletAddress,
     saving,
+    selectedFile,
     selectedFileName,
     setDeleteConfirmationArmed: (armed: boolean) => {
       setDeleteConfirmationRequestId(armed ? existingRequest?.id ?? null : null)

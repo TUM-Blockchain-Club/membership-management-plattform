@@ -1,3 +1,4 @@
+import { NftDraftPreview } from './nft-draft-preview'
 import { useId } from 'react'
 import { NFT_CONSENT_TEXT, NFT_LEGAL_VERSION } from '@/lib/nftLegal'
 import { AlertTriangleIcon, Building2Icon, CopyIcon, FileImageIcon, WalletIcon } from 'lucide-react'
@@ -166,6 +167,8 @@ export function NftApplicationForm({ state }: NftStatusSectionsProps) {
         />
         <FieldDescription className="text-white/40">Limited to 50 characters.</FieldDescription>
       </Field>
+
+      <NftDraftPreview file={state.selectedFile} displayName={displayName} funFacts={funFacts} />
 
       <NftConsentField hasConsented={hasConsented} saving={saving} setHasConsented={setHasConsented} />
 

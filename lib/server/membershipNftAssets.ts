@@ -165,21 +165,27 @@ export const renderMembershipImage = async (
     throw new Error(sourceError?.message || 'Could not load the member image.')
   }
 
+  return renderMembershipDraft({ name: record.request.display_name, flex: record.request.fun_facts, department: record.member.department, batch: record.member.batch, image: Buffer.from(await sourceImage.arrayBuffer()), assetState })
+}
+
+export const renderMembershipDraft = async ({ name, flex, department, batch, image, assetState }: {
+  name: string; flex: string | null; department: string | null; batch: string | null; image: Buffer; assetState: 'active' | 'alumni'
+}) => {
   const alumniYear = assetState === 'alumni' ? new Date().getUTCFullYear() : null
-  const membershipPeriod = record.member.batch
+  const membershipPeriod = batch
     ? assetState === 'alumni'
-      ? `Batch ${record.member.batch} – ${alumniYear}`
-      : `Batch ${record.member.batch} – Present`
+      ? `Batch ${batch} – ${alumniYear}`
+      : `Batch ${batch} – Present`
     : assetState === 'alumni'
       ? `Alumni ${alumniYear}`
       : 'Active member'
   return buildNftImage({
-    nickname: record.request.display_name,
-    batch: record.member.batch ? `B${record.member.batch}` : 'TBC',
-    degreeAtUni: record.member.department || 'TUM Blockchain Club',
-    programs: record.request.fun_facts || membershipPeriod,
-    department: record.member.department || 'Board',
-    imageBuffer: Buffer.from(await sourceImage.arrayBuffer()),
+    nickname: name,
+    batch: batch ? `B${batch}` : 'TBC',
+    degreeAtUni: department || 'TUM Blockchain Club',
+    programs: flex || membershipPeriod,
+    department: department || 'Board',
+    imageBuffer: image,
     membershipPeriod,
     membershipStatus: assetState === 'alumni' ? 'ALUMNI' : 'ACTIVE',
   })

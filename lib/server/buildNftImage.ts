@@ -66,7 +66,9 @@ export async function buildNftImage(params: {
     .toBuffer();
 
   // ── 2. Avatar ─────────────────────────────────────────────────────────────
-  let avatarBuffer: Buffer | null = imageBuffer ?? null;
+  let avatarBuffer: Buffer | null = imageBuffer
+    ? await sharp(imageBuffer, { limitInputPixels: 25_000_000 }).rotate().resize(AVATAR_W, AVATAR_H, { fit: 'cover' }).png().toBuffer()
+    : null;
   if (!avatarBuffer && imageUrl) {
     try {
       const res = await fetch(imageUrl);

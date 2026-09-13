@@ -7,10 +7,11 @@ import { cn } from '@/lib/utils'
 import styles from './nft-preview.module.css'
 
 /** Presentation only: the preview never claims minting, approval or ownership. */
-export function NftPreview({ imageUrl, displayName, onImageError, compact = false }: {
+export function NftPreview({ imageUrl, displayName, onImageError, compact = false, draft = false }: {
   imageUrl?: string | null
   displayName?: string | null
   onImageError?: () => void
+  draft?: boolean
   compact?: boolean
 }) {
   const root = useRef<HTMLDivElement>(null)
@@ -59,7 +60,7 @@ export function NftPreview({ imageUrl, displayName, onImageError, compact = fals
             <span className={styles.turn} data-flipped={flipped}>
               <span className={cn(styles.face, styles.front)} aria-hidden={flipped}>
                 {imageUrl ? (
-                  <Image src={imageUrl} alt={`Minted membership NFT for ${displayName || 'member'}`} fill unoptimized
+                  <Image src={imageUrl} alt={`${draft ? 'Draft' : 'Minted'} membership NFT for ${displayName || 'member'}`} fill unoptimized
                     sizes={compact ? '200px' : '340px'} className={styles.artwork} onError={onImageError} />
                 ) : (
                   <>
@@ -83,7 +84,7 @@ export function NftPreview({ imageUrl, displayName, onImageError, compact = fals
                   <span className={styles.backSymbol} aria-hidden="true" />
                   <span className={styles.backTitle}>{imageUrl ? 'One of us.' : 'Make it yours.'}</span>
                   <span className={styles.backCopy}>{imageUrl ? 'Your club membership, as a digital collectible.' : 'Your portrait. Your story. Your place in the club.'}</span>
-                  <span className={styles.backNote}>{imageUrl ? 'View your NFT status for ownership and on-chain details.' : 'Personalized artwork is created after your request is reviewed and minted.'}</span>
+                  <span className={styles.backNote}>{draft ? 'Draft preview. Nothing has been submitted or published.' : imageUrl ? 'View your NFT status for ownership and on-chain details.' : 'Personalized artwork is created after your request is reviewed and minted.'}</span>
                 </span>
                 <span className={styles.footer}>TBC MEMBERSHIP<ArrowUpRight size={16} /></span>
                 <span className={styles.rim} aria-hidden="true" />
