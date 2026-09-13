@@ -37,7 +37,7 @@
 .header { position: relative; display: flex; align-items: flex-start; justify-content: space-between; font: 500 clamp(8px,3cqw,11px)/1.45 var(--font-geist-mono),monospace; letter-spacing: .03em; color: #e4d9f1; }
 .edition { text-align: right; color: #c4b2d8; font-size: .85em; }
 .sculpture { position: absolute; width: 76%; aspect-ratio: 1; top: 17%; left: 12%; }
-.symbol, .symbolShadow, .backSymbol { position: absolute; inset: 17%; mask: url('/assets/tbc-symbol-transparent.png') center/contain no-repeat; }
+.symbol, .symbolShadow, .backSymbol { position: absolute; inset: 17%; mask: url('/assets/tbc-mark-white.svg') center/contain no-repeat; }
 .symbolShadow { background: #190b28; transform: translate(5px,9px); }
 .symbol {
   background: linear-gradient(135deg,#f7edff 5%,#bf8fe9 23%,#f2e8ff 34%,#8752c2 43%,#b29add 53%,#efd6eb 63%,#d4b7f5 77%,#fcf3ff 90%);
