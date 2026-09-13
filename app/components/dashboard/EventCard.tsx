@@ -201,13 +201,14 @@ export function ExternalEventCard({
 }: ExternalEventCardProps) {
   const frameClass = priorityFrameClass(priority)
   const image = imageUrl ? (
-    <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted">
+    <div className="relative h-full min-h-52 w-full overflow-hidden bg-muted">
+      <Image src={imageUrl} alt="" fill sizes="(min-width: 1024px) 190px, 33vw" className="scale-110 object-cover opacity-25 blur-xl" unoptimized />
       <Image
         src={imageUrl}
         alt=""
         fill
-        sizes="(min-width: 640px) 112px, 80px"
-        className="object-contain p-2"
+        sizes="(min-width: 1024px) 190px, 33vw"
+        className="object-contain p-2 sm:p-3"
         unoptimized
       />
     </div>
@@ -215,18 +216,18 @@ export function ExternalEventCard({
 
   return (
     <div className={cn('h-full rounded-xl', frameClass)}>
-      <Card className={cn('grid h-full grid-cols-[80px_minmax(0,1fr)] grid-rows-[auto_1fr_auto] items-start gap-3 p-3 has-data-[slot=card-footer]:pb-3 sm:grid-cols-[112px_minmax(0,1fr)] sm:gap-4 sm:p-4 sm:has-data-[slot=card-footer]:pb-4', frameClass && 'ring-0')}>
-        <div className="col-start-1 row-span-2">
+      <Card className={cn('grid h-full grid-cols-[minmax(0,1fr)_minmax(0,2fr)] grid-rows-[auto_1fr_auto] items-start gap-x-0 gap-y-3 p-0 has-data-[slot=card-footer]:pb-0', frameClass && 'ring-0')}>
+        <div className="col-start-1 row-start-1 row-span-3 h-full self-stretch border-r border-border/50">
         {imageLinkUrl && image ? (
-          <a href={imageLinkUrl} target="_blank" rel="noreferrer" className="block">
+          <a href={imageLinkUrl} target="_blank" rel="noreferrer" className="block h-full">
             {image}
           </a>
         ) : (
-          image || <div className="flex aspect-square items-center justify-center rounded-lg bg-muted"><CalendarDaysIcon className="size-8 text-muted-foreground" /></div>
+          image || <div className="flex h-full min-h-52 items-center justify-center bg-muted"><CalendarDaysIcon className="size-8 text-muted-foreground" /></div>
         )}
         </div>
 
-        <CardHeader className="col-start-2 px-0">
+        <CardHeader className="col-start-2 min-w-0 px-3 pt-4 sm:px-4">
           <div className="flex min-w-0 items-start gap-3">
             <div className="min-w-0 flex-1">
               <CardTitle className="line-clamp-2 leading-snug">{title}</CardTitle>
@@ -254,9 +255,9 @@ export function ExternalEventCard({
           )}
         </CardHeader>
 
-        <CardContent className="col-start-2 flex flex-col gap-2 px-0">
+        <CardContent className="col-start-2 min-w-0 flex flex-col gap-3 px-3 sm:px-4">
           <div className="flex flex-wrap gap-1.5">
-            {eventType && <Badge variant="secondary">{eventType}</Badge>}
+            {eventType && <Badge variant="secondary" className={cn(eventType.toLowerCase() === 'conference' && 'bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-500/20', eventType.toLowerCase() === 'hackathon' && 'bg-blue-500/15 text-blue-300 ring-1 ring-inset ring-blue-500/20')}>{eventType}</Badge>}
             {status && <Badge variant="outline">{status}</Badge>}
             {format && <Badge variant="outline">{format}</Badge>}
           </div>
@@ -276,9 +277,9 @@ export function ExternalEventCard({
           )}
         </CardContent>
 
-        <CardFooter className="col-span-2 flex-col gap-2 rounded-none border-t border-border/60 bg-transparent px-0 pt-3 pb-0">
+        <CardFooter className="col-start-2 min-w-0 flex-col gap-2 rounded-none border-0 bg-transparent px-3 pt-1 pb-4 sm:px-4">
           {/* Interest count + toggle — always visible */}
-          <div className="flex w-full items-center gap-2">
+          <div className="flex w-full flex-wrap items-center gap-2">
             <Button
               variant="secondary"
               size="sm"
@@ -312,7 +313,7 @@ export function ExternalEventCard({
 
           {(tallyUrl || whatsappUrl) && (
             // Apply + WhatsApp row — shown whenever at least one link is set
-            <div className="flex w-full gap-2">
+            <div className="flex w-full flex-wrap gap-2">
               {tallyUrl && (
                 <Button asChild size="sm" className="flex-1">
                   <a href={tallyUrl} target="_blank" rel="noreferrer">

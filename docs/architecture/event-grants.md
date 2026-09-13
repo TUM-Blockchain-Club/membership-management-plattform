@@ -14,3 +14,9 @@ External event cards use one column on small screens and two from the desktop
 breakpoint onward. Rows stretch cards equally; the image stays beside the event
 information and the Interest/Grant actions align at the bottom. The Event Grants
 sidebar entry follows Admin Access for users who can access both.
+
+The external-card image rail occupies the left third across the full card
+height. A subdued blurred image fills the rail behind the uncropped original,
+so wide conference logos and portrait posters remain readable. Details and
+all actions occupy the right two thirds; actions wrap on narrow screens.
+Conference tags use green, hackathon tags blue, with text labels retained.
