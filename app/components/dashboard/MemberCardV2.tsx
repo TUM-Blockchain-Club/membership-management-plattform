@@ -124,7 +124,7 @@ export const MemberCardV2 = memo(function MemberCardV2({
         <div className="flex min-w-0 flex-col gap-3 p-3 sm:p-4">
           <div className="min-w-0">
             <div className="flex items-start gap-1.5">
-              <p className="text-sm sm:text-base font-semibold text-foreground leading-snug flex-1 min-w-0 break-words">
+              <p className="text-sm sm:text-base font-bold text-foreground leading-snug flex-1 min-w-0 break-words">
                 {member?.Name}
               </p>
               {specialLabel && (
