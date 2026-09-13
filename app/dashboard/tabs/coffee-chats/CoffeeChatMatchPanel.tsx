@@ -1,5 +1,6 @@
 'use client'
 
+import { CoffeeChatPartnerSummary } from './CoffeeChatPartnerSummary'
 import { useRef, useState, useTransition } from 'react'
 import { CameraIcon, CheckCircleIcon, MapPinIcon } from 'lucide-react'
 import { toast } from 'sonner'
@@ -91,8 +92,7 @@ export function CoffeeChatMatchPanel({ initialMatch }: { initialMatch: CoffeeCha
         {match.partners.map((partner) => (
           <Card key={partner.id}>
             <CardHeader>
-              <CardTitle>{partner.name}</CardTitle>
-              {partner.department && <CardDescription>{partner.department}</CardDescription>}
+              <CoffeeChatPartnerSummary partners={[partner]} />
             </CardHeader>
             <CardContent className="flex flex-col gap-3">
               {partner.favouriteSpots.length > 0 ? (

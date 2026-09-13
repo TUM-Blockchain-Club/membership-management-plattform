@@ -81,3 +81,11 @@ cached. Deadline edits accept UTC timestamps or null, validate ordering and
 update only the two existing deadline fields. The UI shows local dates and
 times and preserves untouched timestamps. Reading a round never runs pairing
 or modifies signups. No database migration is required.
+
+Home and the match view show partner avatars (with initials when absent), names
+and departments. Home also shows the meeting deadline. Partner image URLs use
+the same legacy-picture decoding as member cards. An unfinished match no longer
+hides a later signup round: a separate notice links Home to the signup action on
+Coffee Chats while retaining the current match. The notice distinguishes joined,
+open and deadline-passed rounds; joining still uses the existing authenticated
+signup endpoint and profile requirements. Two partners are supported for triples.

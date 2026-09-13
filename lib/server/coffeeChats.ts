@@ -1,4 +1,5 @@
 import 'server-only'
+import { getPictureUrl } from '@/app/dashboard/lib/memberUtils'
 
 import { cache } from 'react'
 import { getRequestMember } from '@/lib/server/requestMember'
@@ -70,6 +71,7 @@ type PairWithRoundRow = PairRow & {
 }
 
 type PartnerRow = {
+  Picture: unknown
   id: number
   Name: string | null
   Department: string | null
@@ -167,7 +169,7 @@ export async function loadCoffeeChatHome(): Promise<CoffeeChatHomeData | null> {
     const [partnersResult, selfieResult] = await Promise.all([
       dataClient
         .from('members_main')
-        .select('id, Name, Department, cc_interests, cc_favourite_coffee, cc_favourite_spots, cc_fun_fact')
+        .select('id, Name, Picture, Department, cc_interests, cc_favourite_coffee, cc_favourite_spots, cc_fun_fact')
         .in('id', partnerIds),
       pair.selfie_path && admin
         ? admin.storage.from('coffee-chat-selfies').createSignedUrl(pair.selfie_path, 60 * 60)
@@ -188,6 +190,7 @@ export async function loadCoffeeChatHome(): Promise<CoffeeChatHomeData | null> {
       partners: ((partnersResult.data ?? []) as PartnerRow[]).map((partner) => ({
         id: partner.id,
         name: partner.Name ?? 'Your match',
+        picture: getPictureUrl(partner.Picture),
         department: partner.Department,
         interests: partner.cc_interests ?? [],
         favouriteCoffee: partner.cc_favourite_coffee,

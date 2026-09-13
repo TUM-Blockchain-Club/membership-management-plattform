@@ -28,9 +28,11 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { CoffeeChatPartnerSummary } from '../coffee-chats/CoffeeChatPartnerSummary'
+import { CoffeeChatNextRoundNotice } from '../coffee-chats/CoffeeChatNextRoundNotice'
 import { NftPreview } from '@/components/nft-preview'
 import { Progress } from '@/components/ui/progress'
-import { getCoffeeChatNextStep, type CoffeeChatHomeData } from '@/lib/coffee-chats'
+import { getCoffeeChatNextStep, getAdditionalCoffeeChatRound, type CoffeeChatHomeData } from '@/lib/coffee-chats'
 
 const PROFILE_CHECKLIST = [
   { key: 'Department', label: 'Department' },
@@ -132,6 +134,8 @@ export function MemberHomePage({
   const completedProfileItems = checklist.filter((item) => item.complete).length
   const profileProgress = Math.round((completedProfileItems / checklist.length) * 100)
   const coffeeChat = getCoffeeChatOverview(coffeeChatData)
+  const pendingMatch = coffeeChatData?.match?.pair.status !== 'met' ? coffeeChatData?.match : null
+  const nextRound = coffeeChatData ? getAdditionalCoffeeChatRound(coffeeChatData) : null
   const pictureUrl = dashboard.getPictureUrl(member?.Picture)
   const profileReminder = !hasValue(member?.Department)
     ? { message: "You haven't selected a department yet. Choose your department in your profile.", action: 'Choose department' }
@@ -163,10 +167,9 @@ export function MemberHomePage({
               <Badge variant="secondary">{coffeeChat.label}</Badge>
             </CardAction>
           </CardHeader>
-          <CardContent className="flex-1">
-            <p className="max-w-2xl text-base leading-relaxed text-foreground">
-              {coffeeChat.description}
-            </p>
+          <CardContent className="flex-1 space-y-4">
+            {pendingMatch ? <CoffeeChatPartnerSummary partners={pendingMatch.partners} meetDeadline={pendingMatch.round.meetDeadline} /> : <p className="max-w-2xl text-base leading-relaxed text-foreground">{coffeeChat.description}</p>}
+            {nextRound && coffeeChatData && <CoffeeChatNextRoundNotice round={nextRound} isSignedUp={coffeeChatData.isSignedUp} profileIsComplete={coffeeChatData.isProfileComplete} />}
           </CardContent>
           <CardFooter className="mt-auto justify-end border-border bg-muted/30">
             <Button asChild>

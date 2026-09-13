@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test'
 
 import {
   buildMeetingUpdate,
+  demoMatch,
+  getAdditionalCoffeeChatRound,
   canShowCoffeeChatAdmin,
   dateToCalendarDate,
   escapeEmailHtml,
@@ -332,4 +334,16 @@ test('completing a meeting explicitly records status and sign-off', () => {
     date_met: '2026-07-28',
     highlight_note: 'Talked about account abstraction.',
   })
+})
+
+ test('unfinished match retains a separate newer signup round, without duplicates for older or same rounds', () => {
+  const match = { ...demoMatch, pair: { ...demoMatch.pair, status: 'pending' } }
+  const openRound = { ...match.round, id: 'new-round', month: '2027-01', status: 'open' }
+  const data = { firstName: 'Alex', isProfileComplete: true, isSignedUp: false, match, openRound }
+  expect(getAdditionalCoffeeChatRound(data)).toEqual(openRound)
+  expect(getAdditionalCoffeeChatRound({ ...data, isSignedUp: true })).toEqual(openRound)
+  expect(getAdditionalCoffeeChatRound({ ...data, openRound: match.round })).toBeNull()
+  expect(getAdditionalCoffeeChatRound({ ...data, openRound: { ...openRound, month: '2020-01' } })).toBeNull()
+  expect(getAdditionalCoffeeChatRound({ ...data, match: null })).toBeNull()
+  expect(getAdditionalCoffeeChatRound({ ...data, match: { ...match, pair: { ...match.pair, status: 'met' } } })).toBeNull()
 })
