@@ -105,3 +105,11 @@ the consent-enabled NFT routes. It adds private receipts and a service-only atom
 submission/renewal RPC and restricts direct browser writes to NFT requests. Do not
 rerun the older request setup alone: apply the consent script afterward to restore
 its stricter grants. Existing requests require member consent; nothing is backfilled.
+
+## Central admin access
+
+Apply `admin_access.sql` after the legacy feature setup scripts, before deploying
+the central board-only roles UI. It preserves permissions and replaces the old
+assignment tables with read-only views. After this migration, do not reapply the
+legacy Coffee Chat/NFT/bootstrap role scripts over those views. See
+`docs/architecture/admin-access.md` for rollout and regression tests.

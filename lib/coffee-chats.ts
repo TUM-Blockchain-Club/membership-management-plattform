@@ -6,14 +6,13 @@ import type { Database } from '@/lib/types/database.types'
 
 export type CoffeeChatAdminViewInput = {
   forceMemberView: boolean
-  hasSpecialAccess: boolean
   isBoardMember: boolean
   isCoffeeChatAdmin?: boolean
 }
 
 export function canShowCoffeeChatAdmin(input: CoffeeChatAdminViewInput): boolean {
   if (input.forceMemberView) return false
-  return input.hasSpecialAccess || input.isBoardMember || Boolean(input.isCoffeeChatAdmin)
+  return input.isBoardMember || Boolean(input.isCoffeeChatAdmin)
 }
 
 /* ==========================================================================

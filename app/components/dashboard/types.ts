@@ -31,6 +31,7 @@ export type DashboardStats = {
 }
 
 export type DashboardTab =
+  | 'admin-access'
   | 'home'
   | 'profile'
   | 'coffee-chats'

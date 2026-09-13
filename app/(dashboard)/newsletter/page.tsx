@@ -8,7 +8,7 @@ export default function Page() {
   const d = use(DashboardContext)!
   return (
     <NewsletterPage
-      effectiveHasSpecialAccess={d.effectiveHasSpecialAccess}
+      canManageNewsletter={d.showNewsletterTab}
     />
   )
 }

@@ -231,7 +231,6 @@ test('normal member view hides Coffee Chat administration for board members', ()
   expect(
     canShowCoffeeChatAdmin({
       forceMemberView: true,
-      hasSpecialAccess: false,
       isBoardMember: true,
     }),
   ).toBe(false)
@@ -241,7 +240,7 @@ test('Coffee Chat administration is visible with effective admin access', () => 
   expect(
     canShowCoffeeChatAdmin({
       forceMemberView: false,
-      hasSpecialAccess: true,
+      isCoffeeChatAdmin: true,
       isBoardMember: false,
     }),
   ).toBe(true)
@@ -299,7 +298,6 @@ test('Coffee Chat administration is visible for assigned coffee chat admins', ()
   expect(
     canShowCoffeeChatAdmin({
       forceMemberView: false,
-      hasSpecialAccess: false,
       isBoardMember: false,
       isCoffeeChatAdmin: true,
     }),

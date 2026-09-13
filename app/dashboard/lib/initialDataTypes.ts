@@ -8,6 +8,7 @@ export type DashboardInitialData = {
   allMembers: DashboardMember[]
   canManageNftRequests: boolean
   canManageCoffeeChats?: boolean
+  canManageNewsletter?: boolean
   events: DashboardEvent[]
   hasSpecialAccess: boolean
   member: DashboardMember | null

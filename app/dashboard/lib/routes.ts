@@ -1,6 +1,7 @@
 import type { DashboardTab } from '@/app/components/dashboard/types'
 
 export const TAB_ROUTES: Record<DashboardTab, string> = {
+  'admin-access': '/admin-access',
   home: '/home',
   profile: '/profile',
   'coffee-chats': '/coffee-chats',
@@ -16,6 +17,7 @@ export const TAB_ROUTES: Record<DashboardTab, string> = {
 }
 
 const PATHNAME_TO_TAB: Record<string, DashboardTab> = {
+  '/admin-access': 'admin-access',
   '/home': 'home',
   '/coffee-chats': 'coffee-chats',
   '/events': 'events',

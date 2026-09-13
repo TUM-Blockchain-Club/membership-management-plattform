@@ -93,10 +93,10 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
   const effectiveIsBoardMember = member?.Role === 'Board Member' && !forceMemberView
   const showLinkAnalyticsTab = (effectiveIsBoardMember || effectiveHasSpecialAccess) && !forceMemberView
   const showNftApprovalsTab = canManageNftRequests && !forceMemberView
-  const showNewsletterTab = effectiveIsBoardMember || effectiveHasSpecialAccess
+  const showAdminAccessTab = effectiveIsBoardMember
+  const showNewsletterTab = (effectiveIsBoardMember || initialData.canManageNewsletter === true) && !forceMemberView
   const canManageCoffeeChats = canShowCoffeeChatAdmin({
     forceMemberView,
-    hasSpecialAccess,
     isBoardMember: member?.Role === 'Board Member',
     isCoffeeChatAdmin: initialData.canManageCoffeeChats,
   })
@@ -114,6 +114,10 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     })
     setViewedMemberHasSpecialAccess((data as AccessResponse) === true)
   }, [])
+
+  useEffect(() => {
+    if (!loading && activeTab === 'admin-access' && !showAdminAccessTab) router.replace(TAB_ROUTES.home)
+  }, [activeTab, loading, router, showAdminAccessTab])
 
   useEffect(() => {
     if (!loading && activeTab === 'coffee-chats-admin' && !canManageCoffeeChats) {
@@ -403,6 +407,11 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
       return
     }
 
+    if (tab === 'admin-access' && !showAdminAccessTab) {
+      router.push(TAB_ROUTES.home)
+      return
+    }
+
     if (tab === 'coffee-chats-admin' && !canManageCoffeeChats) {
       router.push(TAB_ROUTES['coffee-chats'])
       return
@@ -414,7 +423,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     }
 
     router.push(TAB_ROUTES[tab])
-  }, [router, showNftApprovalsTab, canManageCoffeeChats, handleProfileTabSelected])
+  }, [router, showNftApprovalsTab, showAdminAccessTab, canManageCoffeeChats, handleProfileTabSelected])
 
   const canViewRemovedMembers = effectiveIsBoardMember || effectiveHasSpecialAccess
 
@@ -514,6 +523,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     showInterestedModal,
     showLinkAnalyticsTab,
     showMemberEditorModal,
+    showAdminAccessTab,
     showNewsletterTab,
     showNftApprovalsTab,
     showParticipantsModal,

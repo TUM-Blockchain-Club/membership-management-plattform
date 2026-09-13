@@ -32,7 +32,8 @@ member. The implementation is independent from other credential projects.
 
 All members with the `Board Member` role can administer NFT requests.
 Board members can also assign additional active members through the NFT
-administration page; those assignments live in `nft_admins`.
+board-only Admin Access page; those assignments live in `admin_assignments`
+with scope `nfts`. `nft_admins` remains a read-only compatibility view.
 
 ## Data and privacy
 

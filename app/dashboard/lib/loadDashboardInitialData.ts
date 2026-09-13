@@ -189,6 +189,8 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'a
   if (coffeeChatsDemoEnabled) {
     return {
       allMembers: [demoDashboardMember],
+      canManageCoffeeChats: true,
+      canManageNewsletter: true,
       canManageNftRequests: false,
       events: [],
       hasSpecialAccess: true,
@@ -329,6 +331,7 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'a
   const ccAdminAccessPromise = supabase.rpc('check_email_can_manage_coffee_chats', {
     check_email: user.email ?? '',
   })
+  const newsletterAccessPromise = supabase.rpc('check_email_can_manage_newsletter', { check_email: user.email ?? '' })
   const nftAdminAccessPromise = supabase.rpc('can_manage_nft_requests')
   const allMembersPromise = routeNeedsMembers(routeTab)
     ? supabase.from('members_main').select(MEMBER_COLUMNS).order('Name', { ascending: true })
@@ -342,12 +345,14 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'a
     { data: viewedMemberAccessResult },
     { data: ccAdminAccessResult },
     { data: nftAdminAccessResult },
+    { data: newsletterAccessResult },
     { data: allMembersData, error: allMembersError },
     events,
   ] = await Promise.all([
     viewedMemberAccessPromise,
     ccAdminAccessPromise,
     nftAdminAccessPromise,
+    newsletterAccessPromise,
     allMembersPromise,
     eventsPromise,
   ])
@@ -376,6 +381,7 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'a
   return {
     allMembers,
     canManageNftRequests: (nftAdminAccessResult as AccessResponse) === true,
+    canManageNewsletter: newsletterAccessResult === true,
     canManageCoffeeChats: (ccAdminAccessResult as AccessResponse) === true || (devBypass && hasLocalDevBypassSpecialAccess()),
     events,
     hasSpecialAccess: (specialAccessResult as AccessResponse) === true || (devBypass && hasLocalDevBypassSpecialAccess()),

@@ -183,9 +183,27 @@ schema and before deploying the RPC-based application. It preserves attendance.
 Do not rerun the legacy `lectures.sql` on an existing database: its prototype
 conversion drops attendance. See `docs/architecture/attendance.md`.
 
-### `public.nft_admins`
+### Scoped administrator access
 
-Additional NFT administrators assigned by board members. Every member whose
+`admin_assignments` is the canonical delegated-permissions table. Its composite
+primary key is `(member_id, scope)` with scopes `coffee_chats`, `nfts`,
+`newsletter`; it also records `assigned_by` and `created_at`. Board members have
+automatic access without assignments. `admin_access_audit` stores immutable
+application-level grant/revoke/import history with target, scope, actor member
+and auth IDs, and timestamp.
+
+Only `set_admin_access` can mutate assignments: it checks the authenticated Board
+Member in the database and appends audit evidence atomically. Direct mutations
+are revoked. Board-only server routes expose the management page; RLS allows
+non-board members to read only their own grants and no audit records.
+
+`cc_admins` and `nft_admins` are now read-only compatibility views. See
+`docs/architecture/admin-access.md` and `supabase/admin_access.sql`. Legacy setup
+files must not be rerun over these views.
+
+### `public.nft_admins` (compatibility view)
+
+Projects the `nfts` scope from `admin_assignments`. Every member whose
 `members_main.Role` is `Board Member` receives NFT administration access
 automatically and does not need a row here.
 
@@ -378,8 +396,8 @@ Constraints and indexes:
 | `current_member_id()` | `integer` | Resolves current authenticated user to `members_main.id`. |
 | `has_special_access()` | `boolean` | Checks whether the current user has special admin access. |
 | `check_email_has_special_access(check_email text)` | `boolean` | Checks special access for a supplied email. |
-| `check_email_can_manage_newsletter(check_email text)` | `boolean` | Checks newsletter manager access for board members or special-access users. |
-| `check_email_can_manage_coffee_chats(check_email text)` | `boolean` | Checks Coffee Chat administrator access for board members or special-access users. |
+| `check_email_can_manage_newsletter(check_email text)` | `boolean` | Checks Board Member or delegated `newsletter` access. |
+| `check_email_can_manage_coffee_chats(check_email text)` | `boolean` | Checks Board Member or delegated `coffee_chats` access. |
 | `check_email_can_manage_nft_requests(check_email text)` | `boolean` | Internal helper that checks NFT access for board members and explicitly assigned NFT administrators. |
 | `commit_coffee_chat_pairing(target_round_id uuid, pair_rows jsonb)` | `integer` | Locks an open round, validates participants, inserts all pairs, and advances the round atomically. Service-role only. |
 | `can_manage_nft_requests()` | `boolean` | Checks current-user NFT admin permissions. |
@@ -407,7 +425,7 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 ### Newsletter
 
 - Newsletter projects, assets, deliveries, and delivery events are managed by newsletter managers.
-- Newsletter managers are members with `Role = 'Board Member'` or users accepted by `check_email_has_special_access(check_email text)`.
+- Newsletter managers are Board Members or members explicitly assigned the `newsletter` scope; the existing newsletter permission function delegates to this central model.
 - API routes verify the same access through `check_email_can_manage_newsletter(check_email text)` before calling Mailgun or mutating newsletter data.
 
 ### Events And Registration
@@ -437,9 +455,9 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 
 ### Newsletter Projects
 
-- Authenticated special-access users can read, insert, update, and delete newsletter projects.
+- Authenticated Board Members and delegated Mail administrators can read, insert, update, and delete newsletter projects.
 - Inserts require `created_by = auth.uid()` in normal authenticated sessions.
-- Updates and deletes are shared across special-access users; `created_by` is audit metadata, not ownership enforcement.
+- Updates and deletes are shared across Mail administrators; `created_by` is audit metadata, not ownership enforcement.
 
 ### Newsletter Deliveries
 

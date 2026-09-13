@@ -10,6 +10,7 @@ import {
   CoffeeIcon,
   HexagonIcon,
   HouseIcon,
+  ShieldCheckIcon,
   LinkIcon,
   LogOutIcon,
   MailIcon,
@@ -52,6 +53,7 @@ type DashboardNavigationProps = {
   onTitleClick: () => void
   canUseMemberViewToggle: boolean
   showLinkAnalyticsTab: boolean
+  showAdminAccessTab: boolean
   showCoffeeChatsAdminTab: boolean
   showNftApprovalsTab: boolean
   showNewsletterTab: boolean
@@ -81,6 +83,7 @@ const NAVIGATION_GROUPS: Array<{ label: string; items: NavigationItem[] }> = [
   {
     label: 'Administration',
     items: [
+      { key: 'admin-access', label: 'Admin Access', icon: ShieldCheckIcon },
       { key: 'stats', label: 'Statistics', icon: BarChart3Icon },
       { key: 'link-analytics', label: 'Link Analytics', icon: LinkIcon },
       { key: 'coffee-chats-admin', label: 'Coffee Chats Admin', icon: CoffeeIcon },
@@ -116,6 +119,7 @@ export function DashboardSidebar({
   onTitleClick,
   canUseMemberViewToggle,
   showLinkAnalyticsTab,
+  showAdminAccessTab,
   showCoffeeChatsAdminTab,
   showNftApprovalsTab,
   showNewsletterTab,
@@ -127,6 +131,7 @@ export function DashboardSidebar({
   const memberName = member?.Name || 'Member'
   const memberEmail = member?.['TBC Email'] || 'TBC member account'
   const isItemVisible = (item: NavigationItem) => {
+    if (item.key === 'admin-access') return showAdminAccessTab
     if (item.key === 'coffee-chats-admin') return showCoffeeChatsAdminTab
     if (item.key === 'nft-approvals') return showNftApprovalsTab
     if (item.key === 'link-analytics') return showLinkAnalyticsTab

@@ -11,7 +11,6 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useNftApprovals } from "./useNftApprovals"
-import { NftAdminManagement } from "./NftAdminManagement"
 
 export function NftApprovalsPage() {
   const {
@@ -152,7 +151,6 @@ export function NftApprovalsPage() {
         </div>
       )}
 
-      <NftAdminManagement />
 
       {rejectingRequest && (
         <RejectModal

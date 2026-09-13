@@ -65,7 +65,7 @@ const GrapesEditor = dynamic(
 )
 
 type Props = {
-  effectiveHasSpecialAccess: boolean
+  canManageNewsletter: boolean
 }
 
 const formatUpdatedAt = (value: string) =>
@@ -366,22 +366,22 @@ function DeliveryHistory({
   )
 }
 
-export function NewsletterPage({ effectiveHasSpecialAccess }: Props) {
+export function NewsletterPage({ canManageNewsletter }: Props) {
   const editorRef = useRef<GrapesEditorHandle>(null)
   const [sendConfirmed, setSendConfirmed] = useState(false)
   const newsletter = useNewsletter(editorRef)
   const { fetchAssets, fetchDeliveries, fetchMailingLists, fetchProjects } = newsletter
 
   useEffect(() => {
-    if (!effectiveHasSpecialAccess) return
+    if (!canManageNewsletter) return
 
     void fetchAssets()
     void fetchDeliveries()
     void fetchProjects()
     void fetchMailingLists()
-  }, [effectiveHasSpecialAccess, fetchAssets, fetchDeliveries, fetchMailingLists, fetchProjects])
+  }, [canManageNewsletter, fetchAssets, fetchDeliveries, fetchMailingLists, fetchProjects])
 
-  if (!effectiveHasSpecialAccess) {
+  if (!canManageNewsletter) {
     return (
       <Empty className="min-h-80">
         <EmptyHeader>
@@ -389,7 +389,7 @@ export function NewsletterPage({ effectiveHasSpecialAccess }: Props) {
             <MailIcon />
           </EmptyMedia>
           <EmptyTitle>Newsletter access required</EmptyTitle>
-          <EmptyDescription>This workspace tool is only available to special-access users.</EmptyDescription>
+          <EmptyDescription>This workspace tool is available to board members and assigned Mail administrators.</EmptyDescription>
         </EmptyHeader>
       </Empty>
     )

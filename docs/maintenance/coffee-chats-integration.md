@@ -38,7 +38,9 @@ optional and progressively disclosed.
   and converted to UTC ISO timestamps before they are written to Supabase.
 - Member signup and pair reads remain protected by RLS. Administrative actions
   accept board members and delegated Coffee Chats administrators. Board members
-  can add or remove delegated administrators from the member directory.
+  manage delegated rights through the central `/admin-access` page. The
+  `cc_admins` relation is a read-only view of the `coffee_chats` scope in
+  `admin_assignments`; the Coffee Chats workspace has no role editor.
 
 ## Selfies
 
