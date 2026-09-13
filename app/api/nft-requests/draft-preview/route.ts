@@ -21,7 +21,7 @@ export async function POST(request: Request) {
       const bytes = Buffer.from(await file.arrayBuffer())
       const metadata = await sharp(bytes, { limitInputPixels: 25_000_000 }).metadata()
       if (!['jpeg', 'png', 'webp', 'avif', 'heif'].includes(metadata.format ?? '')) throw new Error('Unsupported image')
-      portrait = await sharp(bytes, { limitInputPixels: 25_000_000 }).png().toBuffer()
+      portrait = bytes // Shared renderer handles EXIF orientation and cropping exactly as for minting.
     } catch { return new NextResponse('Choose a valid PNG, JPEG or WebP portrait (up to 25 megapixels).', { status: 400 }) }
     const { data: profile, error: profileError } = await dataClient.from('members_main').select('Status').eq('id', member.ID).single()
     if (profileError) throw profileError
