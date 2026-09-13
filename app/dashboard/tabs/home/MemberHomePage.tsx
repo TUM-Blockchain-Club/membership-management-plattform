@@ -1,5 +1,6 @@
 'use client'
 
+import type { DashboardEvent } from '@/app/components/dashboard/types'
 import Link from 'next/link'
 import Image from 'next/image'
 import { use } from 'react'
@@ -114,10 +115,10 @@ function getCoffeeChatOverview(data: CoffeeChatHomeData | null) {
 
 export function MemberHomePage({
   coffeeChatData,
-  currentTime,
+  upcomingEvents,
 }: {
   coffeeChatData: CoffeeChatHomeData | null
-  currentTime: string
+  upcomingEvents: DashboardEvent[]
 }) {
   const dashboard = use(DashboardContext)!
   const member = dashboard.member
@@ -129,11 +130,6 @@ export function MemberHomePage({
   const profileProgress = Math.round((completedProfileItems / checklist.length) * 100)
   const coffeeChat = getCoffeeChatOverview(coffeeChatData)
   const pictureUrl = dashboard.getPictureUrl(member?.Picture)
-  const now = Date.parse(currentTime)
-  const upcomingEvents = dashboard.events.filter((event) => {
-    const end = Date.parse(event.end_at)
-    return Number.isNaN(end) || end >= now
-  }).slice(0, 2)
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6">

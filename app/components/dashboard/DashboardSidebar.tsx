@@ -1,6 +1,8 @@
 'use client'
 
 import type { ComponentType, SVGProps } from 'react'
+import Link from 'next/link'
+import { TAB_ROUTES } from '@/app/dashboard/lib/routes'
 import Image from 'next/image'
 import {
   BarChart3Icon,
@@ -193,15 +195,16 @@ export function DashboardSidebar({
                       return (
                         <SidebarMenuItem key={item.key}>
                           <SidebarMenuButton
-                            type="button"
+                            asChild
                             tooltip={item.label}
                             isActive={activeTab === item.key}
-                            onClick={() => handleNavigation(item.key)}
                             aria-current={activeTab === item.key ? 'page' : undefined}
                             className="h-9 px-3 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:px-2"
                           >
-                            <Icon />
-                            <span>{item.label}</span>
+                            <Link href={TAB_ROUTES[item.key]} onNavigate={() => { if (isMobile) setOpenMobile(false) }}>
+                              <Icon />
+                              <span>{item.label}</span>
+                            </Link>
                           </SidebarMenuButton>
                         </SidebarMenuItem>
                       )

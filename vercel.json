@@ -4,5 +4,8 @@
       "path": "/api/cron/nft-reconcile",
       "schedule": "17 3 * * *"
     }
+  ],
+  "regions": [
+    "dub1"
   ]
 }

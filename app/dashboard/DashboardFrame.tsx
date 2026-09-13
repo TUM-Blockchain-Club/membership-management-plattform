@@ -2,6 +2,8 @@
 
 import type { ReactNode } from 'react'
 import dynamic from 'next/dynamic'
+import DashboardPageLoading from '@/app/(dashboard)/loading'
+import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Spinner } from '@/components/ui/spinner'
@@ -82,7 +84,14 @@ export function DashboardFrame({
               </div>
             )}
 
-            {children}
+            {dashboard.routeDataError ? (
+              <Alert variant="destructive">
+                <AlertDescription className="flex items-center justify-between gap-4">
+                  {dashboard.routeDataError}
+                  <Button variant="outline" onClick={dashboard.retryRouteData}>Try again</Button>
+                </AlertDescription>
+              </Alert>
+            ) : dashboard.routeDataLoading ? <DashboardPageLoading /> : children}
 
             {dashboard.showMemberEditorModal && (
               <MemberEditorModal

@@ -2,9 +2,8 @@ import { loadDashboardInitialData } from '@/app/dashboard/lib/loadDashboardIniti
 import { DashboardShell } from './DashboardShell'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  // Load ALL tab data once. The layout persists across tab navigations so we
-  // need members (for members + stats tabs) AND events (for events tab) up front.
-  const initialData = await loadDashboardInitialData('all')
+  // The persistent shell needs identity and permissions, not every tab's data.
+  const initialData = await loadDashboardInitialData()
 
   return <DashboardShell initialData={initialData}>{children}</DashboardShell>
 }

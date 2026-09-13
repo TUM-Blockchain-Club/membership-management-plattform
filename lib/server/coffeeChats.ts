@@ -1,10 +1,10 @@
 import 'server-only'
 
+import { cache } from 'react'
+import { getRequestMember } from '@/lib/server/requestMember'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { headers } from 'next/headers'
 import { getSupabaseAdminClient } from '@/lib/server/supabaseAdmin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
-import { getLocalDevBypassMemberId, isLocalDevBypassEnabled } from '@/lib/devBypass'
 import {
   coffeeChatsDemoEnabled,
   demoMatch,
@@ -30,32 +30,11 @@ export type CoffeeChatViewer = {
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>
 }
 
-export async function getCoffeeChatViewer(): Promise<CoffeeChatViewer | null> {
-  const supabase = await createSupabaseServerClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (user) {
-    return {
-      email: user.email ?? null,
-      isDevBypass: false,
-      memberId: null,
-      supabase,
-    }
-  }
-
-  const headerStore = await headers()
-  const hostname = (headerStore.get('host') ?? '').split(':')[0]
-  if (!isLocalDevBypassEnabled(hostname)) return null
-
-  return {
-    email: null,
-    isDevBypass: true,
-    memberId: getLocalDevBypassMemberId(),
-    supabase,
-  }
-}
+export const getCoffeeChatViewer = cache(async (): Promise<CoffeeChatViewer | null> => {
+  const { supabase, user, member, isDevBypass } = await getRequestMember()
+  if (!member) return null
+  return { email: user?.email ?? null, memberId: member.id, isDevBypass, supabase }
+})
 
 type MemberRow = {
   id: number
@@ -133,19 +112,8 @@ export async function loadCoffeeChatHome(): Promise<CoffeeChatHomeData | null> {
   const { supabase } = viewer
   const admin = getCoffeeChatAdminClient()
   const dataClient = admin ?? supabase
-  const memberQuery = viewer.isDevBypass
-    ? dataClient
-        .from('members_main')
-        .select('id, Name, cc_active, cc_interests')
-        .eq('id', viewer.memberId ?? -1)
-        .maybeSingle()
-    : supabase
-        .from('members_main')
-        .select('id, Name, cc_active, cc_interests')
-        .ilike('"TBC Email"', viewer.email ?? '')
-        .maybeSingle()
   const [memberResult, openRoundResult] = await Promise.all([
-    memberQuery,
+    getRequestMember().then(({ member }) => ({ data: member })),
     dataClient
       .from('cc_rounds')
       .select('id, month, status, signup_deadline, meet_deadline')

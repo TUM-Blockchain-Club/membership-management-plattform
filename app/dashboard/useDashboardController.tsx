@@ -1,5 +1,6 @@
 'use client'
 
+import { useDashboardResource } from '@/app/dashboard/lib/useDashboardResource'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatEventDate, formatEventTime } from '@/app/dashboard/lib/eventFormatters'
@@ -40,7 +41,9 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
 
   const [member, setMember] = useState<DashboardMember | null>(initialData.member)
   const [viewedMember, setViewedMember] = useState<DashboardMember | null>(initialData.member)
-  const [allMembers, setAllMembers] = useState<DashboardMember[]>(initialData.allMembers)
+  const membersResource = useDashboardResource<DashboardMember>('members', Boolean(member) && ['members', 'stats', 'attendance'].includes(routeTab))
+  const allMembers = membersResource.data ?? initialData.allMembers
+  const setAllMembers = membersResource.setData
 
   const [loading] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -68,6 +71,9 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
   const [forceMemberView, setForceMemberView] = useState(false)
   const {
     events,
+    eventsLoading,
+    eventsError,
+    retryEvents,
     handleCreateExternalEvent,
     handleEventRegistration,
     handleUpdateExternalEvent,
@@ -87,7 +93,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     showInterestedModal,
     showParticipantsModal,
     uploadingEventImage,
-  } = useDashboardEvents(member, setMessage, initialData.events)
+  } = useDashboardEvents(member, setMessage, routeTab === 'events')
 
   const effectiveHasSpecialAccess = hasSpecialAccess && !forceMemberView
   const effectiveIsBoardMember = member?.Role === 'Board Member' && !forceMemberView
@@ -390,7 +396,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     } finally {
       setSaving(false)
     }
-  }, [creatingMember, editedMember, member, selectedImageFile, viewedMember])
+  }, [creatingMember, editedMember, member, selectedImageFile, viewedMember, setAllMembers])
 
   const handleProfileTabSelected = useCallback(() => {
     setViewedMember(member)
@@ -452,6 +458,9 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
   const sections = useProfileSections(viewedMember)
 
   return {
+    routeDataLoading: membersResource.loading || eventsLoading,
+    routeDataError: ['members', 'stats', 'attendance'].includes(routeTab) ? membersResource.error : routeTab === 'events' ? eventsError : null,
+    retryRouteData: routeTab === 'events' ? retryEvents : membersResource.retry,
     activeTab,
     boardMembers,
     canEditField,
