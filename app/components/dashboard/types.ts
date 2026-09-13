@@ -31,6 +31,7 @@ export type DashboardStats = {
 }
 
 export type DashboardTab =
+  | 'tree-of-life'
   | 'event-grants'
   | 'admin-access'
   | 'home'
