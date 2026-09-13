@@ -97,6 +97,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
 
   const effectiveHasSpecialAccess = hasSpecialAccess && !forceMemberView
   const effectiveIsBoardMember = member?.Role === 'Board Member' && !forceMemberView
+  const canAddMember = effectiveIsBoardMember || effectiveHasSpecialAccess
   const showLinkAnalyticsTab = (effectiveIsBoardMember || effectiveHasSpecialAccess) && !forceMemberView
   const showNftApprovalsTab = canManageNftRequests && !forceMemberView
   const showGrantAdminTab = (effectiveIsBoardMember || initialData.canManageGrants === true) && !forceMemberView
@@ -248,6 +249,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
   }, [clickCount, lastClickTime, router, triggerBlockchainEffect])
 
   const handleAddMember = useCallback(() => {
+    if (!canAddMember) return
     setCreatingMember(true)
     setViewedMember(null)
     setEditedMember(makeEmptyMember())
@@ -255,7 +257,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     setShowMemberEditorModal(true)
     setMessage(null)
     setSelectedImageFile(null)
-  }, [])
+  }, [canAddMember])
 
   const handleEditClick = useCallback(async () => {
     setCreatingMember(false)
@@ -465,6 +467,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     activeTab,
     boardMembers,
     canEditField,
+    canAddMember,
     canEditMember,
     canManageCoffeeChats,
     canManageNftRequests,

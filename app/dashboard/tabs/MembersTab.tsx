@@ -10,7 +10,7 @@ export function MembersTab(props: {
   exCoreOthers: DashboardMember[]
   otherMembers: DashboardMember[]
   member: DashboardMember | null
-  hasSpecialAccess: boolean
+  canAddMember: boolean
   handleAddMember: () => void
   searchQuery: string
   setSearchQuery: (value: string) => void
