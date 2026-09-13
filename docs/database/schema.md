@@ -110,7 +110,7 @@ App behavior:
 
 - Internal events use registration, participant count, capacity, organizer, and check-in flows.
 - External events use structured metadata from CSV/admin edits.
-- Events page defaults to P1/P2 priorities and hides events older than seven days unless `Past Events` is enabled.
+- Events page defaults to P1/P2/P3 priorities and hides events that ended before the UTC day boundary seven days ago unless `Past Events` is enabled. Home independently loads only the next two P1/P2 events whose end time has not passed, ordered by start time.
 - Full external CSV imports use `scripts/import-external-events-csv.mjs`.
 
 ### `public.event_interest`

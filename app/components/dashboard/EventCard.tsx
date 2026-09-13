@@ -257,7 +257,12 @@ export function ExternalEventCard({
 
         <CardContent className="col-start-2 min-w-0 flex flex-col gap-3 px-3 sm:px-4">
           <div className="flex flex-wrap gap-1.5">
-            {eventType && <Badge variant="secondary" className={cn(eventType.toLowerCase() === 'conference' && 'bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-500/20', eventType.toLowerCase() === 'hackathon' && 'bg-blue-500/15 text-blue-300 ring-1 ring-inset ring-blue-500/20')}>{eventType}</Badge>}
+            {eventType?.split(',').map((type) => type.trim()).filter(Boolean).map((type) => (
+              <Badge key={type} variant="secondary" className={cn(
+                type.toLowerCase() === 'conference' && 'bg-emerald-500/15 text-emerald-300 ring-1 ring-inset ring-emerald-500/20',
+                type.toLowerCase() === 'hackathon' && 'bg-blue-500/15 text-blue-300 ring-1 ring-inset ring-blue-500/20',
+              )}>{type}</Badge>
+            ))}
             {status && <Badge variant="outline">{status}</Badge>}
             {format && <Badge variant="outline">{format}</Badge>}
           </div>

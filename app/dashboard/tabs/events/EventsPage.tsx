@@ -46,7 +46,7 @@ const PRIORITY_OPTIONS = [
   { value: 'P3', label: 'P3 😁' },
   { value: 'P4', label: 'P4 🧐' },
 ]
-const DEFAULT_PRIORITY_FILTER = ['P1', 'P2']
+const DEFAULT_PRIORITY_FILTER = ['P1', 'P2', 'P3']
 const RECENT_PAST_DAYS = 7
 
 export function EventsPage({

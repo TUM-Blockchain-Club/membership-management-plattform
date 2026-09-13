@@ -126,6 +126,7 @@ export async function loadHomeEvents(): Promise<DashboardEvent[]> {
   const { member, dataClient } = await getRequestMember()
   if (!member) return []
   const { data, error } = await dataClient.from('events').select(EVENT_COLUMNS)
+    .in('priority', ['P1', 'P2'])
     .gte('end_at', new Date().toISOString()).order('start_at', { ascending: true }).limit(2)
   if (error) throw error
   return (data ?? []) as DashboardEvent[]

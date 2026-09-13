@@ -61,7 +61,7 @@ test('shell loads no collections and reuses own special access instead of queryi
 })
 test('Home limits upcoming events at the database and never fetches registration or interest lists', async () => {
   const operations = []
-  const query = Object.fromEntries(['select', 'gte', 'order', 'limit'].map(method => [method, (...args) => { operations.push([method, ...args]); return query }]))
+  const query = Object.fromEntries(['select', 'in', 'gte', 'order', 'limit'].map(method => [method, (...args) => { operations.push([method, ...args]); return query }]))
   query.then = resolve => Promise.resolve({ data: [{ id: 'future' }], error: null }).then(resolve)
   const loaders = load('lib/server/dashboardData.ts', {
     'server-only': {},
@@ -70,4 +70,7 @@ test('Home limits upcoming events at the database and never fetches registration
   assert.equal((await loaders.loadHomeEvents()).length, 1)
   assert.equal(operations.find(item => item[0] === 'limit')[1], 2)
   assert.equal(operations.find(item => item[0] === 'gte')[1], 'end_at')
+  const priorities = operations.find(item => item[0] === 'in')
+  assert.equal(priorities[1], 'priority')
+  assert.deepEqual(Array.from(priorities[2]), ['P1', 'P2'])
 })
