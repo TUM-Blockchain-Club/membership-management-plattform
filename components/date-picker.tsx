@@ -1,7 +1,8 @@
 'use client'
 
+import { useRef, useState } from 'react'
 import { format } from 'date-fns'
-import { CalendarIcon, ClockIcon } from 'lucide-react'
+import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Input } from '@/components/ui/input'
@@ -84,9 +85,15 @@ export function MonthPicker({
   className,
 }: PickerProps) {
   const selected = parseMonthValue(value)
+  const [open, setOpen] = useState(false)
+  const [year, setYear] = useState(() => selected?.getFullYear() ?? new Date().getFullYear())
+  const initialMonthButton = useRef<HTMLButtonElement>(null)
 
   return (
-    <Popover>
+    <Popover open={open} onOpenChange={nextOpen => {
+      if (nextOpen) setYear(selected?.getFullYear() ?? new Date().getFullYear())
+      setOpen(nextOpen)
+    }}>
       <PopoverTrigger asChild>
         <Button
           id={id}
@@ -99,15 +106,30 @@ export function MonthPicker({
           {selected ? format(selected, 'MMMM yyyy') : placeholder}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-0" align="start">
-        <Calendar
-          mode="single"
-          selected={selected}
-          defaultMonth={selected}
-          captionLayout="dropdown"
-          onSelect={(date) => onChange(date ? formatMonthValue(date) : '')}
-          autoFocus
-        />
+      <PopoverContent className="w-72 p-3" align="start" aria-label="Choose month" onOpenAutoFocus={event => {
+        event.preventDefault()
+        initialMonthButton.current?.focus()
+      }}>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <Button type="button" variant="ghost" size="icon-sm" aria-label="Previous year" disabled={year <= 100} onClick={() => setYear(year - 1)}><ChevronLeftIcon /></Button>
+          <span className="text-sm font-semibold tabular-nums" aria-live="polite">{year}</span>
+          <Button type="button" variant="ghost" size="icon-sm" aria-label="Next year" disabled={year >= 9999} onClick={() => setYear(year + 1)}><ChevronRightIcon /></Button>
+        </div>
+        <div className="grid grid-cols-3 gap-1" role="group" aria-label="Months">
+          {Array.from({ length: 12 }, (_, month) => {
+            const date = new Date(year, month, 1)
+            const isSelected = selected?.getFullYear() === year && selected.getMonth() === month
+            return <Button
+              key={month}
+              ref={month === (selected?.getMonth() ?? 0) ? initialMonthButton : undefined}
+              type="button"
+              variant={isSelected ? 'default' : 'ghost'}
+              aria-label={format(date, 'MMMM yyyy')}
+              aria-pressed={isSelected}
+              onClick={() => { onChange(formatMonthValue(date)); setOpen(false) }}
+            >{format(date, 'MMM')}</Button>
+          })}
+        </div>
       </PopoverContent>
     </Popover>
   )
