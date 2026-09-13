@@ -35,7 +35,7 @@ Current live count: 139 rows.
 | `id` | `bigint` | no | none | Primary key. |
 | `created_at` | `timestamptz` | no | `now()` | Creation timestamp. |
 | `Name` | `text` | no | none | Display name. |
-| `Role` | `text` | yes | none | Examples include `Core Member`, `Board Member`, `Ex-Core Member`, `Guest`. |
+| `Role` | `text` | yes | `Core Member` | New auth-provisioned members use the database default. Explicit Board/Ex-Core roles survive account linking. `members_default_role.sql` backfills Guest/empty roles only. |
 | `Status` | `text` | yes | none | Examples include `Active`, `Passive`, `Left`, `Kicked out`. |
 | `Department` | `text` | yes | none | May contain comma-separated departments. |
 | `Project/Task` | `text` | yes | none | Current project/task. |
