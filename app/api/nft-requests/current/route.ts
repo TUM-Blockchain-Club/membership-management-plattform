@@ -1,3 +1,5 @@
+import { acceptsCurrentNftLegal, NFT_LEGAL_DOCUMENTS } from '@/lib/nftLegal'
+import { hasCurrentNftConsent } from '@/lib/server/nftPublicationConsent'
 import { NextResponse } from "next/server"
 import { NFT_REQUEST_IMAGE_BUCKET } from "@/lib/nftRequestConstants"
 import { isSolanaPublicKey } from "@/lib/solanaAddress"
@@ -7,26 +9,9 @@ import {
 } from "@/lib/server/nftRequestCurrentMember"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
 
-type CurrentRequestRow = {
-  id: string
-  member_id: number | string
-  status: string
-  display_name: string
-  fun_facts: string | null
-  image_path: string
-  image_url: string
-  created_at: string
-  reviewed_at: string | null
-  reviewed_by: string | null
-  review_note: string | null
-  mint_tx_hash: string | null
-  asset_address: string | null
-  asset_state: string
-  mint_destination: 'club' | 'member'
-  requested_wallet_address: string | null
-}
-
 type SavePayload = {
+  publication_consent?: unknown
+  legal_version?: unknown
   display_name?: string
   fun_facts?: string | null
   image_path?: string
@@ -64,7 +49,7 @@ export async function GET(request: Request) {
         email: member["TBC Email"],
         department: member.Department,
       },
-      request: (data as CurrentRequestRow | null) ?? null,
+      request: data ? { ...data, consent_required: !await hasCurrentNftConsent(dataClient, data) } : null,
     })
   } catch (error) {
     if (error instanceof NftRequestCurrentMemberError) {
@@ -80,7 +65,9 @@ export async function POST(request: Request) {
   try {
     const payload = (await request.json()) as SavePayload
     const supabase = await createSupabaseServerClient()
-    const { member, dataClient } = await resolveCurrentNftRequestMember(supabase, request)
+    const { user, member, dataClient } = await resolveCurrentNftRequestMember(supabase, request)
+    if (!user) return NextResponse.json({ error: 'Sign in to record publication consent.' }, { status: 401 })
+    if (!payload || !acceptsCurrentNftLegal(payload)) return NextResponse.json({ error: 'Accept the current NFT publication consent and terms.' }, { status: 400 })
 
     const displayName = payload.display_name?.trim()
     const funFacts = payload.fun_facts?.trim() || null
@@ -123,29 +110,15 @@ export async function POST(request: Request) {
       .eq("member_id", member.ID)
       .maybeSingle()
 
-    const { data, error } = await dataClient
-      .from("nft_requests")
-      .upsert(
-        {
-          member_id: member.ID,
-          status: "pending",
-          display_name: displayName,
-          fun_facts: funFacts,
-          image_path: imagePath,
-          image_url: imageUrl,
-          mint_destination: mintDestination,
-          requested_wallet_address: mintDestination === 'member' ? requestedWalletAddress : null,
-          request_image_bucket: NFT_REQUEST_IMAGE_BUCKET,
-          reviewed_at: null,
-          reviewed_by: null,
-          review_note: null,
-        },
-        {
-          onConflict: "member_id",
-        }
-      )
-      .select(REQUEST_COLUMNS)
-      .single()
+    const { data, error } = await dataClient.rpc('save_nft_request_with_consent', {
+      p_member_id: member.ID,
+      p_actor_id: user.id,
+      p_payload: { display_name: displayName, fun_facts: funFacts, image_path: imagePath,
+        image_url: imageUrl, mint_destination: mintDestination,
+        requested_wallet_address: mintDestination === 'member' ? requestedWalletAddress : null,
+        publication_consent: true, legal_version: NFT_LEGAL_DOCUMENTS.version },
+      p_documents: NFT_LEGAL_DOCUMENTS,
+    })
 
     if (error || !data) {
       return NextResponse.json(
@@ -166,7 +139,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       memberId: member.ID,
-      request: data,
+      request: { ...data, consent_required: false },
     })
   } catch (error) {
     if (error instanceof NftRequestCurrentMemberError) {

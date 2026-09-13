@@ -1,4 +1,5 @@
 import 'server-only'
+import { requireNftPublicationConsent } from '@/lib/server/nftPublicationConsent'
 
 import { buildMembershipMetadata } from '@/lib/nftLifecycle'
 import { NFT_PUBLIC_ASSET_BUCKET } from '@/lib/nftRequestConstants'
@@ -9,6 +10,7 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient
 
 export type MembershipNftRecord = {
   request: {
+    consent_receipt_id: string | null
     id: string
     member_id: number
     status: 'pending' | 'approved' | 'rejected'
@@ -35,7 +37,7 @@ export type MembershipNftRecord = {
 }
 
 const REQUEST_COLUMNS =
-  'id, member_id, status, display_name, fun_facts, image_path, image_url, request_image_bucket, approved_display_name, approved_fun_facts, approved_image_path, approved_image_bucket, metadata_version, asset_address, asset_state, mint_destination, requested_wallet_address, claim_wallet_address'
+  'consent_receipt_id, id, member_id, status, display_name, fun_facts, image_path, image_url, request_image_bucket, approved_display_name, approved_fun_facts, approved_image_path, approved_image_bucket, metadata_version, asset_address, asset_state, mint_destination, requested_wallet_address, claim_wallet_address'
 
 export const loadMembershipNftRecord = async (
   supabase: SupabaseServerClient,
@@ -99,6 +101,7 @@ export const renderAndUploadMembershipAssets = async (
   record: MembershipNftRecord,
   assetState: 'active' | 'alumni'
 ) => {
+  await requireNftPublicationConsent(supabase, record.request)
   const image = await renderMembershipImage(supabase, record, assetState)
   const version = record.request.metadata_version + 1
   const basePath = `members/${record.request.member_id}/${record.request.id}`
@@ -173,7 +176,7 @@ export const renderMembershipImage = async (
   return buildNftImage({
     nickname: record.request.display_name,
     batch: record.member.batch ? `B${record.member.batch}` : 'TBC',
-    degreeAtUni: record.member.department || record.member.degreeAtUni || 'TUM Blockchain Club',
+    degreeAtUni: record.member.department || 'TUM Blockchain Club',
     programs: record.request.fun_facts || membershipPeriod,
     department: record.member.department || 'Board',
     imageBuffer: Buffer.from(await sourceImage.arrayBuffer()),

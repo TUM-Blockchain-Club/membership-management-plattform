@@ -12,7 +12,7 @@
     "test:members": "node --test tests/member-access.test.mjs",
     "test:coffee-chats": "playwright test --config=playwright.unit.config.ts tests/coffee-chats.spec.ts",
     "test:e2e:prod": "playwright test --config=playwright.config.ts",
-    "test:nft": "node --test tests/nft-lifecycle.test.ts",
+    "test:nft": "node --test tests/nft-lifecycle.test.ts tests/nft-consent.test.mjs",
     "solana:create-collection": "node scripts/create-solana-collection.mjs",
     "solana:test-lifecycle": "node scripts/test-solana-membership-lifecycle.mjs",
     "bench:members:server": "node scripts/bench-members-server.mjs",

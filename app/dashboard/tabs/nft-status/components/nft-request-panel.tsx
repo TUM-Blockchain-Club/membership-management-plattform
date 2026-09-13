@@ -1,3 +1,4 @@
+import { NftConsentRenewal } from './nft-consent-renewal'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -30,6 +31,7 @@ export function NftRequestPanel({ state }: NftStatusSectionsProps) {
           <NftRequestSkeleton />
         ) : existingRequest ? (
           <div className="flex flex-col gap-8">
+            <NftConsentRenewal state={state} />
             <NftRequestSummary state={state} />
             {hasMintedNft && (
               <>

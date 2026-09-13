@@ -77,7 +77,7 @@ same values for the intended Vercel preview environment before testing minting.
 
 ## Deployment sequence
 
-1. Apply `supabase/nft_requests.sql` to the platform Supabase project.
+1. Apply `supabase/nft_requests.sql`, then `supabase/nft_publication_consent.sql` to the platform Supabase project.
 2. Configure the signer, RPC, `CRON_SECRET`, and existing Supabase variables locally.
 3. Fund the signer with devnet SOL.
 4. Run `pnpm solana:create-collection` once and save the printed collection address.
@@ -119,3 +119,27 @@ a component-scoped CSS module so its styles ship with the preview. Pointer
 position controls perspective and foil lighting; click, touch or keyboard activation
 turns the card over. Idle motion pauses outside the viewport, in hidden tabs, or
 via the pause control. Reduced-motion preferences disable idle motion and tilt. It does not change the artwork minted on-chain.
+
+## Publication consent
+
+`lib/nftLegal.ts` is the shared source for the displayed terms, privacy notice and
+explicit publication statement. Every wording change requires a new immutable
+version. The request API requires literal `true` and the current version; it
+derives the actor from the authenticated session (local auth bypass cannot consent).
+The service-only RPC atomically saves a private receipt with complete legal text,
+server timestamp, actor, member, request and submitted/approved profile references.
+Do not infer evidence from the legacy `members_main.nft_consent` flag.
+
+Existing requests display a separate renewal form, preserving their review state.
+The common public renderer checks current evidence before any upload, covering
+minting, profile updates and alumni updates; wallet transfers check it too. Burn
+and private review remain available without consent. Withdrawal is handled via
+the published contact and admin revocation; consent records alone never override
+a burned state. Receipt retention requires operator review under applicable legal
+requirements; no automatic indefinite-retention policy or legal approval is implied.
+Legal review of blockchain permanence and provider transfer safeguards remains
+necessary before a real personal-data mainnet rollout.
+
+Run `pnpm test:nft` for route/publication-gate regressions and
+`pnpm exec node tests/nft-consent-database.mjs` for disposable PostgreSQL security
+and atomicity checks (Docker with the `postgres:17` image required).

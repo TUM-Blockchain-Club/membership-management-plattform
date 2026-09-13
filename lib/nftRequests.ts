@@ -3,6 +3,8 @@ import { supabase } from './supabase'
 export type NftRequestStatus = 'pending' | 'approved' | 'rejected'
 
 export type NftRequestUpsert = {
+  publication_consent: boolean
+  legal_version: string
   member_id: number | string
   status: 'pending'
   display_name: string
@@ -17,6 +19,8 @@ export type NftRequestUpsert = {
 }
 
 export type NftRequestRow = {
+  consent_receipt_id?: string | null
+  consent_required?: boolean
   id: string
   member_id: number | string
   status: NftRequestStatus

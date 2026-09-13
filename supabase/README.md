@@ -97,3 +97,11 @@ using the RPC-based check-in routes. This migration preserves records, restricts
 secret-column reads and direct inserts, and installs atomic check-in/issuance.
 Do not rerun the destructive legacy `lectures.sql` setup on a populated database.
 See `docs/architecture/attendance.md` for verification.
+
+## NFT publication consent
+
+After `nft_requests.sql`, apply `nft_publication_consent.sql` before deploying
+the consent-enabled NFT routes. It adds private receipts and a service-only atomic
+submission/renewal RPC and restricts direct browser writes to NFT requests. Do not
+rerun the older request setup alone: apply the consent script afterward to restore
+its stricter grants. Existing requests require member consent; nothing is backfilled.

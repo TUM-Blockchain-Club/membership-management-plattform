@@ -1,5 +1,6 @@
 "use client"
 
+import { NFT_LEGAL_VERSION } from '@/lib/nftLegal'
 import { useMemo, useState, type FormEvent } from "react"
 import useSWR from "swr"
 import type { DashboardMember } from "@/app/components/dashboard/types"
@@ -170,6 +171,10 @@ export function useNftStatus(member: DashboardMember | null) {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (!hasConsented || saving) {
+      setSubmissionMessage({ type: "error", text: "Please confirm the NFT publication consent first." })
+      return
+    }
 
     if (resolvedMemberId === null) {
       setSubmissionMessage({ type: "error", text: "Could not determine your member id. Please contact support." })
@@ -215,6 +220,8 @@ export function useNftStatus(member: DashboardMember | null) {
       }
 
       const { data: requestData, error: requestError } = await nftRequestService.saveCurrentRequest({
+        publication_consent: hasConsented,
+        legal_version: NFT_LEGAL_VERSION,
         display_name: trimmedDisplayName,
         fun_facts: trimmedFunFacts || null,
         image_path: imageData.imagePath,
@@ -230,7 +237,8 @@ export function useNftStatus(member: DashboardMember | null) {
       setResolvedMemberId(requestData.memberId)
       setExistingRequest(requestData.request)
       setSelectedFile(null)
-      setSubmissionMessage({ type: "success", text: "NFT request saved successfully." })
+      setHasConsented(false)
+      setSubmissionMessage({ type: "success", text: "NFT request and publication consent saved successfully." })
       void revalidateExistingRequest()
     } catch (error) {
       const text = error instanceof Error ? error.message : "Something went wrong while saving your request."
@@ -302,6 +310,7 @@ export function useNftStatus(member: DashboardMember | null) {
   }
 
   return {
+    refreshRequest: () => revalidateExistingRequest(),
     batch,
     assetUrl,
     canDeleteExistingRequest,

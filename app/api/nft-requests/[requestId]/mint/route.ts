@@ -1,3 +1,4 @@
+import { NftPublicationConsentError } from '@/lib/server/nftPublicationConsent'
 import { NextResponse } from 'next/server'
 import { getMembershipAssetState, getRequestedMintOwnerAddress } from '@/lib/nftLifecycle'
 import { isSolanaPublicKey } from '@/lib/solanaAddress'
@@ -146,7 +147,7 @@ export async function POST(request: Request, context: RouteContext) {
       const dataClient = getSupabaseAdminClient()
       if (dataClient) await failNftChainOperation(dataClient, operationId, message)
     }
-    if (error instanceof NftRequestAdminError) {
+    if (error instanceof NftRequestAdminError || error instanceof NftPublicationConsentError) {
       return NextResponse.json({ error: message }, { status: error.status })
     }
     return NextResponse.json({ error: message }, { status: 500 })

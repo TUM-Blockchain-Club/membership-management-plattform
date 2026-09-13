@@ -1,3 +1,5 @@
+import { useId } from 'react'
+import { NFT_CONSENT_TEXT, NFT_LEGAL_VERSION } from '@/lib/nftLegal'
 import { AlertTriangleIcon, Building2Icon, CopyIcon, FileImageIcon, WalletIcon } from 'lucide-react'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
@@ -233,16 +235,17 @@ function NftGenerationKit({
   )
 }
 
-function NftConsentField({
+export function NftConsentField({
   hasConsented,
   saving,
   setHasConsented,
 }: Pick<NftStatusController, 'hasConsented' | 'saving' | 'setHasConsented'>) {
+  const consentId = useId()
   return (
     <Alert className="border-red-900/30 bg-red-900/10">
       <Field orientation="horizontal">
         <Checkbox
-          id="consent"
+          id={consentId}
           required
           checked={hasConsented}
           disabled={saving}
@@ -250,15 +253,14 @@ function NftConsentField({
           className="mt-1 size-5 border-gray-700 bg-gray-900 text-blue-600"
         />
         <FieldContent>
-          <FieldLabel htmlFor="consent" className="text-gray-200">
-            Data Permanence & Terms of Service Agreement
+          <FieldLabel htmlFor={consentId} className="text-gray-200">
+            Permission to publish my membership NFT
           </FieldLabel>
           <FieldDescription className="text-xs text-gray-400">
-            I understand that the Solana transaction history remains public. The club can update or burn the membership NFT
-            and can delete the hosted image and metadata, but third-party caches may retain previously downloaded copies.
+            {NFT_CONSENT_TEXT}
           </FieldDescription>
           <FieldDescription className="text-xs text-gray-400">
-            By checking this box, I also agree to the TUM Blockchain Club&apos;s{' '}
+            Version {NFT_LEGAL_VERSION}. Read the{' '}
             <a href="/terms" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Terms of Service</a>
             {' '}and{' '}
             <a href="/privacy" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline">Privacy Policy</a>.

@@ -1,3 +1,4 @@
+import { NftPublicationConsentError, requireNftPublicationConsent } from '@/lib/server/nftPublicationConsent'
 import { NextResponse } from 'next/server'
 import {
   confirmNftChainOperation,
@@ -21,7 +22,7 @@ export async function POST(request: Request, context: RouteContext) {
     const dataClient = getSupabaseAdminClient() ?? supabase
     const { data: record, error: lookupError } = await dataClient
       .from('nft_requests')
-      .select('id, asset_address, asset_state, claim_wallet_address')
+      .select('member_id, consent_receipt_id, id, asset_address, asset_state, claim_wallet_address')
       .eq('id', requestId)
       .maybeSingle()
     if (lookupError || !record) {
@@ -34,6 +35,7 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({ error: 'The member has not supplied a valid Solana wallet.' }, { status: 409 })
     }
 
+    await requireNftPublicationConsent(dataClient, record)
     operationId = await startNftChainOperation(dataClient, requestId, 'claim')
     const result = await claimMembershipAsset({
       assetAddress: record.asset_address,
@@ -69,7 +71,7 @@ export async function POST(request: Request, context: RouteContext) {
       const dataClient = getSupabaseAdminClient()
       if (dataClient) await failNftChainOperation(dataClient, operationId, message)
     }
-    if (error instanceof NftRequestAdminError) {
+    if (error instanceof NftRequestAdminError || error instanceof NftPublicationConsentError) {
       return NextResponse.json({ error: message }, { status: error.status })
     }
     return NextResponse.json({ error: message }, { status: 500 })

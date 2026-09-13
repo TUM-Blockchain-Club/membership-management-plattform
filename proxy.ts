@@ -13,7 +13,7 @@ export async function proxy(request: NextRequest) {
   const isSigninRoute = pathname === '/signin'
   const isAuthCallbackRoute = pathname.startsWith('/auth/callback')
   const isApiRoute = pathname.startsWith('/api')
-  const isPublicRoute = isSigninRoute || isAuthCallbackRoute
+  const isPublicRoute = isSigninRoute || isAuthCallbackRoute || pathname === '/terms' || pathname === '/privacy'
   const isProtectedPageRoute = !isPublicRoute && !isApiRoute
   const coffeeChatsDemo = process.env.NEXT_PUBLIC_COFFEE_CHATS_DEMO === 'true'
 

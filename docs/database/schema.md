@@ -59,7 +59,7 @@ Current live count: 139 rows.
 | `degree_at_uni` | `text` | yes | none | Additional degree metadata. |
 | `highlight` | `text` | yes | none | Profile highlight. |
 | `nft_avatar` | `text` | yes | none | NFT avatar reference. |
-| `nft_consent` | `boolean` | yes | `false` | Consent for NFT flows. |
+| `nft_consent` | `boolean` | yes | `false` | Legacy flag; not proof of NFT publication consent. |
 | `nickname` | `text` | yes | none | Preferred nickname. |
 
 Constraints and indexes:
@@ -205,6 +205,7 @@ Important column groups:
 | Group | Columns | Purpose |
 | --- | --- | --- |
 | Request | `status`, `display_name`, `fun_facts`, `image_path`, `request_image_bucket` | Member submission and board review. Source portraits are private. |
+| Publication consent | `consent_receipt_id` | Reference to server-recorded, versioned consent evidence; null for legacy requests. |
 | Public metadata | `rendered_image_path`, `metadata_path`, `metadata_url`, `metadata_version` | Versioned public PNG and JSON files used by wallets and explorers. |
 | Solana identity | `chain_network`, `collection_address`, `asset_address` | Network and Metaplex Core addresses. |
 | Mint destination | `mint_destination`, `requested_wallet_address` | Member choice between initial club custody and direct minting to their wallet. |
@@ -215,6 +216,20 @@ Important column groups:
 `Alumni` keeps the same asset and publishes updated artwork/metadata. `Left`,
 `Kicked out`, or a manual board revocation burns the asset and deletes hosted
 personal media. Historical transaction records remain on Solana.
+
+### `public.nft_consent_receipts`
+
+Private, append-only application evidence: `request_id`, `member_id`, authenticated
+`actor_id`, database-generated `accepted_at`, `legal_version`, full `documents`
+and a `submission` snapshot. Request deletion does not cascade to this minimal
+evidence. There is no automatic retention cleanup; operators must review legal
+retention needs and erase evidence when no longer necessary. Browser roles have
+no access. The service role can read/insert but cannot update/delete receipts.
+
+`save_nft_request_with_consent` is service-role-only and saves the request and
+receipt in one transaction, or records renewal without changing request status.
+The API derives actor/member identity from authentication and supplies the current
+legal text. Apply `supabase/nft_publication_consent.sql` after `nft_requests.sql`.
 
 ### `public.nft_chain_operations`
 
@@ -410,9 +425,9 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 
 ### NFT Requests
 
-- Members can insert their own NFT request.
+- Authenticated server routes save member requests and consent atomically; browser roles cannot directly mutate requests.
 - Members can view their own request.
-- NFT admins can view all, update, and delete requests.
+- NFT admins can view all requests; authorized server routes handle mutations.
 
 ### Link Redirect Analytics
 
