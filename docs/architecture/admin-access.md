@@ -61,3 +61,7 @@ views; future role-schema changes must migrate the central model instead.
   RLS, role boundaries, audit, concurrent idempotence and repeatability.
 - Browser checks use synthetic members and mocked API responses. They do not send
   campaigns, create real assignments or mutate membership records.
+
+## Member list visibility
+
+The default list includes active members, Board Members with automatic access, and anyone with an existing scoped assignment so access can still be revoked. Show inactive members reveals the remaining members; search respects this filter. Board scopes display Automatic instead of disabled switches. Inactive rows explain that existing grants can be removed but new grants require active membership. This is a presentation filter; API and database permission rules are unchanged.

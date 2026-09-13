@@ -27,12 +27,18 @@ export function AdminAccessPage() {
   const allowed = dashboard?.showAdminAccessTab === true
   const { data, error, isLoading, mutate } = useSWR(allowed ? 'admin-access' : null, loadAccess)
   const [search, setSearch] = useState('')
+  const [showInactive, setShowInactive] = useState(false)
   const [pending, setPending] = useState<string | null>(null)
   const [changeError, setChangeError] = useState('')
   if (!allowed) return null
   const names = new Map(data?.members.map(member => [member.id, member.Name || `Member #${member.id}`]))
   const assignments = new Set(data?.assignments.map(row => `${row.member_id}:${row.scope}`))
-  const visibleMembers = data?.members.filter(member => !search.trim() || [member.Name || `Member #${member.id}`, member.Department].some(value => value?.toLowerCase().includes(search.toLowerCase().trim()))) ?? []
+  const assignedMemberIds = new Set(data?.assignments.map(row => row.member_id))
+  const query = search.toLowerCase().trim()
+  const visibleMembers = data?.members.filter(member => {
+    const visible = showInactive || member.Status === 'Active' || member.Role?.trim() === 'Board Member' || assignedMemberIds.has(member.id)
+    return visible && (!query || [member.Name || `Member #${member.id}`, member.Department].some(value => value?.toLowerCase().includes(query)))
+  }) ?? []
   async function change(memberId: number, scope: AdminScope, enabled: boolean) {
     if (pending) return
     setPending(`${memberId}:${scope}`)
@@ -55,17 +61,19 @@ export function AdminAccessPage() {
       <CardHeader><CardTitle>Member permissions</CardTitle><CardDescription>Board members have automatic access to every area. Other administrators can operate their assigned area, but cannot grant permissions.</CardDescription></CardHeader>
       <CardContent className="flex flex-col gap-4">
         <Field><FieldLabel htmlFor="admin-access-search">Find a member</FieldLabel><Input id="admin-access-search" type="search" placeholder="Search name or department…" value={search} onChange={event => setSearch(event.target.value)} /></Field>
+        <Field orientation="horizontal"><Switch id="admin-access-show-inactive" checked={showInactive} onCheckedChange={setShowInactive} /><FieldLabel htmlFor="admin-access-show-inactive">Show inactive members</FieldLabel></Field>
         {(error || changeError) && <Alert variant="destructive"><AlertDescription>{changeError || error.message}<Button variant="link" size="sm" onClick={() => void mutate()}>Retry</Button></AlertDescription></Alert>}
         {isLoading ? <div className="flex flex-col gap-3" aria-label="Loading member permissions">{[0,1,2,3].map(i => <Skeleton key={i} className="h-14 w-full" />)}</div> : data && <div className="max-h-[32rem] overflow-auto"><Table>
           <TableHeader><TableRow className="border-border"><TableHead>Member</TableHead>{ADMIN_SCOPES.map(scope => <TableHead key={scope.key} className="text-center">{scope.label}</TableHead>)}</TableRow></TableHeader>
           <TableBody>{visibleMembers.map(member => {
             const board = member.Role?.trim() === 'Board Member'
             return <TableRow key={member.id} className="border-border">
-              <TableCell><div className="flex flex-col gap-1"><span className="font-medium">{names.get(member.id)}</span><span className="text-xs text-muted-foreground">{member.Department || 'No department'}</span><div>{board ? <Badge variant="secondary">Board · automatic</Badge> : member.Status !== 'Active' && <Badge variant="outline">{member.Status || 'Inactive'}</Badge>}</div></div></TableCell>
+              <TableCell><div className="flex flex-col gap-1"><span className="font-medium">{names.get(member.id)}</span><span className="text-xs text-muted-foreground">{member.Department || 'No department'}</span><div>{board ? <Badge variant="secondary">Board · automatic</Badge> : member.Status !== 'Active' && <Badge variant="outline">{member.Status || 'Inactive'}</Badge>}</div>{!board && member.Status !== 'Active' && <span className="text-xs text-muted-foreground">New access requires active membership. Existing access can be removed.</span>}</div></TableCell>
               {ADMIN_SCOPES.map(scope => {
                 const key = `${member.id}:${scope.key}`
-                const enabled = board || assignments.has(key)
-                return <TableCell key={scope.key} className="text-center"><Switch aria-label={`${scope.label} access for ${names.get(member.id)}`} checked={enabled} disabled={board || pending !== null || (!enabled && member.Status !== 'Active')} onCheckedChange={value => void change(member.id, scope.key, value)} /></TableCell>
+                if (board) return <TableCell key={scope.key} className="text-center"><Badge variant="secondary">Automatic</Badge></TableCell>
+                const enabled = assignments.has(key)
+                return <TableCell key={scope.key} className="text-center"><Switch aria-label={`${scope.label} access for ${names.get(member.id)}`} checked={enabled} disabled={pending !== null || (!enabled && member.Status !== 'Active')} onCheckedChange={value => void change(member.id, scope.key, value)} /></TableCell>
               })}
             </TableRow>
           })}{!visibleMembers.length && <TableRow><TableCell colSpan={ADMIN_SCOPES.length + 1} className="py-8 text-center text-muted-foreground">No matching members.</TableCell></TableRow>}</TableBody>
