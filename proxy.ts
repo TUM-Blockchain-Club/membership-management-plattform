@@ -1,3 +1,4 @@
+import { safeAuthRedirect } from './lib/authRedirect'
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isLocalDevBypassEnabled } from './lib/devBypass'
@@ -96,10 +97,7 @@ export async function proxy(request: NextRequest) {
 
   if (user && isSigninRoute) {
     const redirectTarget = request.nextUrl.searchParams.get('next')
-    const safeTarget = redirectTarget?.startsWith('/') ? redirectTarget : '/home'
-    const dashboardUrl = request.nextUrl.clone()
-    dashboardUrl.pathname = safeTarget
-    dashboardUrl.search = ''
+    const dashboardUrl = new URL(safeAuthRedirect(redirectTarget), request.url)
     return NextResponse.redirect(dashboardUrl)
   }
 

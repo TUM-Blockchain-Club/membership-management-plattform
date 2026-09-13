@@ -1,3 +1,4 @@
+import { safeAuthRedirect } from './authRedirect'
 import { supabase } from './supabase'
 import type { User, Session, AuthError } from '@supabase/supabase-js'
 
@@ -26,7 +27,7 @@ export const auth = {
 
   signInWithGoogle: async () => {
     const callbackUrl = new URL('/auth/callback', window.location.origin)
-    callbackUrl.searchParams.set('next', '/home')
+    callbackUrl.searchParams.set('next', safeAuthRedirect(new URLSearchParams(window.location.search).get('next')))
 
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -39,7 +40,7 @@ export const auth = {
 
   signInWithMagicLink: async (email: string) => {
     const callbackUrl = new URL('/auth/callback', window.location.origin)
-    callbackUrl.searchParams.set('next', '/home')
+    callbackUrl.searchParams.set('next', safeAuthRedirect(new URLSearchParams(window.location.search).get('next')))
 
     const { data, error } = await supabase.auth.signInWithOtp({
       email,
