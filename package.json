@@ -18,7 +18,7 @@
     "bench:members:server": "node scripts/bench-members-server.mjs",
     "bench:members:browser": "node scripts/bench-members-browser.mjs",
     "test:admin-access": "node --test tests/admin-access.test.mjs",
-    "test:dashboard": "node --test tests/dashboard-loading.test.mjs tests/event-grants-api.test.mjs"
+    "test:dashboard": "node --test tests/dashboard-loading.test.mjs tests/event-grants-api.test.mjs tests/coffee-chat-round-api.test.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",

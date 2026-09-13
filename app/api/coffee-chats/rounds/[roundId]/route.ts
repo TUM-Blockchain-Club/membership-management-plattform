@@ -75,3 +75,55 @@ export async function DELETE(
     return NextResponse.json({ error: message }, { status: 500 })
   }
 }
+
+async function authorizeRoundAdmin() {
+  const supabase = await createSupabaseServerClient()
+  const { data: { user }, error } = await supabase.auth.getUser()
+  if (error || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { data: allowed, error: accessError } = await supabase.rpc('check_email_can_manage_coffee_chats', { check_email: user.email ?? '' })
+  if (accessError || allowed !== true) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  return getCoffeeChatAdminClient() ?? NextResponse.json({ error: 'Admin client unavailable' }, { status: 500 })
+}
+
+export async function GET(_request: Request, props: { params: Promise<{ roundId: string }> }) {
+  try {
+    const admin = await authorizeRoundAdmin()
+    if (admin instanceof Response) return admin
+    const { roundId } = await props.params
+    const { data: round, error } = await admin.from('cc_rounds')
+      .select('id, month, status, signup_deadline, meet_deadline, created_at').eq('id', roundId).maybeSingle()
+    if (error) throw error
+    if (!round) return NextResponse.json({ error: 'Round not found' }, { status: 404 })
+    const { data: signups, error: signupError } = await admin.from('cc_signups')
+      .select('id, signed_up_at, member:members_main(id, Name, Department)').eq('round_id', roundId)
+      .order('signed_up_at', { ascending: true })
+    if (signupError) throw signupError
+    return NextResponse.json({ round, signups }, { headers: { 'Cache-Control': 'private, no-store' } })
+  } catch {
+    return NextResponse.json({ error: 'Could not load round details.' }, { status: 500 })
+  }
+}
+
+export async function PATCH(request: Request, props: { params: Promise<{ roundId: string }> }) {
+  try {
+    const admin = await authorizeRoundAdmin()
+    if (admin instanceof Response) return admin
+    const body = await request.json().catch(() => null)
+    const validDate = (value: unknown) => value === null || (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value) && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value)
+    if (!body || !validDate(body.signup_deadline) || !validDate(body.meet_deadline)) {
+      return NextResponse.json({ error: 'Provide valid deadlines or null.' }, { status: 400 })
+    }
+    if (body.signup_deadline && body.meet_deadline && Date.parse(body.signup_deadline) > Date.parse(body.meet_deadline)) {
+      return NextResponse.json({ error: 'The signup deadline must be on or before the meeting deadline.' }, { status: 400 })
+    }
+    const { roundId } = await props.params
+    const { data: round, error } = await admin.from('cc_rounds')
+      .update({ signup_deadline: body.signup_deadline, meet_deadline: body.meet_deadline })
+      .eq('id', roundId).select('id, month, status, signup_deadline, meet_deadline, created_at').maybeSingle()
+    if (error) throw error
+    if (!round) return NextResponse.json({ error: 'Round not found' }, { status: 404 })
+    return NextResponse.json({ round })
+  } catch {
+    return NextResponse.json({ error: 'Could not save deadlines.' }, { status: 500 })
+  }
+}

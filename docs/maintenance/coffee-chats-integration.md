@@ -66,3 +66,18 @@ The database transaction check is in `tests/coffee-chats-db.sql` and must run
 against the target Supabase database inside its built-in rollback transaction.
 The protected production browser workflow is documented in
 `docs/maintenance/coffee-chats-production-e2e.md`.
+
+## Round administration details
+
+Round rows open a Radix dialog with signup names, departments and signup times.
+A visible “View round” button supports keyboard access; the whole row also
+responds to pointer clicks. Pairing and confirmed deletion live inside the
+round detail flow rather than the overview table.
+
+`GET /api/coffee-chats/rounds/[roundId]` and `PATCH` require authenticated board
+or delegated Coffee Chat administrator access before using the admin client.
+The response includes only participant fields needed by this view and is not
+cached. Deadline edits accept UTC timestamps or null, validate ordering and
+update only the two existing deadline fields. The UI shows local dates and
+times and preserves untouched timestamps. Reading a round never runs pairing
+or modifies signups. No database migration is required.

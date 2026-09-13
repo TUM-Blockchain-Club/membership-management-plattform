@@ -3,7 +3,7 @@
 import { useContext, useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { PlusIcon, PlayIcon, Trash2Icon, UsersIcon } from 'lucide-react'
+import { PlusIcon, ChevronRightIcon, Trash2Icon, UsersIcon } from 'lucide-react'
 import { getSupabaseBrowserClient } from '@/lib/supabase'
 import { DatePicker, MonthPicker } from '@/components/date-picker'
 import { Button } from '@/components/ui/button'
@@ -26,14 +26,7 @@ import {
 import { DashboardContext } from '@/app/dashboard/DashboardContext'
 import { demoRounds, isCoffeeChatsDemoClient, localDateToUtcIso } from '@/lib/coffee-chats'
 
-interface Round {
-  id: string
-  month: string
-  status: string
-  signup_deadline: string | null
-  meet_deadline: string | null
-  created_at: string
-}
+import { CoffeeChatRoundDialog, type CoffeeChatAdminRound as Round } from './CoffeeChatRoundDialog'
 
 export function CoffeeChatsAdminView() {
   const router = useRouter()
@@ -47,6 +40,9 @@ export function CoffeeChatsAdminView() {
   const [rounds, setRounds] = useState<Round[]>([])
   const [signupCounts, setSignupCounts] = useState<Record<string, number>>({})
   const [pairCounts, setPairCounts] = useState<Record<string, number>>({})
+
+  const [selectedRoundId, setSelectedRoundId] = useState<string | null>(null)
+  const selectedRound = rounds.find(round => round.id === selectedRoundId)
 
   // Delete round dialog
   const [roundToDelete, setRoundToDelete] = useState<Round | null>(null)
@@ -173,41 +169,46 @@ export function CoffeeChatsAdminView() {
 
   function handleRunPairing(roundId: string) {
     startTransition(async () => {
-      if (isCoffeeChatsDemoClient()) {
-        setRounds((current) =>
-          current.map((round) => (round.id === roundId ? { ...round, status: 'paired' } : round)),
-        )
-        setPairCounts((current) => ({ ...current, [roundId]: 6 }))
-        toast.success('Demo pairing completed: 12 members in 6 pairs.')
-        return
-      }
+      try {
+        if (isCoffeeChatsDemoClient()) {
+          setRounds((current) =>
+            current.map((round) => (round.id === roundId ? { ...round, status: 'paired' } : round)),
+          )
+          setPairCounts((current) => ({ ...current, [roundId]: 6 }))
+          toast.success('Demo pairing completed: 12 members in 6 pairs.')
+          return
+        }
 
-      const res = await fetch('/api/coffee-chats/run-pairing', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ roundId }),
-      })
-      const json = (await res.json()) as {
-        ok?: boolean
-        pairsCreated?: number
-        memberCount?: number
-        emailsSent?: number
-        emailsFailed?: number
-        error?: string
-      }
+        const res = await fetch('/api/coffee-chats/run-pairing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roundId }),
+        })
+        const json = (await res.json()) as {
+          ok?: boolean
+          pairsCreated?: number
+          memberCount?: number
+          emailsSent?: number
+          emailsFailed?: number
+          error?: string
+        }
 
-      if (!res.ok || !json.ok) {
-        toast.error('Pairing could not be completed. Try again or check server logs.')
-        return
-      }
+        if (!res.ok || !json.ok) {
+          toast.error('Pairing could not be completed. Try again or check server logs.')
+          return
+        }
 
-      const emailSummary = json.emailsFailed
-        ? `${json.emailsSent ?? 0} emails sent; ${json.emailsFailed} failed.`
-        : `${json.emailsSent ?? 0} emails sent.`
-      const message = `Paired ${json.memberCount} members into ${json.pairsCreated} groups. ${emailSummary}`
-      if (json.emailsFailed) toast.warning(message)
-      else toast.success(message)
-      setRounds((prev) => prev.map((r) => (r.id === roundId ? { ...r, status: 'paired' } : r)))
+        const emailSummary = json.emailsFailed
+          ? `${json.emailsSent ?? 0} emails sent; ${json.emailsFailed} failed.`
+          : `${json.emailsSent ?? 0} emails sent.`
+        const message = `Paired ${json.memberCount} members into ${json.pairsCreated} groups. ${emailSummary}`
+        if (json.emailsFailed) toast.warning(message)
+        else toast.success(message)
+        setPairCounts(current => ({ ...current, [roundId]: json.pairsCreated ?? current[roundId] ?? 0 }))
+        setRounds((prev) => prev.map((r) => (r.id === roundId ? { ...r, status: 'paired' } : r)))
+      } catch {
+        toast.error('Pairing could not be completed. Please retry.')
+      }
     })
   }
 
@@ -216,24 +217,28 @@ export function CoffeeChatsAdminView() {
 
     const target = roundToDelete
     startTransition(async () => {
-      if (isCoffeeChatsDemoClient()) {
-        setRounds((current) => current.filter((r) => r.id !== target.id))
+      try {
+        if (isCoffeeChatsDemoClient()) {
+          setRounds((current) => current.filter((r) => r.id !== target.id))
+          setRoundToDelete(null)
+          toast.success(`Demo round ${target.month} removed.`)
+          return
+        }
+
+        const res = await fetch(`/api/coffee-chats/rounds/${target.id}`, { method: 'DELETE' })
+        const json = (await res.json()) as { ok?: boolean; error?: string }
+
+        if (!res.ok || !json.ok) {
+          toast.error(json.error ?? 'Failed to delete round. Please try again.')
+          return
+        }
+
+        setRounds((prev) => prev.filter((r) => r.id !== target.id))
         setRoundToDelete(null)
-        toast.success(`Demo round ${target.month} removed.`)
-        return
+        toast.success(`Round ${target.month} and associated pairings removed.`)
+      } catch {
+        toast.error('The round could not be deleted. Please retry.')
       }
-
-      const res = await fetch(`/api/coffee-chats/rounds/${target.id}`, { method: 'DELETE' })
-      const json = (await res.json()) as { ok?: boolean; error?: string }
-
-      if (!res.ok || !json.ok) {
-        toast.error(json.error ?? 'Failed to delete round. Please try again.')
-        return
-      }
-
-      setRounds((prev) => prev.filter((r) => r.id !== target.id))
-      setRoundToDelete(null)
-      toast.success(`Round ${target.month} and associated pairings removed.`)
     })
   }
 
@@ -340,7 +345,7 @@ export function CoffeeChatsAdminView() {
       <Card className="border-border bg-background/50">
         <CardHeader>
           <CardTitle>All rounds</CardTitle>
-          <CardDescription>View, run pairing, or remove monthly rounds.</CardDescription>
+          <CardDescription>Select a round to view signups, edit deadlines and manage pairing.</CardDescription>
         </CardHeader>
         <CardContent>
           {rounds.length === 0 ? (
@@ -363,12 +368,12 @@ export function CoffeeChatsAdminView() {
                     <UsersIcon className="inline size-4" /> Signups
                   </TableHead>
                   <TableHead className="text-center">Pairs</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="text-right"><span className="sr-only">Details</span></TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {rounds.map((round) => (
-                  <TableRow key={round.id} className="border-border">
+                  <TableRow key={round.id} className="group cursor-pointer border-border hover:bg-muted/60" onClick={() => setSelectedRoundId(round.id)}>
                     <TableCell className="font-medium">{round.month}</TableCell>
                     <TableCell>
                       <Badge variant={statusVariant(round.status)}>{round.status}</Badge>
@@ -380,30 +385,9 @@ export function CoffeeChatsAdminView() {
                       {pairCounts[round.id] ?? 0}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        {round.status === 'open' && (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => handleRunPairing(round.id)}
-                            disabled={isPending}
-                          >
-                            <PlayIcon data-icon="inline-start" />
-                            Run Pairing
-                          </Button>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => setRoundToDelete(round)}
-                          disabled={isPending}
-                          title="Delete round"
-                        >
-                          <Trash2Icon className="size-4" />
-                          <span className="sr-only">Delete round</span>
-                        </Button>
-                      </div>
+                      <Button id={`coffee-round-${round.id}`} size="sm" variant="ghost" aria-label={`View round ${round.month}`} aria-haspopup="dialog" onClick={(event) => { event.stopPropagation(); setSelectedRoundId(round.id) }}>
+                        View round<ChevronRightIcon data-icon="inline-end" className="transition-transform group-hover:translate-x-0.5" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -412,6 +396,13 @@ export function CoffeeChatsAdminView() {
           )}
         </CardContent>
       </Card>
+
+      {selectedRound && <CoffeeChatRoundDialog key={selectedRound.id} round={selectedRound} busy={isPending}
+        onClose={() => setSelectedRoundId(null)}
+        onUpdated={(updated) => setRounds(current => current.map(round => round.id === updated.id ? updated : round))}
+        onPair={() => handleRunPairing(selectedRound.id)}
+        onDelete={() => setRoundToDelete(selectedRound)}
+      />}
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={roundToDelete !== null} onOpenChange={(open) => !open && setRoundToDelete(null)}>
