@@ -25,6 +25,7 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { NftPreview } from '@/components/nft-preview'
 import { Progress } from '@/components/ui/progress'
 import { getCoffeeChatNextStep, type CoffeeChatHomeData } from '@/lib/coffee-chats'
 
@@ -295,10 +296,17 @@ export function MemberHomePage({
             </CardTitle>
             <CardDescription>Your digital TUM Blockchain Club membership collectible.</CardDescription>
           </CardHeader>
-          <CardContent className="flex-1">
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Apply for your NFT or follow the review and minting status of your existing request.
-            </p>
+          <CardContent className="flex flex-1 flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
+            <div className="w-28 shrink-0 sm:w-32">
+              <NftPreview compact />
+            </div>
+            <div className="flex min-w-0 flex-col gap-2">
+              <p className="text-sm font-medium text-foreground">Your membership, on-chain.</p>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Make it yours with a portrait and your member flex. Apply or check the progress of your request.
+              </p>
+              <p className="text-xs text-muted-foreground">Collectible preview</p>
+            </div>
           </CardContent>
           <CardFooter className="mt-auto justify-end border-border bg-muted/30">
             <Button asChild variant="outline">

@@ -107,3 +107,12 @@ Every blockchain action creates a row in `nft_chain_operations` before signing.
 Confirmed signatures and asset addresses are stored there before the main request
 row is updated. Daily Vercel reconciliation and the board's manual reconcile
 action compare the stored owner and metadata URI with Solana.
+
+## In-app artwork previews
+
+Home and NFT Status share `components/nft-preview.tsx`. Before minting, the
+club-branded collectible is explicitly labeled as a preview; it does not imply
+approval or ownership. NFT Status replaces it with the minted artwork when
+available and retains a readable fallback if the image fails. The presentation
+uses a bounded CSS light pass and gentle perspective, with hover feedback and a
+static reduced-motion variant. It does not change the artwork minted on-chain.
