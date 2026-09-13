@@ -18,6 +18,7 @@ import {
   MailIcon,
   UserIcon,
   UsersIcon,
+  SproutIcon,
 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -82,6 +83,10 @@ const NAVIGATION_GROUPS: Array<{ label: string; items: NavigationItem[] }> = [
       { key: 'attendance', label: 'Attendance', icon: BadgeCheckIcon },
       { key: 'nft-status', label: 'NFT Status', icon: HexagonIcon },
     ],
+  },
+  {
+    label: 'Experimental',
+    items: [{ key: 'tree-of-life', label: 'The Tree of Life', icon: SproutIcon }],
   },
   {
     label: 'Administration',
