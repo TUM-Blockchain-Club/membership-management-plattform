@@ -117,8 +117,7 @@ available and retains a readable fallback if the image fails. The presentation
 uses the official website purple (`#672EB3`) with lilac foil highlights and
 a component-scoped CSS module so its styles ship with the preview. Pointer
 position controls perspective and foil lighting; click, touch or keyboard activation
-turns the card over. Idle motion pauses outside the viewport, in hidden tabs, or
-via the pause control. Reduced-motion preferences disable idle motion and tilt. It does not change the artwork minted on-chain.
+turns the card over. Idle motion pauses outside the viewport and in hidden tabs. Reduced-motion preferences disable idle motion and tilt. It does not change the artwork minted on-chain.
 
 ## Publication consent
 

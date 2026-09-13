@@ -2,8 +2,7 @@
 
 import Image from 'next/image'
 import { useEffect, useRef, useState, type PointerEvent, type KeyboardEvent } from 'react'
-import { ArrowUpRight, Pause, Play, RotateCw } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { ArrowUpRight, RotateCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import styles from './nft-preview.module.css'
 
@@ -16,7 +15,6 @@ export function NftPreview({ imageUrl, displayName, onImageError, compact = fals
 }) {
   const root = useRef<HTMLDivElement>(null)
   const [flipped, setFlipped] = useState(false)
-  const [paused, setPaused] = useState(false)
 
   useEffect(() => {
     const element = root.current
@@ -35,7 +33,7 @@ export function NftPreview({ imageUrl, displayName, onImageError, compact = fals
     for (const property of ['--tilt-x', '--tilt-y', '--light-x', '--light-y']) element.style.removeProperty(property)
   }
   const move = (event: PointerEvent<HTMLButtonElement>) => {
-    if (event.pointerType === 'touch' || paused || matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    if (event.pointerType === 'touch' || matchMedia('(prefers-reduced-motion: reduce)').matches) return
     const bounds = event.currentTarget.getBoundingClientRect()
     const x = Math.max(0, Math.min(1, (event.clientX - bounds.left) / bounds.width))
     const y = Math.max(0, Math.min(1, (event.clientY - bounds.top) / bounds.height))
@@ -50,7 +48,7 @@ export function NftPreview({ imageUrl, displayName, onImageError, compact = fals
   }
 
   return (
-    <div ref={root} className={cn(styles.root, compact && styles.compact)} data-paused={paused} data-visible="false">
+    <div ref={root} className={cn(styles.root, compact && styles.compact)} data-visible="false">
       <div className={styles.stage}>
         <div className={styles.aura} aria-hidden="true" />
         <div className={styles.float}>
@@ -98,10 +96,6 @@ export function NftPreview({ imageUrl, displayName, onImageError, compact = fals
         <button type="button" className={styles.hint} onClick={() => setFlipped(value => !value)}>
           <RotateCw size={12} aria-hidden="true" />{flipped ? 'Back to artwork' : 'Tap to turn'}
         </button>
-        <Button variant="ghost" size="icon-sm" aria-label={paused ? 'Play NFT animation' : 'Pause NFT animation'}
-          aria-pressed={paused} onClick={() => { reset(); setPaused(value => !value) }}>
-          {paused ? <Play /> : <Pause />}
-        </Button>
       </div>
     </div>
   )

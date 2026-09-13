@@ -76,8 +76,7 @@
 .compact .backSymbol { width: 26px; height: 26px; margin-bottom: 0; }
 .compact .backNote { display: none; }
 .compact .hint { font-size: 10px; }
-.root[data-visible='false'] *, .root[data-paused='true'] * { animation-play-state: paused !important; }
-.root[data-paused='true'] .object { transform: none; }
+.root[data-visible='false'] * { animation-play-state: paused !important; }
 @keyframes levitate { 0%,100% { transform: translateY(0) rotateZ(-2deg); } 50% { transform: translateY(-7px) rotateZ(0deg); } }
 @keyframes alloy { 0%,100% { background-position: 0% 30%; } 50% { background-position: 100% 70%; } }
 @media (prefers-reduced-motion: reduce) {
