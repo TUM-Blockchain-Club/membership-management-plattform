@@ -26,3 +26,8 @@ variables in one scheduled animation frame per pointer update. It does not cause
 React rerenders or run a continuous JS animation loop. Hidden/offscreen cards
 reset, and reduced-motion and touch users do not receive page-driven tilt.
 The personal draft keeps its existing direct-hover interaction.
+
+Direct NFT hover takes precedence over page-wide tilt and retains the original
+8°/11° local rotation and full-range spotlight. The floating wrapper applies
+perspective directly to the rotating card, preserving reliable pointer hit testing. Outside the card, page-relative
+6°/8° motion resumes; both modes remain independent of the decorative levitation.

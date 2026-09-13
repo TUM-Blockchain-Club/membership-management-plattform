@@ -36,6 +36,13 @@ export function NftPreview({ imageUrl, displayName, onImageError, compact = fals
     }
     const moveOnPage = (event: globalThis.PointerEvent) => {
       if (draft || event.pointerType !== 'mouse' || !visible || document.hidden || motion.matches) return
+      // Direct hover owns the stronger local tilt and full-range spotlight.
+      const card = element.querySelector('button')
+      if (event.target instanceof Node && card?.contains(event.target)) {
+        cancelAnimationFrame(frame)
+        frame = 0
+        return
+      }
       pointer = { x: event.clientX, y: event.clientY }
       if (frame) return
       frame = requestAnimationFrame(() => {
@@ -95,7 +102,7 @@ export function NftPreview({ imageUrl, displayName, onImageError, compact = fals
       <div className={styles.stage}>
         <div className={styles.aura} aria-hidden="true" />
         <div className={styles.float}>
-          <button type="button" className={styles.object} onPointerMove={draft ? move : undefined} onPointerLeave={draft ? reset : undefined}
+          <button type="button" className={styles.object} onPointerMove={move} onPointerLeave={draft ? reset : undefined}
             onPointerCancel={reset} onBlur={reset} onKeyDown={keyDown}
             onClick={() => setFlipped(value => !value)}
             aria-label={flipped ? 'Show NFT artwork' : 'Turn NFT card to see details'} aria-pressed={flipped}>

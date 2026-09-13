@@ -10,7 +10,7 @@
 }
 .stage { position: relative; padding: 26px 20px 18px; perspective: 1200px; }
 .aura { position: absolute; inset: 15% -10% 3%; background: radial-gradient(ellipse, #672eb332, transparent 65%); pointer-events: none; }
-.float { position: relative; animation: levitate 8s ease-in-out infinite; }
+.float { perspective: 1200px; position: relative; animation: levitate 8s ease-in-out infinite; }
 .object {
   display: block; width: 100%; aspect-ratio: 0.72; padding: 0; border: 0;
   background: transparent; color: #f6f8fa; cursor: pointer;
