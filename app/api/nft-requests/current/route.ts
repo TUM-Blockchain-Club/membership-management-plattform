@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { NFT_REQUEST_IMAGE_BUCKET } from "@/lib/nftRequestConstants"
+import { isSolanaPublicKey } from "@/lib/solanaAddress"
 import {
   NftRequestCurrentMemberError,
   resolveCurrentNftRequestMember,
@@ -21,6 +22,8 @@ type CurrentRequestRow = {
   mint_tx_hash: string | null
   asset_address: string | null
   asset_state: string
+  mint_destination: 'club' | 'member'
+  requested_wallet_address: string | null
 }
 
 type SavePayload = {
@@ -28,6 +31,8 @@ type SavePayload = {
   fun_facts?: string | null
   image_path?: string
   image_url?: string
+  mint_destination?: 'club' | 'member'
+  requested_wallet_address?: string | null
 }
 
 const REQUEST_COLUMNS = '*'
@@ -81,6 +86,8 @@ export async function POST(request: Request) {
     const funFacts = payload.fun_facts?.trim() || null
     const imagePath = payload.image_path?.trim()
     const imageUrl = payload.image_url?.trim()
+    const mintDestination = payload.mint_destination ?? 'club'
+    const requestedWalletAddress = payload.requested_wallet_address?.trim() || null
 
     if (!displayName) {
       return NextResponse.json({ error: "Display name is required." }, { status: 400 })
@@ -88,6 +95,14 @@ export async function POST(request: Request) {
 
     if (!imagePath || !imageUrl) {
       return NextResponse.json({ error: "Image upload is required." }, { status: 400 })
+    }
+
+    if (mintDestination !== 'club' && mintDestination !== 'member') {
+      return NextResponse.json({ error: "Choose a valid mint destination." }, { status: 400 })
+    }
+
+    if (mintDestination === 'member' && (!requestedWalletAddress || !isSolanaPublicKey(requestedWalletAddress))) {
+      return NextResponse.json({ error: "Enter a valid Solana wallet address." }, { status: 400 })
     }
 
     const expectedImagePrefix = `${member.ID}/`
@@ -118,6 +133,8 @@ export async function POST(request: Request) {
           fun_facts: funFacts,
           image_path: imagePath,
           image_url: imageUrl,
+          mint_destination: mintDestination,
+          requested_wallet_address: mintDestination === 'member' ? requestedWalletAddress : null,
           request_image_bucket: NFT_REQUEST_IMAGE_BUCKET,
           reviewed_at: null,
           reviewed_by: null,

@@ -201,7 +201,8 @@ Important column groups:
 | Request | `status`, `display_name`, `fun_facts`, `image_path`, `request_image_bucket` | Member submission and board review. Source portraits are private. |
 | Public metadata | `rendered_image_path`, `metadata_path`, `metadata_url`, `metadata_version` | Versioned public PNG and JSON files used by wallets and explorers. |
 | Solana identity | `chain_network`, `collection_address`, `asset_address` | Network and Metaplex Core addresses. |
-| Ownership | `owner_address`, `custody_status`, `claim_wallet_address`, `claim_requested_at`, `claimed_at` | Club custody, member claim, and wallet recovery. |
+| Mint destination | `mint_destination`, `requested_wallet_address` | Member choice between initial club custody and direct minting to their wallet. |
+| Ownership | `owner_address`, `custody_status`, `claim_wallet_address`, `claim_requested_at`, `claimed_at` | Current custody, later member claim, and wallet recovery. |
 | Lifecycle | `asset_state`, `minted_at`, `updated_on_chain_at`, `burned_at` | `unminted`, `active`, `alumni`, or `burned`. |
 | Receipts | `mint_tx_hash`, `update_tx_hash`, `burn_tx_hash`, `last_chain_error`, `reconciled_at` | Solana signatures and reconciliation state. |
 

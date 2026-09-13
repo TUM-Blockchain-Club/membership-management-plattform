@@ -6,18 +6,37 @@ const {
   buildMembershipMetadata,
   getMembershipAssetAction,
   getMembershipAssetState,
+  getRequestedMintOwnerAddress,
   getSolanaExplorerUrl,
   isBurningMemberStatus,
 } = await import(moduleUrl.href) as typeof import('../lib/nftLifecycle')
 const { getSuggestedNftDisplayName } = await import(
   new URL('../lib/nftDisplayName.ts', import.meta.url).href
 ) as typeof import('../lib/nftDisplayName')
+const { isSolanaPublicKey } = await import(
+  new URL('../lib/solanaAddress.ts', import.meta.url).href
+) as typeof import('../lib/solanaAddress')
 
 test('display-name suggestions keep only the first name and surname initial', () => {
   assert.equal(getSuggestedNftDisplayName('Nikolas Hack'), 'Nikolas H.')
   assert.equal(getSuggestedNftDisplayName('  Ada  Lovelace  '), 'Ada L.')
   assert.equal(getSuggestedNftDisplayName('Satoshi'), 'Satoshi')
   assert.equal(getSuggestedNftDisplayName(null), '')
+})
+
+test('mint destination selects club custody or the requested member wallet', () => {
+  assert.equal(getRequestedMintOwnerAddress('club', null), null)
+  assert.equal(getRequestedMintOwnerAddress('club', 'stale-wallet'), null)
+  assert.equal(getRequestedMintOwnerAddress('member', '  member-wallet  '), 'member-wallet')
+  assert.throws(
+    () => getRequestedMintOwnerAddress('member', null),
+    /wallet address is required/i
+  )
+})
+
+test('Solana wallet validation rejects malformed request destinations', () => {
+  assert.equal(isSolanaPublicKey('11111111111111111111111111111111'), true)
+  assert.equal(isSolanaPublicKey('not-a-wallet'), false)
 })
 
 test('active and alumni member statuses preserve the membership asset', () => {

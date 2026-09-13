@@ -6,7 +6,8 @@ The membership platform issues one mutable Metaplex Core asset per approved
 member. The implementation is independent from other credential projects.
 
 - New assets are created on Solana, starting on devnet.
-- The club wallet initially owns every asset.
+- During the request, the member chooses direct minting to their Solana wallet
+  or initial custody in the club wallet.
 - Members request a claim or wallet recovery through the authenticated platform.
 - Assets remain frozen between platform-controlled transfers.
 - The club remains the permanent update, transfer, freeze, and burn authority.
@@ -19,6 +20,8 @@ member. The implementation is independent from other credential projects.
 
 - **NFT request**: A member's submitted portrait and approved public profile fields.
 - **Membership asset**: The Metaplex Core asset created from an approved request.
+- **Requested destination**: Before review, the member chooses the club wallet
+  or supplies a personal Solana wallet for direct minting.
 - **Club custody**: The shared club wallet currently owns the asset.
 - **Claim**: A board-approved transfer from club custody to a member wallet.
 - **Recovery**: A board-approved transfer from a previous member wallet to a new one.

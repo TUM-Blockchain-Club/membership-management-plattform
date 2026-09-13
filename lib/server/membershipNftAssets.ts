@@ -20,6 +20,8 @@ export type MembershipNftRecord = {
     metadata_version: number
     asset_address: string | null
     asset_state: 'unminted' | 'active' | 'alumni' | 'burned'
+    mint_destination: 'club' | 'member'
+    requested_wallet_address: string | null
     claim_wallet_address: string | null
     source_images: Array<{ bucket: string; path: string }>
   }
@@ -33,7 +35,7 @@ export type MembershipNftRecord = {
 }
 
 const REQUEST_COLUMNS =
-  'id, member_id, status, display_name, fun_facts, image_path, image_url, request_image_bucket, approved_display_name, approved_fun_facts, approved_image_path, approved_image_bucket, metadata_version, asset_address, asset_state, claim_wallet_address'
+  'id, member_id, status, display_name, fun_facts, image_path, image_url, request_image_bucket, approved_display_name, approved_fun_facts, approved_image_path, approved_image_bucket, metadata_version, asset_address, asset_state, mint_destination, requested_wallet_address, claim_wallet_address'
 
 export const loadMembershipNftRecord = async (
   supabase: SupabaseServerClient,

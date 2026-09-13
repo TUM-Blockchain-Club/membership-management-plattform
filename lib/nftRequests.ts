@@ -9,6 +9,8 @@ export type NftRequestUpsert = {
   fun_facts: string | null
   image_path: string
   image_url: string
+  mint_destination: 'club' | 'member'
+  requested_wallet_address: string | null
   reviewed_at: null
   reviewed_by: null
   review_note: null
@@ -41,6 +43,8 @@ export type NftRequestRow = {
   custody_status?: 'club' | 'member'
   asset_state?: 'unminted' | 'active' | 'alumni' | 'burned'
   claim_wallet_address?: string | null
+  mint_destination?: 'club' | 'member'
+  requested_wallet_address?: string | null
   claim_requested_at?: string | null
   claimed_at?: string | null
   minted_at?: string | null

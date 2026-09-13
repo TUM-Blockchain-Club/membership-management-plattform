@@ -109,6 +109,8 @@ const toUiRequest = (request: AdminQueueRequestRow, requestImage: string): NFTRe
     assetAddress: request.asset_address ?? null,
     assetState: request.asset_state ?? 'unminted',
     custodyStatus: request.custody_status ?? 'club',
+    mintDestination: request.mint_destination ?? 'club',
+    requestedWalletAddress: request.requested_wallet_address ?? null,
     claimWalletAddress: request.claim_wallet_address ?? null,
     lastChainError: request.last_chain_error ?? null,
   }

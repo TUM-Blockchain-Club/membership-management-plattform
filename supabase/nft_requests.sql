@@ -133,6 +133,8 @@ alter table public.nft_requests
   add column if not exists asset_address text,
   add column if not exists owner_address text,
   add column if not exists custody_status text not null default 'club',
+  add column if not exists mint_destination text not null default 'club',
+  add column if not exists requested_wallet_address text,
   add column if not exists asset_state text not null default 'unminted',
   add column if not exists claim_wallet_address text,
   add column if not exists claim_requested_at timestamptz,
@@ -160,6 +162,8 @@ alter table public.nft_requests
   drop constraint if exists nft_requests_status_check,
   drop constraint if exists nft_requests_chain_network_check,
   drop constraint if exists nft_requests_custody_status_check,
+  drop constraint if exists nft_requests_mint_destination_check,
+  drop constraint if exists nft_requests_requested_wallet_address_check,
   drop constraint if exists nft_requests_asset_state_check,
   drop constraint if exists nft_requests_metadata_version_check,
   drop constraint if exists nft_requests_claim_wallet_address_check;
@@ -171,6 +175,14 @@ alter table public.nft_requests
   add constraint nft_requests_status_check check (status in ('pending', 'approved', 'rejected')),
   add constraint nft_requests_chain_network_check check (chain_network in ('devnet', 'mainnet-beta')),
   add constraint nft_requests_custody_status_check check (custody_status in ('club', 'member')),
+  add constraint nft_requests_mint_destination_check check (mint_destination in ('club', 'member')),
+  add constraint nft_requests_requested_wallet_address_check check (
+    (mint_destination = 'club' and requested_wallet_address is null)
+    or (
+      mint_destination = 'member'
+      and requested_wallet_address ~ '^[1-9A-HJ-NP-Za-km-z]{32,44}$'
+    )
+  ),
   add constraint nft_requests_asset_state_check check (asset_state in ('unminted', 'active', 'alumni', 'burned')),
   add constraint nft_requests_metadata_version_check check (metadata_version >= 0),
   add constraint nft_requests_claim_wallet_address_check check (

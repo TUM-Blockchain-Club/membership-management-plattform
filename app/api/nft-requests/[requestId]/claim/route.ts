@@ -5,7 +5,8 @@ import {
   startNftChainOperation,
 } from '@/lib/server/nftChainOperation'
 import { NftRequestAdminError, requireNftRequestAdmin } from '@/lib/server/nftRequestAdmin'
-import { claimMembershipAsset, isSolanaPublicKey } from '@/lib/server/solanaMembership'
+import { isSolanaPublicKey } from '@/lib/solanaAddress'
+import { claimMembershipAsset } from '@/lib/server/solanaMembership'
 import { getSupabaseAdminClient } from '@/lib/server/supabaseAdmin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 

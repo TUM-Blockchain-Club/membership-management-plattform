@@ -1,12 +1,13 @@
-import { AlertTriangleIcon, CopyIcon, FileImageIcon, WalletCardsIcon } from 'lucide-react'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { AlertTriangleIcon, Building2Icon, CopyIcon, FileImageIcon, WalletIcon } from 'lucide-react'
+import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import type { NftStatusController } from '../useNftStatus'
 import type { NftStatusSectionsProps } from './types'
 
@@ -19,13 +20,16 @@ export function NftApplicationForm({ state }: NftStatusSectionsProps) {
     handleCopyPrompt,
     handleSubmit,
     hasConsented,
-    hasMintedNft,
+    mintDestination,
+    requestedWalletAddress,
     saving,
     selectedFileName,
     setDisplayName,
     setDisplayNameManuallyEdited,
     setFunFacts,
     setHasConsented,
+    setMintDestination,
+    setRequestedWalletAddress,
     setSelectedFile,
   } = state
 
@@ -71,15 +75,52 @@ export function NftApplicationForm({ state }: NftStatusSectionsProps) {
         </Field>
       </FieldGroup>
 
-      {!hasMintedNft && (
-        <Alert>
-          <WalletCardsIcon aria-hidden="true" />
-          <AlertTitle>No wallet needed for the request</AlertTitle>
-          <AlertDescription>
-            The NFT is minted to the TBC club wallet first. After minting, you can enter your own Solana wallet here and
-            request a board-approved claim.
-          </AlertDescription>
-        </Alert>
+      <FieldSet>
+        <FieldLegend className="text-white">Where should we mint your NFT?</FieldLegend>
+        <FieldDescription className="text-white/55">
+          Choose the TBC club wallet for club custody, or mint directly to your own Solana wallet.
+        </FieldDescription>
+        <ToggleGroup
+          type="single"
+          value={mintDestination}
+          onValueChange={(value) => {
+            if (value === 'club' || value === 'member') setMintDestination(value)
+          }}
+          variant="outline"
+          className="grid w-full grid-cols-1 sm:grid-cols-2"
+          disabled={saving}
+          aria-label="NFT mint destination"
+        >
+          <ToggleGroupItem value="club" className="w-full" aria-label="Mint to the TBC club wallet">
+            <Building2Icon data-icon="inline-start" aria-hidden="true" />
+            TBC Club Wallet
+          </ToggleGroupItem>
+          <ToggleGroupItem value="member" className="w-full" aria-label="Mint to my Solana wallet">
+            <WalletIcon data-icon="inline-start" aria-hidden="true" />
+            My Solana Wallet
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </FieldSet>
+
+      {mintDestination === 'member' && (
+        <Field>
+          <FieldLabel htmlFor="requested-wallet-address" className="text-white">Solana Wallet Address</FieldLabel>
+          <Input
+            id="requested-wallet-address"
+            name="requestedWalletAddress"
+            value={requestedWalletAddress}
+            onChange={(event) => setRequestedWalletAddress(event.target.value)}
+            placeholder="Your Solana wallet address"
+            autoComplete="off"
+            required
+            aria-required="true"
+            disabled={saving}
+            className="h-14 border-white/10 bg-black/30 text-white focus-visible:border-cyan-400/50"
+          />
+          <FieldDescription className="text-white/55">
+            The approved NFT will be minted directly to this address. Check it carefully before submitting.
+          </FieldDescription>
+        </Field>
       )}
 
       <NftGenerationKit copiedPrompt={copiedPrompt} handleCopyPrompt={handleCopyPrompt} />

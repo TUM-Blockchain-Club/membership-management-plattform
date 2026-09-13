@@ -76,9 +76,16 @@ export function NftRequestSummary({ state }: NftStatusSectionsProps) {
 
         <div className="grid gap-4 sm:grid-cols-2">
           <SummaryCard label="Submitted">{formatSubmittedAt(existingRequest.created_at)}</SummaryCard>
-          <SummaryCard label="Custody">
-            {existingRequest.custody_status === 'member' ? 'Member wallet' : 'TBC club wallet'}
+          <SummaryCard label={hasMintedNft ? "Custody" : "Mint destination"}>
+            {(hasMintedNft ? existingRequest.custody_status : existingRequest.mint_destination) === 'member'
+              ? 'Member wallet'
+              : 'TBC club wallet'}
           </SummaryCard>
+          {existingRequest.requested_wallet_address && (
+            <SummaryCard label="Requested Wallet" className="sm:col-span-2 text-cyan-100">
+              {existingRequest.requested_wallet_address}
+            </SummaryCard>
+          )}
           {existingRequest.mint_tx_hash && (
             <SummaryCard label="Mint Transaction" className="sm:col-span-2 text-cyan-100">
               {existingRequest.mint_tx_hash}
