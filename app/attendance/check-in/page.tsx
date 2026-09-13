@@ -147,10 +147,10 @@ function CheckInInner() {
               <h1 className="text-2xl font-bold text-white mb-2">Check-in Failed</h1>
               <p className="text-white/70 mb-6">{state.message}</p>
               <Link
-                href="/dashboard"
+                href="/attendance"
                 className="px-5 py-2.5 bg-white/10 hover:bg-white/15 border border-white/20 text-white text-sm rounded-lg transition-colors"
               >
-                Go to Dashboard
+                Scan a fresh QR code
               </Link>
             </div>
           )}

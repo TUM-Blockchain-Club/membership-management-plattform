@@ -89,3 +89,11 @@ For external event CSV imports, use:
 ```bash
 pnpm exec node scripts/import-external-events-csv.mjs --file=/absolute/path/events.csv --months-back=1
 ```
+
+## Attendance QR security
+
+Existing lecture installations must apply `attendance_secure_check_in.sql` before
+using the RPC-based check-in routes. This migration preserves records, restricts
+secret-column reads and direct inserts, and installs atomic check-in/issuance.
+Do not rerun the destructive legacy `lectures.sql` setup on a populated database.
+See `docs/architecture/attendance.md` for verification.

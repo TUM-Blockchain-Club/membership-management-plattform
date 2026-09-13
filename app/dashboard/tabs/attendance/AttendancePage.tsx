@@ -5,7 +5,7 @@ import type { DashboardMember } from '@/app/components/dashboard/types'
 import { AttendanceCalendar } from './AttendanceCalendar'
 import { CheckInScannerModal } from './CheckInScannerModal'
 import { LectureEditor } from './LectureEditor'
-import { LectureQrDisplay } from './LectureQrDisplay'
+import { LectureQrDisplay, type LectureCode } from './LectureQrDisplay'
 import {
   formatDateTime,
   useEventAttendance,
@@ -120,7 +120,6 @@ function BoardSection({ allMembers }: { allMembers: DashboardMember[] }) {
 
   const [editorOpen, setEditorOpen] = useState(false)
   const [editing, setEditing] = useState<LectureRow | null>(null)
-  const [activeToken, setActiveToken] = useState<string | null>(null)
   const [pendingStartId, setPendingStartId] = useState<string | null>(null)
 
   const handleCreate = () => {
@@ -159,7 +158,6 @@ function BoardSection({ allMembers }: { allMembers: DashboardMember[] }) {
     const result = await start(lecture.id)
     setPendingStartId(null)
     if (result) {
-      setActiveToken(result.token)
       await refreshLectures()
     }
   }
@@ -168,7 +166,6 @@ function BoardSection({ allMembers }: { allMembers: DashboardMember[] }) {
     if (!activeLecture) return
     const result = await stop(activeLecture.id)
     if (result) {
-      setActiveToken(null)
       await refreshLectures()
     }
   }
@@ -186,7 +183,6 @@ function BoardSection({ allMembers }: { allMembers: DashboardMember[] }) {
       {activeLecture && (
         <ActiveLectureBlock
           lecture={activeLecture}
-          token={activeToken}
           onRotate={handleRotate}
           onStop={handleStop}
           stopping={working}
@@ -254,14 +250,12 @@ function BoardSection({ allMembers }: { allMembers: DashboardMember[] }) {
 
 function ActiveLectureBlock({
   lecture,
-  token,
   onRotate,
   onStop,
   stopping,
 }: {
   lecture: LectureRow
-  token: string | null
-  onRotate: (id: string) => Promise<{ token: string } | null>
+  onRotate: (id: string) => Promise<LectureCode | null>
   onStop: () => void
   stopping?: boolean
 }) {
@@ -290,8 +284,8 @@ function ActiveLectureBlock({
 
       <div className="p-4 sm:p-6 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-4">
         <LectureQrDisplay
+          key={lecture.id}
           lectureId={lecture.id}
-          initialToken={token}
           onRotate={onRotate}
           onStop={onStop}
           stopping={stopping}
