@@ -32,6 +32,7 @@ For the live schema overview, table columns, relationships, RLS summary, storage
 
 - `nft_requests.sql`
   - Creates/updates the Solana membership request, custody, lifecycle, and receipt schema.
+  - Gives every board member NFT administration access and stores optional additional administrators in `nft_admins`.
   - Creates the private source-image and public rendered-asset buckets.
 
 - `coffee_chats.sql`

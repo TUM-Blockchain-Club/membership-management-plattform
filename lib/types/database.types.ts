@@ -77,6 +77,12 @@ export interface CoffeeChatAdmin {
   created_at: string
 }
 
+export interface NftAdmin {
+  member_id: number
+  assigned_by: number | null
+  created_at: string
+}
+
 export interface CoffeeChatSignup {
   id: string
   round_id: string
@@ -177,6 +183,27 @@ export interface Database {
           },
         ]
       }
+      nft_admins: {
+        Row: NftAdmin & Record<string, unknown>
+        Insert: NftAdmin
+        Update: Partial<NftAdmin>
+        Relationships: [
+          {
+            foreignKeyName: 'nft_admins_member_id_fkey'
+            columns: ['member_id']
+            isOneToOne: true
+            referencedRelation: 'members_main'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'nft_admins_assigned_by_fkey'
+            columns: ['assigned_by']
+            isOneToOne: false
+            referencedRelation: 'members_main'
+            referencedColumns: ['id']
+          },
+        ]
+      }
       cc_rounds: {
         Row: CoffeeChatRound & Record<string, unknown>
         Insert: Pick<CoffeeChatRound, 'month'> &
@@ -251,6 +278,14 @@ export interface Database {
     Functions: {
       check_email_can_manage_coffee_chats: {
         Args: { check_email: string }
+        Returns: boolean
+      }
+      check_email_can_manage_nft_requests: {
+        Args: { check_email: string }
+        Returns: boolean
+      }
+      can_manage_nft_requests: {
+        Args: never
         Returns: boolean
       }
       check_email_can_manage_newsletter: {

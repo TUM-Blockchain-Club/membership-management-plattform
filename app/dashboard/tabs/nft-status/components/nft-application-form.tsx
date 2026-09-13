@@ -1,5 +1,5 @@
-import { AlertTriangleIcon, CopyIcon, FileImageIcon } from 'lucide-react'
-import { Alert } from '@/components/ui/alert'
+import { AlertTriangleIcon, CopyIcon, FileImageIcon, WalletCardsIcon } from 'lucide-react'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -19,6 +19,7 @@ export function NftApplicationForm({ state }: NftStatusSectionsProps) {
     handleCopyPrompt,
     handleSubmit,
     hasConsented,
+    hasMintedNft,
     saving,
     selectedFileName,
     setDisplayName,
@@ -69,6 +70,17 @@ export function NftApplicationForm({ state }: NftStatusSectionsProps) {
           </FieldDescription>
         </Field>
       </FieldGroup>
+
+      {!hasMintedNft && (
+        <Alert>
+          <WalletCardsIcon aria-hidden="true" />
+          <AlertTitle>No wallet needed for the request</AlertTitle>
+          <AlertDescription>
+            The NFT is minted to the TBC club wallet first. After minting, you can enter your own Solana wallet here and
+            request a board-approved claim.
+          </AlertDescription>
+        </Alert>
+      )}
 
       <NftGenerationKit copiedPrompt={copiedPrompt} handleCopyPrompt={handleCopyPrompt} />
 

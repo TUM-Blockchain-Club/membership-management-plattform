@@ -8,7 +8,7 @@ returns integer
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
   select m.id
   from public.members_main m
@@ -16,23 +16,89 @@ as $$
   limit 1
 $$;
 
+create table if not exists public.nft_admins (
+  member_id bigint primary key references public.members_main(id) on delete cascade,
+  assigned_by bigint references public.members_main(id) on delete set null,
+  created_at timestamptz not null default now()
+);
+
+-- Preserve access for administrators from the former application allowlist.
+insert into public.nft_admins (member_id)
+select m.id
+from public.members_main m
+where m.id in (0, 99, 107, 26, 126)
+  and btrim(coalesce(m."Role", '')) <> 'Board Member'
+on conflict (member_id) do nothing;
+
+create or replace function public.check_email_can_manage_nft_requests(check_email text)
+returns boolean
+language sql
+stable
+security definer
+set search_path = ''
+as $$
+  select exists (
+    select 1
+    from public.members_main m
+    where lower(coalesce(m."TBC Email", '')) = lower(coalesce(check_email, ''))
+      and (
+        btrim(coalesce(m."Role", '')) = 'Board Member'
+        or exists (
+          select 1 from public.nft_admins na where na.member_id = m.id
+        )
+      )
+  )
+$$;
+
 create or replace function public.can_manage_nft_requests()
 returns boolean
 language sql
 stable
 security definer
-set search_path = public
+set search_path = ''
 as $$
-  select exists (
-    select 1
-    from public.members_main m
-    where lower(coalesce(m."TBC Email", '')) = lower(coalesce(auth.jwt() ->> 'email', ''))
-      and m.id in (0, 99)
-  )
+  select public.check_email_can_manage_nft_requests(auth.jwt() ->> 'email')
 $$;
 
+revoke all on function public.current_member_id() from public, anon;
+revoke all on function public.check_email_can_manage_nft_requests(text) from public, anon, authenticated;
+revoke all on function public.can_manage_nft_requests() from public, anon;
 grant execute on function public.current_member_id() to authenticated;
 grant execute on function public.can_manage_nft_requests() to authenticated;
+
+alter table public.nft_admins enable row level security;
+
+drop policy if exists "nft admins can view assignments" on public.nft_admins;
+create policy "nft admins can view assignments"
+  on public.nft_admins for select to authenticated
+  using (public.can_manage_nft_requests());
+
+drop policy if exists "board members can manage nft admins" on public.nft_admins;
+drop policy if exists "board members can add nft admins" on public.nft_admins;
+create policy "board members can add nft admins"
+  on public.nft_admins for insert to authenticated
+  with check (
+    exists (
+      select 1
+      from public.members_main m
+      where lower(coalesce(m."TBC Email", '')) = lower(coalesce((select auth.jwt()) ->> 'email', ''))
+        and btrim(coalesce(m."Role", '')) = 'Board Member'
+    )
+  );
+
+drop policy if exists "board members can remove nft admins" on public.nft_admins;
+create policy "board members can remove nft admins"
+  on public.nft_admins for delete to authenticated
+  using (
+    exists (
+      select 1
+      from public.members_main m
+      where lower(coalesce(m."TBC Email", '')) = lower(coalesce((select auth.jwt()) ->> 'email', ''))
+        and btrim(coalesce(m."Role", '')) = 'Board Member'
+    )
+  );
+
+grant select, insert, delete on public.nft_admins to authenticated;
 
 create table if not exists public.nft_requests (
   id uuid primary key default gen_random_uuid(),

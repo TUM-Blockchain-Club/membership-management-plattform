@@ -27,6 +27,10 @@ member. The implementation is independent from other credential projects.
 - **Revoked**: The board burns the asset and removes hosted personal media.
 - **Reconciliation**: Comparison of stored owner/URI data with the Solana account.
 
+All members with the `Board Member` role can administer NFT requests.
+Board members can also assign additional active members through the NFT
+administration page; those assignments live in `nft_admins`.
+
 ## Data and privacy
 
 Source portraits are stored in the private `nft-request-images` Supabase bucket.

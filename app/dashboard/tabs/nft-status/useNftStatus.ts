@@ -4,6 +4,7 @@ import { useMemo, useState, type FormEvent } from "react"
 import useSWR from "swr"
 import type { DashboardMember } from "@/app/components/dashboard/types"
 import { getSolanaExplorerUrl } from "@/lib/nftLifecycle"
+import { getSuggestedNftDisplayName } from "@/lib/nftDisplayName"
 import { nftRequestService, type CurrentNftRequestResponse, type NftRequestRow } from "@/lib/nftRequests"
 
 export const getLabel = (value: string | null | undefined, fallback: string) => {
@@ -111,7 +112,7 @@ export function useNftStatus(member: DashboardMember | null) {
         setResolvedMemberId(data.memberId)
         setExistingRequest(data.request)
         if (!displayNameManuallyEdited && data.member.name?.trim()) {
-          setDisplayName(data.member.name.trim())
+          setDisplayName(getSuggestedNftDisplayName(data.member.name))
         }
       },
       onError(error: unknown) {
@@ -126,6 +127,7 @@ export function useNftStatus(member: DashboardMember | null) {
   const selectedFileName = selectedFile?.name ?? null
   const batch = currentMemberProfile?.batch?.trim() || "Not set"
   const currentMemberName = currentMemberProfile?.name?.trim() || member?.Name?.trim() || null
+  const suggestedDisplayName = getSuggestedNftDisplayName(currentMemberName)
   const loadingExistingRequest = isLoading && !existingRequest && !requestLookupError
   const statusCopy = getRequestStatusCopy(existingRequest, loadingExistingRequest)
   const hasMintedNft = Boolean(existingRequest?.asset_address && existingRequest.asset_state !== 'burned')
@@ -247,7 +249,7 @@ export function useNftStatus(member: DashboardMember | null) {
       }
 
       setExistingRequest(null)
-      setDisplayName(currentMemberName ?? "")
+      setDisplayName(suggestedDisplayName)
       setDisplayNameManuallyEdited(false)
       setFunFacts("")
       setClaimWalletAddress("")

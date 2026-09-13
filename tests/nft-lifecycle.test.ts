@@ -9,6 +9,16 @@ const {
   getSolanaExplorerUrl,
   isBurningMemberStatus,
 } = await import(moduleUrl.href) as typeof import('../lib/nftLifecycle')
+const { getSuggestedNftDisplayName } = await import(
+  new URL('../lib/nftDisplayName.ts', import.meta.url).href
+) as typeof import('../lib/nftDisplayName')
+
+test('display-name suggestions keep only the first name and surname initial', () => {
+  assert.equal(getSuggestedNftDisplayName('Nikolas Hack'), 'Nikolas H.')
+  assert.equal(getSuggestedNftDisplayName('  Ada  Lovelace  '), 'Ada L.')
+  assert.equal(getSuggestedNftDisplayName('Satoshi'), 'Satoshi')
+  assert.equal(getSuggestedNftDisplayName(null), '')
+})
 
 test('active and alumni member statuses preserve the membership asset', () => {
   assert.equal(getMembershipAssetState('Active'), 'active')

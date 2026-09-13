@@ -49,7 +49,6 @@ type EventInterestRow = {
   member_id: number
 }
 
-const NFT_ADMIN_MEMBER_IDS = new Set([0, 99, 107, 26, 126])
 const EVENTS_FETCH_LIMIT = 500
 const MEMBER_COLUMNS =
   'id, created_at, Name, Role, Status, Department, "Project/Task", "Area of Expertise", Picture, Uni, "Semester Joined", Degree, Phone, "Private Email", "TBC Email", Linkedin, Telegram, Discord, Instagram, Twitter, "Size Merch"'
@@ -68,7 +67,6 @@ const emptyInitialData = (): DashboardInitialData => ({
 // 'all' is used by the shared layout to eagerly load every tab's data once.
 const routeNeedsEvents  = (tab: DashboardTab | 'all') => tab === 'events'  || tab === 'all'
 const routeNeedsMembers = (tab: DashboardTab | 'all') => tab === 'members' || tab === 'stats' || tab === 'attendance' || tab === 'all'
-const isNftAdminMember = (memberId: number) => NFT_ADMIN_MEMBER_IDS.has(memberId)
 const shouldLogServerPerf = () => process.env.PERF_LOG_SERVER === 'true'
 const now = () => performance.now()
 const roundMs = (start: number) => Math.round(now() - start)
@@ -231,7 +229,7 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'a
     if (memberError || !memberData) {
       return {
         ...emptyInitialData(),
-        canManageNftRequests: isNftAdminMember(devMemberId),
+        canManageNftRequests: false,
         hasSpecialAccess: devBypass && hasLocalDevBypassSpecialAccess(),
         message: {
           type: 'error',
@@ -247,10 +245,19 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'a
     const eventsPromise = routeNeedsEvents(routeTab)
       ? loadUpcomingEvents(dataClient, member.id)
       : Promise.resolve([] as DashboardEvent[])
+    const nftAdminAccessPromise = member.Role?.trim() === 'Board Member'
+      ? Promise.resolve(true)
+      : dataClient
+          .from('nft_admins')
+          .select('member_id')
+          .eq('member_id', member.id)
+          .maybeSingle()
+          .then(({ data }) => Boolean(data))
     const routeDataStartedAt = now()
-    const [{ data: allMembersData, error: allMembersError }, events] = await Promise.all([
+    const [{ data: allMembersData, error: allMembersError }, events, canManageNftRequests] = await Promise.all([
       allMembersPromise,
       eventsPromise,
+      nftAdminAccessPromise,
     ])
     const allMembers = (allMembersData ?? []) as DashboardMember[]
     logDashboardPerf('dev.routeData', {
@@ -275,7 +282,7 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'a
 
     return {
       allMembers,
-      canManageNftRequests: isNftAdminMember(member.id) || (devBypass && hasLocalDevBypassSpecialAccess()),
+      canManageNftRequests,
       events,
       hasSpecialAccess: devBypass && hasLocalDevBypassSpecialAccess(),
       member,
@@ -322,7 +329,7 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'a
   const ccAdminAccessPromise = supabase.rpc('check_email_can_manage_coffee_chats', {
     check_email: user.email ?? '',
   })
-  const nftAdminAccessPromise = Promise.resolve(isNftAdminMember(member.id))
+  const nftAdminAccessPromise = supabase.rpc('can_manage_nft_requests')
   const allMembersPromise = routeNeedsMembers(routeTab)
     ? supabase.from('members_main').select(MEMBER_COLUMNS).order('Name', { ascending: true })
     : Promise.resolve({ data: [] as DashboardMember[], error: null })
@@ -334,7 +341,7 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'a
   const [
     { data: viewedMemberAccessResult },
     { data: ccAdminAccessResult },
-    canManageNftRequests,
+    { data: nftAdminAccessResult },
     { data: allMembersData, error: allMembersError },
     events,
   ] = await Promise.all([
@@ -368,7 +375,7 @@ export const loadDashboardInitialData = cache(async (routeTab: DashboardTab | 'a
 
   return {
     allMembers,
-    canManageNftRequests,
+    canManageNftRequests: (nftAdminAccessResult as AccessResponse) === true,
     canManageCoffeeChats: (ccAdminAccessResult as AccessResponse) === true || (devBypass && hasLocalDevBypassSpecialAccess()),
     events,
     hasSpecialAccess: (specialAccessResult as AccessResponse) === true || (devBypass && hasLocalDevBypassSpecialAccess()),

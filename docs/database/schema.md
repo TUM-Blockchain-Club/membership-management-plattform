@@ -177,6 +177,18 @@ Relationships:
 - `member_id` -> `members_main.id`
 - `event_id` -> `events.id`
 
+### `public.nft_admins`
+
+Additional NFT administrators assigned by board members. Every member whose
+`members_main.Role` is `Board Member` receives NFT administration access
+automatically and does not need a row here.
+
+| Column | Type | Null | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `member_id` | `bigint` | no | none | Primary key and member reference. |
+| `assigned_by` | `bigint` | yes | none | Board member who assigned access. |
+| `created_at` | `timestamptz` | no | `now()` | Assignment timestamp. |
+
 ### `public.nft_requests`
 
 One row per member combines the reviewable public profile submission with the
@@ -346,8 +358,9 @@ Constraints and indexes:
 | `check_email_has_special_access(check_email text)` | `boolean` | Checks special access for a supplied email. |
 | `check_email_can_manage_newsletter(check_email text)` | `boolean` | Checks newsletter manager access for board members or special-access users. |
 | `check_email_can_manage_coffee_chats(check_email text)` | `boolean` | Checks Coffee Chat administrator access for board members or special-access users. |
+| `check_email_can_manage_nft_requests(check_email text)` | `boolean` | Internal helper that checks NFT access for board members and explicitly assigned NFT administrators. |
 | `commit_coffee_chat_pairing(target_round_id uuid, pair_rows jsonb)` | `integer` | Locks an open round, validates participants, inserts all pairs, and advances the round atomically. Service-role only. |
-| `can_manage_nft_requests()` | `boolean` | Checks NFT admin permissions. |
+| `can_manage_nft_requests()` | `boolean` | Checks current-user NFT admin permissions. |
 | `allow_only_test_domain()` | `trigger` | Auth-related domain guard. |
 | `block_guest_core_updates_email()` | `trigger` | Prevents restricted email updates. |
 | `enforce_member_role_and_department_changes()` | `trigger` | Allows one initial self-selected department and keeps later department and role changes board/admin managed. |
