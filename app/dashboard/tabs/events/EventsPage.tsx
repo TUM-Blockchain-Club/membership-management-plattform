@@ -346,7 +346,7 @@ export function EventsPage({
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
             {filteredExternalEvents.map((event) => (
               <ExternalEventCard
                 key={event.id}

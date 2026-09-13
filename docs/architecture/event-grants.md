@@ -9,3 +9,8 @@ The new migration extends the existing central scope constraints/functions and c
 No external form webhook is configured: opening a form is not proof of submission. Applications submitted there remain in the external provider. This first version is an application register, not an approval or payment workflow.
 
 Verification: `node tests/admin-access-database.mjs` runs disposable PostgreSQL tests for applicant privacy, ownership, closed events, external links, delegated admin reads and revocation. `pnpm test` includes safe-link and existing authorization tests.
+
+External event cards use one column on small screens and two from the desktop
+breakpoint onward. Rows stretch cards equally; the image stays beside the event
+information and the Interest/Grant actions align at the bottom. The Event Grants
+sidebar entry follows Admin Access for users who can access both.

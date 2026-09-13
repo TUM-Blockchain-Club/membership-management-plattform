@@ -19,3 +19,10 @@ Reference: https://vercel.com/docs/functions/configuring-functions/region
 `pnpm test:dashboard` checks resource validation, authentication, user-scoped reads, private response caching, no eager collections in the shell, reuse of Special Access and the bounded Home query. Existing lint, type checks, build and full test suite remain required.
 
 Browser checks should cover Home → Members → Events → Members, direct entry to collection routes, failed loads/retry, and a persistent sidebar without document reloads. Performance conclusions require authenticated navigation timing on the deployed preview; local bypass tests validate behavior but do not measure production authentication latency.
+
+The Home and NFT status collectible responds to mouse movement across the page.
+Tilt is measured from the card center, bounded to 6°/8°, and applied through CSS
+variables in one scheduled animation frame per pointer update. It does not cause
+React rerenders or run a continuous JS animation loop. Hidden/offscreen cards
+reset, and reduced-motion and touch users do not receive page-driven tilt.
+The personal draft keeps its existing direct-hover interaction.

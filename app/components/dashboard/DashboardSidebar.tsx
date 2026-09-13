@@ -86,8 +86,8 @@ const NAVIGATION_GROUPS: Array<{ label: string; items: NavigationItem[] }> = [
   {
     label: 'Administration',
     items: [
-      { key: 'event-grants', label: 'Event Grants', icon: CalendarIcon },
       { key: 'admin-access', label: 'Admin Access', icon: ShieldCheckIcon },
+      { key: 'event-grants', label: 'Event Grants', icon: CalendarIcon },
       { key: 'stats', label: 'Statistics', icon: BarChart3Icon },
       { key: 'link-analytics', label: 'Link Analytics', icon: LinkIcon },
       { key: 'coffee-chats-admin', label: 'Coffee Chats Admin', icon: CoffeeIcon },

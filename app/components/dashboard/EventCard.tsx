@@ -206,7 +206,7 @@ export function ExternalEventCard({
         src={imageUrl}
         alt=""
         fill
-        sizes="96px"
+        sizes="(min-width: 640px) 112px, 80px"
         className="object-contain p-2"
         unoptimized
       />
@@ -215,7 +215,7 @@ export function ExternalEventCard({
 
   return (
     <div className={cn('h-full rounded-xl', frameClass)}>
-      <Card className={cn('grid grid-cols-[80px_minmax(0,1fr)] items-start gap-3 p-3 has-data-[slot=card-footer]:pb-3 sm:grid-cols-[96px_minmax(0,1fr)] sm:gap-4', frameClass && 'ring-0')}>
+      <Card className={cn('grid h-full grid-cols-[80px_minmax(0,1fr)] grid-rows-[auto_1fr_auto] items-start gap-3 p-3 has-data-[slot=card-footer]:pb-3 sm:grid-cols-[112px_minmax(0,1fr)] sm:gap-4 sm:p-4 sm:has-data-[slot=card-footer]:pb-4', frameClass && 'ring-0')}>
         <div className="col-start-1 row-span-2">
         {imageLinkUrl && image ? (
           <a href={imageLinkUrl} target="_blank" rel="noreferrer" className="block">
@@ -229,8 +229,7 @@ export function ExternalEventCard({
         <CardHeader className="col-start-2 px-0">
           <div className="flex min-w-0 items-start gap-3">
             <div className="min-w-0 flex-1">
-              <CardTitle className="truncate">{title}</CardTitle>
-              <CardDescription className="truncate">{location}</CardDescription>
+              <CardTitle className="line-clamp-2 leading-snug">{title}</CardTitle>
             </div>
           </div>
           {(imageLinkUrl || (canEdit && onEdit)) && (
@@ -277,7 +276,7 @@ export function ExternalEventCard({
           )}
         </CardContent>
 
-        <CardFooter className="col-span-2 flex-col gap-2 rounded-lg border-0 bg-transparent p-0">
+        <CardFooter className="col-span-2 flex-col gap-2 rounded-none border-t border-border/60 bg-transparent px-0 pt-3 pb-0">
           {/* Interest count + toggle — always visible */}
           <div className="flex w-full items-center gap-2">
             <Button

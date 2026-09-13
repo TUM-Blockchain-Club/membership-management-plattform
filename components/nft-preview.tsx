@@ -20,13 +20,55 @@ export function NftPreview({ imageUrl, displayName, onImageError, compact = fals
   useEffect(() => {
     const element = root.current
     if (!element) return
+    const motion = matchMedia('(prefers-reduced-motion: reduce)')
     let visible = false
-    const sync = () => { element.dataset.visible = String(visible && !document.hidden) }
+    let frame = 0
+    let pointer: { x: number; y: number } | null = null
+    const resetTilt = () => {
+      cancelAnimationFrame(frame)
+      frame = 0
+      pointer = null
+      for (const property of ['--tilt-x', '--tilt-y', '--light-x', '--light-y']) element.style.removeProperty(property)
+    }
+    const sync = () => {
+      element.dataset.visible = String(visible && !document.hidden)
+      if (!visible || document.hidden || motion.matches) resetTilt()
+    }
+    const moveOnPage = (event: globalThis.PointerEvent) => {
+      if (draft || event.pointerType !== 'mouse' || !visible || document.hidden || motion.matches) return
+      pointer = { x: event.clientX, y: event.clientY }
+      if (frame) return
+      frame = requestAnimationFrame(() => {
+        frame = 0
+        if (!pointer) return
+        const bounds = element.getBoundingClientRect()
+        const centerX = bounds.left + bounds.width / 2
+        const centerY = bounds.top + bounds.height / 2
+        const x = Math.max(-1, Math.min(1, (pointer.x - centerX) / Math.max(centerX, innerWidth - centerX, 1)))
+        const y = Math.max(-1, Math.min(1, (pointer.y - centerY) / Math.max(centerY, innerHeight - centerY, 1)))
+        element.style.setProperty('--tilt-x', `${-y * 6}deg`)
+        element.style.setProperty('--tilt-y', `${x * 8}deg`)
+        element.style.setProperty('--light-x', `${50 + x * 25}%`)
+        element.style.setProperty('--light-y', `${50 + y * 25}%`)
+      })
+    }
     const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; sync() })
     observer.observe(element)
     document.addEventListener('visibilitychange', sync)
-    return () => { observer.disconnect(); document.removeEventListener('visibilitychange', sync) }
-  }, [])
+    document.addEventListener('pointermove', moveOnPage, { passive: true })
+    document.documentElement.addEventListener('pointerleave', resetTilt)
+    window.addEventListener('blur', resetTilt)
+    motion.addEventListener('change', sync)
+    return () => {
+      observer.disconnect()
+      resetTilt()
+      document.removeEventListener('visibilitychange', sync)
+      document.removeEventListener('pointermove', moveOnPage)
+      document.documentElement.removeEventListener('pointerleave', resetTilt)
+      window.removeEventListener('blur', resetTilt)
+      motion.removeEventListener('change', sync)
+    }
+  }, [draft])
 
   const reset = () => {
     const element = root.current
@@ -53,7 +95,7 @@ export function NftPreview({ imageUrl, displayName, onImageError, compact = fals
       <div className={styles.stage}>
         <div className={styles.aura} aria-hidden="true" />
         <div className={styles.float}>
-          <button type="button" className={styles.object} onPointerMove={move} onPointerLeave={reset}
+          <button type="button" className={styles.object} onPointerMove={draft ? move : undefined} onPointerLeave={draft ? reset : undefined}
             onPointerCancel={reset} onBlur={reset} onKeyDown={keyDown}
             onClick={() => setFlipped(value => !value)}
             aria-label={flipped ? 'Show NFT artwork' : 'Turn NFT card to see details'} aria-pressed={flipped}>
