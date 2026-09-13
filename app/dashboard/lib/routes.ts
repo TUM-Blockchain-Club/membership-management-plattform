@@ -1,7 +1,6 @@
 import type { DashboardTab } from '@/app/components/dashboard/types'
 
 export const TAB_ROUTES: Record<DashboardTab, string> = {
-  'tree-of-life': '/tree-of-life',
   'event-grants': '/event-grants',
   'admin-access': '/admin-access',
   home: '/home',
@@ -19,7 +18,6 @@ export const TAB_ROUTES: Record<DashboardTab, string> = {
 }
 
 const PATHNAME_TO_TAB: Record<string, DashboardTab> = {
-  '/tree-of-life': 'tree-of-life',
   '/event-grants': 'event-grants',
   '/admin-access': 'admin-access',
   '/home': 'home',
