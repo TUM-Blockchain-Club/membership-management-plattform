@@ -114,5 +114,8 @@ Home and NFT Status share `components/nft-preview.tsx`. Before minting, the
 club-branded collectible is explicitly labeled as a preview; it does not imply
 approval or ownership. NFT Status replaces it with the minted artwork when
 available and retains a readable fallback if the image fails. The presentation
-uses a bounded CSS light pass and gentle perspective, with hover feedback and a
-static reduced-motion variant. It does not change the artwork minted on-chain.
+uses the official website purple (`#672EB3`) with lilac foil highlights and
+a component-scoped CSS module so its styles ship with the preview. Pointer
+position controls perspective and foil lighting; click, touch or keyboard activation
+turns the card over. Idle motion pauses outside the viewport, in hidden tabs, or
+via the pause control. Reduced-motion preferences disable idle motion and tilt. It does not change the artwork minted on-chain.

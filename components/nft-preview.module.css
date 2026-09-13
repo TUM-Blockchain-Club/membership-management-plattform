@@ -1,0 +1,87 @@
+.root {
+  /* Official website accent: tum-blockchain.com --accent. */
+  --tbc-purple: #672eb3;
+  --tilt-x: 4deg;
+  --tilt-y: -8deg;
+  --light-x: 35%;
+  --light-y: 25%;
+  width: 100%;
+  container-type: inline-size;
+}
+.stage { position: relative; padding: 26px 20px 18px; perspective: 1200px; }
+.aura { position: absolute; inset: 15% -10% 3%; background: radial-gradient(ellipse, #672eb332, transparent 65%); pointer-events: none; }
+.float { position: relative; animation: levitate 8s ease-in-out infinite; }
+.object {
+  display: block; width: 100%; aspect-ratio: 0.72; padding: 0; border: 0;
+  background: transparent; color: #f6f8fa; cursor: pointer;
+  perspective: 1200px; border-radius: 18px; outline-offset: 8px;
+  transform: rotateX(var(--tilt-x)) rotateY(var(--tilt-y));
+  transition: transform 220ms ease-out;
+  -webkit-tap-highlight-color: transparent;
+}
+.object:focus-visible { outline: 2px solid var(--ring); }
+.turn { display: block; position: absolute; inset: 0; transform-style: preserve-3d; transition: transform 850ms cubic-bezier(.22,1,.36,1); }
+.turn[data-flipped='true'] { transform: rotateY(180deg); }
+.face {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  padding: 8%; overflow: hidden; border-radius: 18px; text-align: left;
+  backface-visibility: hidden; -webkit-backface-visibility: hidden;
+  background: #140d1e;
+  box-shadow: 1px 1px 0 #dac7f266, 3px 3px 0 #38204d, 0 18px 38px -18px #000b;
+}
+.front { background: radial-gradient(ellipse at 80% 15%, var(--tbc-purple) 0, #321d49 33%, #160f22 65%); }
+.front::before {
+  content: ''; position: absolute; inset: 0; opacity: .32; pointer-events: none;
+  background: conic-gradient(from 210deg at 70% 40%, transparent, #9a60d4, #672eb3, #d7b6e9, transparent 55%);
+}
+.header { position: relative; display: flex; align-items: flex-start; justify-content: space-between; font: 500 clamp(8px,3cqw,11px)/1.45 var(--font-geist-mono),monospace; letter-spacing: .03em; color: #e4d9f1; }
+.edition { text-align: right; color: #c4b2d8; font-size: .85em; }
+.sculpture { position: absolute; width: 76%; aspect-ratio: 1; top: 17%; left: 12%; }
+.symbol, .symbolShadow, .backSymbol { position: absolute; inset: 17%; mask: url('/assets/tbc-symbol-transparent.png') center/contain no-repeat; }
+.symbolShadow { background: #190b28; transform: translate(5px,9px); }
+.symbol {
+  background: linear-gradient(135deg,#f7edff 5%,#bf8fe9 23%,#f2e8ff 34%,#8752c2 43%,#b29add 53%,#efd6eb 63%,#d4b7f5 77%,#fcf3ff 90%);
+  background-size: 220% 220%; filter: drop-shadow(0 1px 0 #fff8);
+  animation: alloy 12s ease-in-out infinite;
+}
+.orbit, .orbitTwo { position: absolute; inset: 4%; border: 1px solid #d5b8ef35; border-radius: 50%; transform: rotate(-32deg) scaleY(.64); }
+.orbitTwo { inset: -3%; transform: rotate(48deg) scaleY(.64); border-color: #d5b8ef20; }
+.spark { position: absolute; top: 19%; right: 14%; width: 5px; height: 5px; border-radius: 50%; background: #ecceff; box-shadow: 0 0 12px #ba84f0; }
+.vertical { position: absolute; right: 7%; top: 34%; writing-mode: vertical-rl; font: 7px var(--font-geist-mono),monospace; letter-spacing: .16em; color: #b79dcb; }
+.title { position: relative; margin-top: auto; margin-bottom: 10%; font-size: clamp(29px,14cqw,52px); font-weight: 550; line-height: .93; letter-spacing: -.055em; }
+.title > span { color: #d5b9ed; }
+.footer { position: relative; display: flex; align-items: center; gap: 7px; font: 9px var(--font-geist-mono),monospace; letter-spacing: .04em; color: #d8c4e7; }
+.previewLabel { margin-left: auto; font-size: 7px; letter-spacing: .1em; }
+.chainDot { width: 6px; height: 6px; border-radius: 50%; background: #c18af0; }
+.foil { position: absolute; inset: 0; pointer-events: none; opacity: .45; mix-blend-mode: screen; background: radial-gradient(ellipse at var(--light-x) var(--light-y),#f4dfff60,transparent 50%); transition: opacity 250ms; }
+.rim { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 0 0 1px #ebd5ff40, inset 0 1px 0 #f4e5ff88; }
+.artwork { object-fit: contain; }
+.back { transform: rotateY(180deg); background: radial-gradient(ellipse at 10% 90%,#45235e,#160f22 70%); }
+.backContent { display: flex; flex: 1; flex-direction: column; justify-content: center; gap: 12px; }
+.backSymbol { position: static; display: block; width: 50px; height: 50px; background: #d9b9ed; margin-bottom: 10px; }
+.backTitle { font-size: clamp(20px,8cqw,30px); line-height: 1.05; letter-spacing: -.035em; font-weight: 550; }
+.backCopy { font-size: clamp(11px,4cqw,14px); line-height: 1.5; color: #e2d3ef; }
+.backNote { font-size: clamp(10px,3.3cqw,12px); line-height: 1.5; color: #c5afd5; }
+.back .footer { justify-content: space-between; }
+.controls { display: flex; justify-content: center; align-items: center; gap: 8px; position: relative; margin-top: 2px; }
+.hint { display: flex; align-items: center; gap: 6px; border: 0; background: none; color: var(--foreground); opacity: .65; cursor: pointer; padding: 8px 2px; font-size: 11px; }
+.hint:hover { opacity: 1; }
+.hint:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 4px; }
+.compact .stage { padding: 14px 14px 10px; }
+.compact .face { border-radius: 12px; }
+.compact .sculpture { width: 70%; left: 15%; top: 12%; }
+.compact .edition, .compact .vertical, .compact .previewLabel { display: none; }
+.compact .footer { font-size: 8px; }
+.compact .backContent { gap: 7px; }
+.compact .backSymbol { width: 26px; height: 26px; margin-bottom: 0; }
+.compact .backNote { display: none; }
+.compact .hint { font-size: 10px; }
+.root[data-visible='false'] *, .root[data-paused='true'] * { animation-play-state: paused !important; }
+.root[data-paused='true'] .object { transform: none; }
+@keyframes levitate { 0%,100% { transform: translateY(0) rotateZ(-2deg); } 50% { transform: translateY(-7px) rotateZ(0deg); } }
+@keyframes alloy { 0%,100% { background-position: 0% 30%; } 50% { background-position: 100% 70%; } }
+@media (prefers-reduced-motion: reduce) {
+  .float, .symbol { animation: none; }
+  .object { transform: none; transition: none; }
+  .turn { transition: none; }
+}
