@@ -1,3 +1,4 @@
+import { safeAuthRedirect } from '@/lib/authRedirect'
 import { NextResponse } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
@@ -29,7 +30,7 @@ export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   const nextParam = requestUrl.searchParams.get('next')
-  const nextPath = nextParam?.startsWith('/') ? nextParam : '/home'
+  const nextPath = safeAuthRedirect(nextParam)
   const redirectUrl = new URL(nextPath, requestUrl.origin)
 
   if (code) {
@@ -48,5 +49,6 @@ export async function GET(request: Request) {
 
   const signInUrl = new URL('/signin', requestUrl.origin)
   signInUrl.searchParams.set('error', 'oauth_callback')
+  signInUrl.searchParams.set('next', nextPath)
   return NextResponse.redirect(signInUrl)
 }

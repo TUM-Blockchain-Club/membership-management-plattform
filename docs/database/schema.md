@@ -154,28 +154,34 @@ Relationships:
 - `event_id` -> `events.id`
 - `member_id` -> `members_main.id`
 
+### `public.lectures`
+
+Board-managed core lectures and side meetings, separate from events. Includes
+`id` (UUID), `title`, `kind`, `scheduled_at`, `location`,
+`lecturer_member_id`, `is_active`, `started_at`, timestamps and private
+`current_code`/`previous_code` with issuance timestamps. Authenticated calendar
+reads have column-level access that excludes codes and their timestamps.
+
 ### `public.attendance`
 
-Check-in table for event attendance.
+One check-in per member and lecture: UUID `id`, integer `member_id`, UUID
+`lecture_id`, and `checked_in_at` (timestamptz). Unique on
+`(member_id, lecture_id)`, indexed by member, lecture and check-in time.
+Members read their own rows; board members read all. Direct authenticated
+inserts are revoked. `attendance_check_in(uuid,text)` derives the member from
+the authenticated session, locks the lecture, validates its active window and
+current/previous code, then inserts atomically. Duplicate scans are idempotent.
 
-| Column | Type | Null | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `id` | `uuid` | no | `gen_random_uuid()` | Primary key. |
-| `member_id` | `integer` | no | none | References `members_main.id`. |
-| `event_id` | `integer` | no | none | References `events.id`. |
-| `checked_in_at` | `timestamptz` | no | `now()` | Check-in timestamp. |
+`attendance_lecture_code(uuid,boolean)` verifies board membership and locks
+the lecture before starting or rotating. All displays share a code for 15
+seconds, with 30 seconds of total validity and a three-hour lecture window.
+Only authenticated users may execute these functions; both use an empty search
+path and explicit schema references.
 
-Constraints and indexes:
-
-- Primary key: `attendance_pkey` on `id`.
-- Unique index: `attendance_member_id_event_id_key` on `(member_id, event_id)`.
-- Index: `attendance_member_id_idx` on `member_id`.
-- Index: `attendance_event_id_idx` on `event_id`.
-
-Relationships:
-
-- `member_id` -> `members_main.id`
-- `event_id` -> `events.id`
+Apply `supabase/attendance_secure_check_in.sql` after the initial lecture
+schema and before deploying the RPC-based application. It preserves attendance.
+Do not rerun the legacy `lectures.sql` on an existing database: its prototype
+conversion drops attendance. See `docs/architecture/attendance.md`.
 
 ### `public.nft_requests`
 
@@ -386,7 +392,7 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 - `event_interest` is readable by authenticated users.
 - Authenticated users can insert their own interest rows (`member_id = current_member_id()`).
 - Authenticated users can delete their own interest rows.
-- `attendance` rows can be inserted by the checked-in member, viewed by the owner, and viewed by board members.
+- `attendance` rows are inserted only through the authenticated check-in function, viewed by the owner, and viewed by board members.
 
 ### NFT Requests
 

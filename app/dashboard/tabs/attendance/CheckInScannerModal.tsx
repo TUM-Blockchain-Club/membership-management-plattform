@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useState } from 'react'
-import { parseCheckInToken } from './parseCheckInToken'
+import { parseCheckInToken } from '@/lib/attendanceToken'
 import { useQrScanner, type ScannerError } from './useQrScanner'
 
 type Props = {
