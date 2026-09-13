@@ -596,3 +596,9 @@ pnpm exec tsc --noEmit
 pnpm lint
 pnpm build
 ```
+
+### Event grant applications
+
+`supabase/event_grants.sql` adds optional `events.grant_url` and `event_grant_applications(event_id, member_id, created_at)`. The composite key prevents duplicate applications. RLS permits members to read/withdraw only their own applications and apply only to non-ended external events without an external grant link. Board members and the central `grants` scope can read all applications. No public applicant counts or lists are exposed. External form clicks are not recorded as completed applications.
+
+The central role assignment and audit scope constraints now include `grants`; only Board Members may assign this scope through `set_admin_access`.

@@ -99,6 +99,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
   const effectiveIsBoardMember = member?.Role === 'Board Member' && !forceMemberView
   const showLinkAnalyticsTab = (effectiveIsBoardMember || effectiveHasSpecialAccess) && !forceMemberView
   const showNftApprovalsTab = canManageNftRequests && !forceMemberView
+  const showGrantAdminTab = (effectiveIsBoardMember || initialData.canManageGrants === true) && !forceMemberView
   const showAdminAccessTab = effectiveIsBoardMember
   const showNewsletterTab = (effectiveIsBoardMember || initialData.canManageNewsletter === true) && !forceMemberView
   const canManageCoffeeChats = canShowCoffeeChatAdmin({
@@ -533,6 +534,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     showLinkAnalyticsTab,
     showMemberEditorModal,
     showAdminAccessTab,
+    showGrantAdminTab,
     showNewsletterTab,
     showNftApprovalsTab,
     showParticipantsModal,

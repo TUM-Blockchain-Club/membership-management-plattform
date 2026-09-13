@@ -18,6 +18,7 @@ export interface Event {
   format: string | null
   image_url: string | null
   event_link_url: string | null
+  grant_url?: string | null
   tally_url: string | null
   whatsapp_url: string | null
   is_hackathon: boolean
@@ -63,6 +64,7 @@ type EventRow = {
   format: string | null
   image_url: string | null
   event_link_url: string | null
+  grant_url?: string | null
   tally_url: string | null
   whatsapp_url: string | null
   is_hackathon: boolean

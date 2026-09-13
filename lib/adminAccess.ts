@@ -1,6 +1,7 @@
 export const ADMIN_SCOPES = [
   { key: 'coffee_chats', label: 'Coffee Chats' },
   { key: 'nfts', label: 'NFTs' },
+  { key: 'grants', label: 'Event Grants' },
   { key: 'newsletter', label: 'Mail' },
 ] as const
 export type AdminScope = typeof ADMIN_SCOPES[number]['key']

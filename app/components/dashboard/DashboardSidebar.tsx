@@ -55,6 +55,7 @@ type DashboardNavigationProps = {
   onTitleClick: () => void
   canUseMemberViewToggle: boolean
   showLinkAnalyticsTab: boolean
+  showGrantAdminTab: boolean
   showAdminAccessTab: boolean
   showCoffeeChatsAdminTab: boolean
   showNftApprovalsTab: boolean
@@ -85,6 +86,7 @@ const NAVIGATION_GROUPS: Array<{ label: string; items: NavigationItem[] }> = [
   {
     label: 'Administration',
     items: [
+      { key: 'event-grants', label: 'Event Grants', icon: CalendarIcon },
       { key: 'admin-access', label: 'Admin Access', icon: ShieldCheckIcon },
       { key: 'stats', label: 'Statistics', icon: BarChart3Icon },
       { key: 'link-analytics', label: 'Link Analytics', icon: LinkIcon },
@@ -122,6 +124,7 @@ export function DashboardSidebar({
   canUseMemberViewToggle,
   showLinkAnalyticsTab,
   showAdminAccessTab,
+  showGrantAdminTab,
   showCoffeeChatsAdminTab,
   showNftApprovalsTab,
   showNewsletterTab,
@@ -133,6 +136,7 @@ export function DashboardSidebar({
   const memberName = member?.Name || 'Member'
   const memberEmail = member?.['TBC Email'] || 'TBC member account'
   const isItemVisible = (item: NavigationItem) => {
+    if (item.key === 'event-grants') return showGrantAdminTab
     if (item.key === 'admin-access') return showAdminAccessTab
     if (item.key === 'coffee-chats-admin') return showCoffeeChatsAdminTab
     if (item.key === 'nft-approvals') return showNftApprovalsTab

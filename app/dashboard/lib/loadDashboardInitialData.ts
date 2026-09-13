@@ -18,19 +18,21 @@ export const loadDashboardInitialData = cache(async (): Promise<DashboardInitial
     message: { type: 'error', text: error ? 'Could not load your member profile. Please try again.' : 'Sign in with your member account to view the dashboard.' },
   }
   const email = user?.email ?? member['TBC Email'] ?? ''
-  const [special, coffee, newsletter, nft] = await Promise.all([
+  const [special, coffee, newsletter, nft, grants] = await Promise.all([
     supabase.rpc('has_special_access'),
     supabase.rpc('check_email_can_manage_coffee_chats', { check_email: email }),
     supabase.rpc('check_email_can_manage_newsletter', { check_email: email }),
     isDevBypass
       ? dataClient.from('nft_admins').select('member_id').eq('member_id', member.id).maybeSingle().then(({ data }) => ({ data: member.Role?.trim() === 'Board Member' || Boolean(data) }))
       : supabase.rpc('can_manage_nft_requests'),
+    supabase.rpc('can_manage_event_grants'),
   ])
   const hasSpecialAccess = special.data === true || (isDevBypass && hasLocalDevBypassSpecialAccess())
   return {
     allMembers: [], events: [], member, message: null, hasSpecialAccess,
     viewedMemberHasSpecialAccess: hasSpecialAccess,
     canManageCoffeeChats: coffee.data === true || (isDevBypass && hasLocalDevBypassSpecialAccess()),
+    canManageGrants: grants.data === true,
     canManageNewsletter: newsletter.data === true, canManageNftRequests: nft.data === true,
   }
 })

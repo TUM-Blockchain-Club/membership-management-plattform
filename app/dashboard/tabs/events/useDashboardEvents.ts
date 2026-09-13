@@ -158,6 +158,7 @@ export function useDashboardEvents(
           formats: draft.formats,
           event_link_url: draft.event_link_url,
           tally_url: draft.tally_url,
+          grant_url: draft.grant_url,
           whatsapp_url: draft.whatsapp_url,
         }),
       })
@@ -200,6 +201,7 @@ export function useDashboardEvents(
           formats: draft.formats,
           event_link_url: draft.event_link_url,
           tally_url: draft.tally_url,
+          grant_url: draft.grant_url,
           whatsapp_url: draft.whatsapp_url,
         }),
       })

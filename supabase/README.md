@@ -113,3 +113,5 @@ the central board-only roles UI. It preserves permissions and replaces the old
 assignment tables with read-only views. After this migration, do not reapply the
 legacy Coffee Chat/NFT/bootstrap role scripts over those views. See
 `docs/architecture/admin-access.md` for rollout and regression tests.
+
+For event grants, apply `event_grants.sql` after central `admin_access.sql` and before deploying the grant UI. This extends central roles with `grants`, adds `events.grant_url`, and creates the private application table/RLS. Do not reapply the older central bootstrap afterward; it predates the additional scope.

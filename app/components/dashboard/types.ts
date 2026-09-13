@@ -31,6 +31,7 @@ export type DashboardStats = {
 }
 
 export type DashboardTab =
+  | 'event-grants'
   | 'admin-access'
   | 'home'
   | 'profile'

@@ -68,7 +68,7 @@ export function AdminAccessPage() {
                 return <TableCell key={scope.key} className="text-center"><Switch aria-label={`${scope.label} access for ${names.get(member.id)}`} checked={enabled} disabled={board || pending !== null || (!enabled && member.Status !== 'Active')} onCheckedChange={value => void change(member.id, scope.key, value)} /></TableCell>
               })}
             </TableRow>
-          })}{!visibleMembers.length && <TableRow><TableCell colSpan={4} className="py-8 text-center text-muted-foreground">No matching members.</TableCell></TableRow>}</TableBody>
+          })}{!visibleMembers.length && <TableRow><TableCell colSpan={ADMIN_SCOPES.length + 1} className="py-8 text-center text-muted-foreground">No matching members.</TableCell></TableRow>}</TableBody>
         </Table></div>}
         <p role="status" className="text-xs text-muted-foreground">{pending ? 'Saving access…' : 'Changes are saved immediately and recorded below. New access can only be granted to active members.'}</p>
       </CardContent>

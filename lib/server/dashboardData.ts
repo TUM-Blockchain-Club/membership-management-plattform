@@ -20,6 +20,7 @@ type EventRow = {
   format: string | null
   image_url: string | null
   event_link_url: string | null
+  grant_url?: string | null
   tally_url: string | null
   whatsapp_url: string | null
   is_hackathon: boolean
@@ -39,7 +40,7 @@ type EventInterestRow = {
 
 
 const EVENTS_FETCH_LIMIT = 500
-const EVENT_COLUMNS = 'id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, image_url, event_link_url, tally_url, whatsapp_url, is_hackathon, attending_names, all_day'
+const EVENT_COLUMNS = 'id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, image_url, event_link_url, tally_url, grant_url, whatsapp_url, is_hackathon, attending_names, all_day'
 export const loadDashboardEvents = async (
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   memberId: number,

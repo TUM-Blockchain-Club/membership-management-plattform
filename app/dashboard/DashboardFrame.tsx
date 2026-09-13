@@ -52,6 +52,7 @@ export function DashboardFrame({
           showLinkAnalyticsTab={dashboard.showLinkAnalyticsTab}
           showNewsletterTab={dashboard.showNewsletterTab}
           showAdminAccessTab={dashboard.showAdminAccessTab}
+          showGrantAdminTab={dashboard.showGrantAdminTab}
           showCoffeeChatsAdminTab={dashboard.canManageCoffeeChats}
           showNftApprovalsTab={dashboard.showNftApprovalsTab}
           forceMemberView={dashboard.forceMemberView}

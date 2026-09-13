@@ -1,3 +1,4 @@
+import { GrantApplyButton } from '@/app/dashboard/tabs/events/GrantApplyButton'
 import {
   CalendarDaysIcon,
   EyeIcon,
@@ -45,6 +46,9 @@ type InternalEventCardProps = {
 }
 
 type ExternalEventCardProps = {
+  eventId: number
+  grantUrl: string | null
+  grantClosed: boolean
   title: string
   date: string
   location: string
@@ -75,7 +79,7 @@ function DetailRow({
 }) {
   return (
     <div className="flex min-w-0 items-center gap-2 text-sm text-muted-foreground">
-      <Icon className="shrink-0" />
+      <Icon className="size-4 shrink-0" />
       <span className="truncate">{children}</span>
     </div>
   )
@@ -175,6 +179,7 @@ export function InternalEventCard({
 }
 
 export function ExternalEventCard({
+  eventId, grantUrl, grantClosed,
   title,
   date,
   location,
@@ -196,12 +201,12 @@ export function ExternalEventCard({
 }: ExternalEventCardProps) {
   const frameClass = priorityFrameClass(priority)
   const image = imageUrl ? (
-    <div className="relative aspect-square w-full overflow-hidden bg-card">
+    <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted">
       <Image
         src={imageUrl}
         alt=""
         fill
-        sizes="(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw"
+        sizes="96px"
         className="object-contain p-2"
         unoptimized
       />
@@ -210,16 +215,18 @@ export function ExternalEventCard({
 
   return (
     <div className={cn('h-full rounded-xl', frameClass)}>
-      <Card className={cn('h-full', frameClass && 'ring-0')} size="sm">
+      <Card className={cn('grid grid-cols-[80px_minmax(0,1fr)] items-start gap-3 p-3 has-data-[slot=card-footer]:pb-3 sm:grid-cols-[96px_minmax(0,1fr)] sm:gap-4', frameClass && 'ring-0')}>
+        <div className="col-start-1 row-span-2">
         {imageLinkUrl && image ? (
           <a href={imageLinkUrl} target="_blank" rel="noreferrer" className="block">
             {image}
           </a>
         ) : (
-          image
+          image || <div className="flex aspect-square items-center justify-center rounded-lg bg-muted"><CalendarDaysIcon className="size-8 text-muted-foreground" /></div>
         )}
+        </div>
 
-        <CardHeader>
+        <CardHeader className="col-start-2 px-0">
           <div className="flex min-w-0 items-start gap-3">
             <div className="min-w-0 flex-1">
               <CardTitle className="truncate">{title}</CardTitle>
@@ -248,7 +255,7 @@ export function ExternalEventCard({
           )}
         </CardHeader>
 
-        <CardContent className="flex flex-1 flex-col gap-4">
+        <CardContent className="col-start-2 flex flex-col gap-2 px-0">
           <div className="flex flex-wrap gap-1.5">
             {eventType && <Badge variant="secondary">{eventType}</Badge>}
             {status && <Badge variant="outline">{status}</Badge>}
@@ -270,7 +277,7 @@ export function ExternalEventCard({
           )}
         </CardContent>
 
-        <CardFooter className="flex-col gap-2">
+        <CardFooter className="col-span-2 flex-col gap-2 rounded-lg border-0 bg-transparent p-0">
           {/* Interest count + toggle — always visible */}
           <div className="flex w-full items-center gap-2">
             <Button
@@ -289,7 +296,7 @@ export function ExternalEventCard({
                 size="sm"
                 onClick={onToggleInterest}
                 aria-pressed={isInterested}
-                className="ml-auto"
+                className="ml-auto w-40 shrink-0"
               >
                 <StarIcon
                   data-icon="inline-start"
@@ -298,6 +305,10 @@ export function ExternalEventCard({
                 {isInterested ? 'Interested' : "I'm Interested"}
               </Button>
             )}
+          </div>
+
+          <div className="flex w-full justify-end">
+            <GrantApplyButton eventId={eventId} grantUrl={grantUrl} closed={grantClosed} />
           </div>
 
           {(tallyUrl || whatsappUrl) && (
