@@ -17,7 +17,7 @@ import {
   runPairing,
   validateSelfieUpload,
 } from '../lib/coffee-chats'
-import { getDashboardTabForPathname } from '../app/dashboard/lib/routes'
+import { getDashboardTabForPathname, TAB_ROUTES } from '../app/dashboard/lib/routes'
 import { getQuestionsForPair } from '../lib/coffee-chat-icebreakers'
 
 test('empty optional Coffee Chat spots are stored as an empty list', () => {
@@ -217,7 +217,10 @@ test('Coffee Chat profiles are complete only when active with an interest', () =
   expect(isCoffeeChatProfileComplete(false, ['Travel'])).toBe(false)
 })
 
-test('dashboard routing keeps every Coffee Chats page in the Coffee Chats tab', () => {
+test('dashboard routing separates Coffee Chats administration from member pages', () => {
+  expect(TAB_ROUTES['coffee-chats-admin']).toBe('/coffee-chats/admin')
+  expect(getDashboardTabForPathname('/coffee-chats/admin')).toBe('coffee-chats-admin')
+  expect(getDashboardTabForPathname('/coffee-chats/admin/rounds')).toBe('coffee-chats-admin')
   expect(getDashboardTabForPathname('/home')).toBe('home')
   expect(getDashboardTabForPathname('/coffee-chats')).toBe('coffee-chats')
   expect(getDashboardTabForPathname('/coffee-chats/setup')).toBe('coffee-chats')

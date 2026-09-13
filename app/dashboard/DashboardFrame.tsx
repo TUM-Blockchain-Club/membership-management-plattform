@@ -49,6 +49,7 @@ export function DashboardFrame({
           canUseMemberViewToggle={dashboard.canUseMemberViewToggle}
           showLinkAnalyticsTab={dashboard.showLinkAnalyticsTab}
           showNewsletterTab={dashboard.showNewsletterTab}
+          showCoffeeChatsAdminTab={dashboard.canManageCoffeeChats}
           showNftApprovalsTab={dashboard.showNftApprovalsTab}
           forceMemberView={dashboard.forceMemberView}
           onToggleMemberView={dashboard.setForceMemberView}

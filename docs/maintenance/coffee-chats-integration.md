@@ -10,7 +10,12 @@ The default route is a state-aware current-round experience. It derives one
 next action from matching-preference completion, signup state, the open round,
 and the latest outstanding match. The old `/coffee-chats/join` and
 `/coffee-chats/my-match` URLs redirect to this default route for compatibility.
-Preferences, gallery, and authorized admin tools are secondary routes.
+Preferences and gallery remain in the member page navigation. Authorized admin
+tools at `/coffee-chats/admin` have a separate Coffee Chats Admin entry in the
+sidebar Administration group, their own active tab and heading, and no member
+subnavigation. Visibility uses the existing effective Coffee Chat admin permission
+and respects Normal Member View; entering that view returns admins to the member
+route. Route changes use the shared dashboard router and keep its shell mounted.
 
 The preferences page contains meeting-place recommendations and a searchable
 checklist of every member except the signed-in member for `cc_already_know`.

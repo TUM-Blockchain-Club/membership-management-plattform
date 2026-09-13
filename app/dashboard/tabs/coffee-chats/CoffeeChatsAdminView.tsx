@@ -478,11 +478,6 @@ export function CoffeeChatsAdminView() {
 
   return (
     <div className="flex w-full flex-col gap-8">
-      <div className="flex flex-col gap-1">
-        <h3 className="text-xl font-semibold tracking-tight text-foreground">Coffee Chats admin</h3>
-        <p className="text-sm text-muted-foreground">Manage rounds, pairings, and administrators.</p>
-      </div>
-
       {/* Create round */}
       <Card className="border-border bg-background/50">
         <CardHeader>

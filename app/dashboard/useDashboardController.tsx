@@ -116,6 +116,12 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
   }, [])
 
   useEffect(() => {
+    if (!loading && activeTab === 'coffee-chats-admin' && !canManageCoffeeChats) {
+      router.replace(TAB_ROUTES['coffee-chats'])
+    }
+  }, [activeTab, loading, router, canManageCoffeeChats])
+
+  useEffect(() => {
     if (!loading && activeTab === 'nft-approvals' && !showNftApprovalsTab) {
       router.replace(TAB_ROUTES['nft-status'])
     }
@@ -397,13 +403,18 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
       return
     }
 
+    if (tab === 'coffee-chats-admin' && !canManageCoffeeChats) {
+      router.push(TAB_ROUTES['coffee-chats'])
+      return
+    }
+
     if (tab === 'nft-approvals' && !showNftApprovalsTab) {
       router.push(TAB_ROUTES['nft-status'])
       return
     }
 
     router.push(TAB_ROUTES[tab])
-  }, [router, showNftApprovalsTab, handleProfileTabSelected])
+  }, [router, showNftApprovalsTab, canManageCoffeeChats, handleProfileTabSelected])
 
   const canViewRemovedMembers = effectiveIsBoardMember || effectiveHasSpecialAccess
 
