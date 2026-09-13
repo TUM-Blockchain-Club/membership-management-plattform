@@ -14,6 +14,7 @@ import {
   MapPinIcon,
 } from 'lucide-react'
 import { DashboardContext } from '@/app/dashboard/DashboardContext'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -31,6 +32,7 @@ import { Progress } from '@/components/ui/progress'
 import { getCoffeeChatNextStep, type CoffeeChatHomeData } from '@/lib/coffee-chats'
 
 const PROFILE_CHECKLIST = [
+  { key: 'Department', label: 'Department' },
   { key: 'Picture', label: 'Profile photo' },
   { key: 'Area of Expertise', label: 'Area of expertise' },
   { key: 'Linkedin', label: 'LinkedIn' },
@@ -130,6 +132,11 @@ export function MemberHomePage({
   const profileProgress = Math.round((completedProfileItems / checklist.length) * 100)
   const coffeeChat = getCoffeeChatOverview(coffeeChatData)
   const pictureUrl = dashboard.getPictureUrl(member?.Picture)
+  const profileReminder = !hasValue(member?.Department)
+    ? { message: "You haven't selected a department yet. Choose your department in your profile.", action: 'Choose department' }
+    : !pictureUrl
+      ? { message: "You haven't added a profile photo yet. Upload a photo so other members can recognise you.", action: 'Add profile photo' }
+      : null
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6">
@@ -186,6 +193,11 @@ export function MemberHomePage({
             </div>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col gap-4">
+            {profileReminder && (
+              <Alert>
+                <AlertDescription>{profileReminder.message}</AlertDescription>
+              </Alert>
+            )}
             <Progress value={profileProgress} aria-label={`Profile ${profileProgress}% complete`} />
             <ul className="flex flex-col gap-2">
               {checklist.map((item) => (
@@ -203,7 +215,7 @@ export function MemberHomePage({
           <CardFooter className="mt-auto justify-end border-border bg-muted/30">
             <Button asChild variant="outline">
               <Link href="/profile">
-                Edit profile
+                {profileReminder?.action ?? 'Edit profile'}
                 <ArrowRightIcon data-icon="inline-end" />
               </Link>
             </Button>
