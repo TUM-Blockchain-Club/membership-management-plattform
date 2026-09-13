@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { use } from 'react'
 import {
+  TriangleAlertIcon,
   ArrowRightIcon,
   CalendarDaysIcon,
   CheckCircle2Icon,
@@ -194,8 +195,9 @@ export function MemberHomePage({
           </CardHeader>
           <CardContent className="flex flex-1 flex-col gap-4">
             {profileReminder && (
-              <Alert>
-                <AlertDescription>{profileReminder.message}</AlertDescription>
+              <Alert className="border-orange-500/30 bg-orange-500/10 text-orange-300">
+                <TriangleAlertIcon aria-hidden="true" />
+                <AlertDescription className="text-orange-200">{profileReminder.message}</AlertDescription>
               </Alert>
             )}
             <Progress value={profileProgress} aria-label={`Profile ${profileProgress}% complete`} />

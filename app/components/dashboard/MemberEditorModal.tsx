@@ -117,7 +117,7 @@ export function MemberEditorModal({
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) handleCancel() }}>
       <DialogContent
-        className="flex flex-col h-[90vh] sm:max-w-2xl w-full gap-0 p-0 overflow-hidden"
+        className="flex flex-col h-[90dvh] sm:max-w-2xl w-full gap-0 p-0 overflow-hidden"
         showCloseButton={!saving}
       >
 
@@ -229,7 +229,7 @@ export function MemberEditorModal({
         </div>
 
         {/* ── Footer ───────────────────────────────────────────────── */}
-        <DialogFooter className="shrink-0 border-t bg-muted/30 px-6 py-4">
+        <DialogFooter className="mx-0 mb-0 shrink-0 border-t bg-muted/30 px-6 py-4">
           <Button variant="outline" onClick={handleCancel} disabled={saving}>
             Cancel
           </Button>

@@ -1,5 +1,6 @@
 'use client'
 
+import { MemberSocialLinks } from './MemberSocialLinks'
 import { memo, useCallback } from 'react'
 import { EditIcon } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -154,6 +155,8 @@ export const MemberCardV2 = memo(function MemberCardV2({
             )}
           </div>
         </div>
+
+        <MemberSocialLinks member={member} />
 
         {/* ── Footer: email + edit ──────────────────────────── */}
         <Separator />
