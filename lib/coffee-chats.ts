@@ -41,6 +41,39 @@ export function dateToCalendarDate(date: Date, timeZone = 'Europe/Berlin'): stri
   }).format(date)
 }
 
+export function formatCoffeeChatMonth(monthString: string): string {
+  if (!monthString) return ''
+  const parts = monthString.split('-').map(Number)
+  if (parts.length === 2 && !isNaN(parts[0]) && !isNaN(parts[1])) {
+    const [year, month] = parts
+    return new Intl.DateTimeFormat('en-US', { month: 'long', year: 'numeric' }).format(
+      new Date(Date.UTC(year, month - 1, 1)),
+    )
+  }
+  return monthString
+}
+
+export function formatCoffeeChatDate(
+  dateString?: string | null,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  if (!dateString) return ''
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return dateString
+    return new Intl.DateTimeFormat('en-US', {
+      weekday: 'long',
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      timeZone: 'Europe/Berlin',
+      ...options,
+    }).format(date)
+  } catch {
+    return dateString
+  }
+}
+
 export function getSignupError(
   round: { status: string; signupDeadline: string | null },
   now = new Date(),

@@ -6,6 +6,8 @@ import {
   dateToCalendarDate,
   escapeEmailHtml,
   filterKnownMembers,
+  formatCoffeeChatDate,
+  formatCoffeeChatMonth,
   getCoffeeChatProfileError,
   getCoffeeChatNextStep,
   getSignupError,
@@ -197,6 +199,18 @@ test('email HTML escapes member-controlled text', () => {
   )
 })
 
+test('formatCoffeeChatMonth formats YYYY-MM correctly into month and year', () => {
+  expect(formatCoffeeChatMonth('2026-09')).toBe('September 2026')
+  expect(formatCoffeeChatMonth('2026-01')).toBe('January 2026')
+  expect(formatCoffeeChatMonth('invalid')).toBe('invalid')
+})
+
+test('formatCoffeeChatDate formats ISO deadline into readable date', () => {
+  expect(formatCoffeeChatDate('2026-09-29T22:00:00+00:00')).toBe('Wednesday, September 30, 2026')
+  expect(formatCoffeeChatDate(null)).toBe('')
+  expect(formatCoffeeChatDate(undefined)).toBe('')
+})
+
 test('known-member search matches names and departments case-insensitively', () => {
   const members = [
     { id: 1, name: 'Ada Lovelace', department: 'Research' },
@@ -218,10 +232,11 @@ test('Coffee Chat profiles are complete only when active with an interest', () =
 })
 
 test('dashboard routing keeps every Coffee Chats page in the Coffee Chats tab', () => {
-  expect(getDashboardTabForPathname('/home')).toBe('home')
   expect(getDashboardTabForPathname('/coffee-chats')).toBe('coffee-chats')
   expect(getDashboardTabForPathname('/coffee-chats/setup')).toBe('coffee-chats')
   expect(getDashboardTabForPathname('/coffee-chats/gallery')).toBe('coffee-chats')
+  expect(getDashboardTabForPathname('/coffee-chats/admin')).toBe('coffee-chats')
+  expect(getDashboardTabForPathname('/coffee-chats/admin/rounds/round-123')).toBe('coffee-chats')
 })
 
 test('normal member view hides Coffee Chat administration for board members', () => {

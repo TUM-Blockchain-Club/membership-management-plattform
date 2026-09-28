@@ -39,6 +39,11 @@ For the live schema overview, table columns, relationships, RLS summary, storage
   - Creates rounds, signups, pairings, board/special-access policies, and the atomic pairing function.
   - Creates the private `coffee-chat-selfies` bucket used by guarded server-side uploads.
 
+- `coffee_chats.sql`
+  - Adds Coffee Chat profile columns to `members_main`.
+  - Creates rounds, signups, pairings, board/special-access policies, and the atomic pairing function.
+  - Creates the private `coffee-chat-selfies` bucket used by guarded server-side uploads.
+
 ## Environment Variables
 
 Required for normal app operation:
