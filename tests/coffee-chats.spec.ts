@@ -235,6 +235,8 @@ test('dashboard routing keeps every Coffee Chats page in the Coffee Chats tab', 
   expect(getDashboardTabForPathname('/coffee-chats')).toBe('coffee-chats')
   expect(getDashboardTabForPathname('/coffee-chats/setup')).toBe('coffee-chats')
   expect(getDashboardTabForPathname('/coffee-chats/gallery')).toBe('coffee-chats')
+  expect(getDashboardTabForPathname('/coffee-chats/admin')).toBe('coffee-chats')
+  expect(getDashboardTabForPathname('/coffee-chats/admin/rounds/round-123')).toBe('coffee-chats')
 })
 
 test('normal member view hides Coffee Chat administration for board members', () => {

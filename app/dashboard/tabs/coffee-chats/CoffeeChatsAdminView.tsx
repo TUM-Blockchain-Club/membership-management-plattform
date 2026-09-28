@@ -1,9 +1,10 @@
 'use client'
 
 import { useContext, useEffect, useMemo, useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { PlusIcon, PlayIcon, ShieldIcon, Trash2Icon, UserMinusIcon, UserPlusIcon, UsersIcon } from 'lucide-react'
+import { ChevronRightIcon, PlusIcon, PlayIcon, ShieldIcon, Trash2Icon, UserMinusIcon, UserPlusIcon, UsersIcon } from 'lucide-react'
 import { getSupabaseBrowserClient } from '@/lib/supabase'
 import { DatePicker, MonthPicker } from '@/components/date-picker'
 import { Button } from '@/components/ui/button'
@@ -31,7 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DashboardContext } from '@/app/dashboard/DashboardContext'
-import { demoRounds, isCoffeeChatsDemoClient, localDateToUtcIso } from '@/lib/coffee-chats'
+import { demoRounds, formatCoffeeChatMonth, isCoffeeChatsDemoClient, localDateToUtcIso } from '@/lib/coffee-chats'
 
 interface Round {
   id: string
@@ -523,8 +524,25 @@ export function CoffeeChatsAdminView() {
               </TableHeader>
               <TableBody>
                 {rounds.map((round) => (
-                  <TableRow key={round.id} className="border-border">
-                    <TableCell className="font-medium">{round.month}</TableCell>
+                  <TableRow
+                    key={round.id}
+                    className="border-border hover:bg-muted/40 cursor-pointer"
+                    onClick={(e) => {
+                      // Prevent row click if clicking a button or its children
+                      if ((e.target as HTMLElement).closest('button, a')) return
+                      router.push(`/coffee-chats/admin/rounds/${round.id}`)
+                    }}
+                  >
+                    <TableCell className="font-medium">
+                      <Link
+                        href={`/coffee-chats/admin/rounds/${round.id}`}
+                        className="hover:underline flex items-center gap-1.5 text-foreground font-semibold"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {formatCoffeeChatMonth(round.month)}
+                        <ChevronRightIcon className="size-3.5 text-muted-foreground opacity-60" />
+                      </Link>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={statusVariant(round.status)}>{round.status}</Badge>
                     </TableCell>
@@ -535,7 +553,17 @@ export function CoffeeChatsAdminView() {
                       {pairCounts[round.id] ?? 0}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          asChild
+                          className="text-xs h-8"
+                        >
+                          <Link href={`/coffee-chats/admin/rounds/${round.id}`}>
+                            Details
+                          </Link>
+                        </Button>
                         {round.status === 'open' && (
                           <Button
                             size="sm"

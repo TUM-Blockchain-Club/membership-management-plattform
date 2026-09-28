@@ -28,6 +28,8 @@ export function CoffeeChatsNavigation() {
         const isActive =
           href === '/coffee-chats'
             ? pathname === href || pathname === '/coffee-chats/join' || pathname === '/coffee-chats/my-match'
+            : href === '/coffee-chats/admin'
+            ? pathname === href || pathname.startsWith('/coffee-chats/admin/')
             : pathname === href
 
         return (
