@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { DateTimePicker } from '@/components/date-picker'
 import type { LectureKind, LectureRow, LectureUpsertPayload } from './useAttendance'
 
@@ -22,10 +22,19 @@ const toLocalInputValue = (iso: string | null): string => {
 }
 
 export function LectureEditor({ open, initial, onCancel, onSubmit, working, error }: Props) {
-  const [title, setTitle] = useState(initial?.title ?? '')
-  const [kind, setKind] = useState<LectureKind>((initial?.kind as LectureKind) ?? 'side')
-  const [scheduledAt, setScheduledAt] = useState(toLocalInputValue(initial?.scheduled_at ?? null))
-  const [location, setLocation] = useState(initial?.location ?? '')
+  const [title, setTitle] = useState('')
+  const [kind, setKind] = useState<LectureKind>('side')
+  const [scheduledAt, setScheduledAt] = useState('')
+  const [location, setLocation] = useState('')
+
+  useEffect(() => {
+    if (!open) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- Opening the editor resets its draft from the selected lecture.
+    setTitle(initial?.title ?? '')
+    setKind((initial?.kind as LectureKind) ?? 'side')
+    setScheduledAt(toLocalInputValue(initial?.scheduled_at ?? null))
+    setLocation(initial?.location ?? '')
+  }, [open, initial])
 
   if (!open) return null
 

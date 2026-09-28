@@ -1,14 +1,8 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
-import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
-import { CheckCircle2Icon, CircleXIcon } from 'lucide-react'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
-import { Spinner } from '@/components/ui/spinner'
+import Link from 'next/link'
 
 type CheckInResult = {
   lecture: {
@@ -19,6 +13,7 @@ type CheckInResult = {
   }
   alreadyCheckedIn: boolean
 }
+
 type CheckInState =
   | { status: 'idle' }
   | { status: 'loading' }
@@ -43,12 +38,17 @@ function formatLectureDate(value: string | null) {
 function CheckInInner() {
   const searchParams = useSearchParams()
   const token = searchParams.get('token')
-  const [state, setState] = useState<CheckInState>({ status: 'loading' })
+  const [state, setState] = useState<CheckInState>({ status: 'idle' })
 
   useEffect(() => {
-    if (!token) return
+    if (!token) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- URL validation initializes the result shown by this client-only page.
+      setState({ status: 'error', message: 'Missing check-in token in the URL.' })
+      return
+    }
 
     let cancelled = false
+    setState({ status: 'loading' })
 
     const performCheckIn = async () => {
       try {
@@ -60,85 +60,103 @@ function CheckInInner() {
         const body = await response.json().catch(() => ({}))
 
         if (!response.ok) {
-          if (!cancelled) setState({ status: 'error', message: body?.error || 'Could not record attendance.' })
+          if (cancelled) return
+          setState({
+            status: 'error',
+            message: body?.error || 'Could not record attendance.',
+          })
           return
         }
 
-        if (!cancelled) setState({ status: 'success', result: body as CheckInResult })
+        if (cancelled) return
+        setState({ status: 'success', result: body as CheckInResult })
       } catch (error) {
-        if (!cancelled) {
-          setState({
-            status: 'error',
-            message: error instanceof Error ? error.message : 'Could not record attendance.',
-          })
-        }
+        if (cancelled) return
+        setState({
+          status: 'error',
+          message: error instanceof Error ? error.message : 'Could not record attendance.',
+        })
       }
     }
 
     void performCheckIn()
-    return () => { cancelled = true }
+
+    return () => {
+      cancelled = true
+    }
   }, [token])
 
-  const visibleState: CheckInState = token
-    ? state
-    : { status: 'error', message: 'Missing check-in token in the URL.' }
-
   return (
-    <main className="relative flex min-h-screen items-center justify-center bg-black px-4 py-8">
-      <div className="pointer-events-none absolute inset-0 grid-background">
+    <div className="min-h-screen flex items-center justify-center px-4 py-8 bg-black relative">
+      <div className="absolute inset-0 grid-background pointer-events-none">
         <div className="absolute inset-0 grid-pattern" />
         <div className="absolute inset-0 grid-glow" />
       </div>
 
-      <Card className="relative z-10 w-full max-w-md border-white/10 bg-card/90 shadow-2xl backdrop-blur-md">
-        <CardContent className="flex flex-col gap-6 p-6 sm:p-8">
-          {visibleState.status === 'loading' && (
-            <div className="flex flex-col items-center gap-4 text-center">
-              <Spinner className="size-10 text-primary" />
-              <p className="text-muted-foreground">Recording your attendance...</p>
+      <div className="relative z-10 w-full max-w-md">
+        <div className="bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl shadow-2xl p-6 sm:p-8">
+          {state.status === 'loading' && (
+            <div className="flex flex-col items-center text-center">
+              <svg className="animate-spin h-10 w-10 text-blue-400 mb-4" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+              </svg>
+              <p className="text-white/80">Recording your attendance...</p>
             </div>
           )}
 
-          {visibleState.status === 'success' && (
-            <div className="flex flex-col items-center gap-4 text-center">
-              <CheckCircle2Icon className="size-16 text-emerald-400" />
-              <div className="flex flex-col items-center gap-2">
-                <h1 className="text-2xl font-bold text-foreground">
-                  {visibleState.result.alreadyCheckedIn ? 'Already Checked In' : 'Attendance Recorded'}
-                </h1>
-                <p className="font-medium text-foreground">{visibleState.result.lecture.title || 'Lecture'}</p>
-                {visibleState.result.lecture.kind && (
-                  <Badge variant="secondary">
-                    {visibleState.result.lecture.kind === 'core' ? 'Core lecture' : 'Side meeting'}
-                  </Badge>
-                )}
-                {visibleState.result.lecture.scheduled_at && (
-                  <p className="text-sm text-muted-foreground">
-                    {formatLectureDate(visibleState.result.lecture.scheduled_at)}
-                  </p>
-                )}
+          {state.status === 'success' && (
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-full bg-green-500/20 border-2 border-green-500/40 flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                </svg>
               </div>
-              <Button asChild>
-                <Link href="/attendance">View My Attendance</Link>
-              </Button>
+              <h1 className="text-2xl font-bold text-white mb-2">
+                {state.result.alreadyCheckedIn ? 'Already Checked In' : 'Attendance Recorded'}
+              </h1>
+              <p className="text-white/80 font-medium mb-1">
+                {state.result.lecture.title || 'Lecture'}
+              </p>
+              {state.result.lecture.kind && (
+                <p className="text-white/50 text-xs uppercase tracking-wider mb-2">
+                  {state.result.lecture.kind === 'core' ? 'Core lecture' : 'Side meeting'}
+                </p>
+              )}
+              {state.result.lecture.scheduled_at && (
+                <p className="text-white/40 text-sm mb-6">
+                  {formatLectureDate(state.result.lecture.scheduled_at)}
+                </p>
+              )}
+              <Link
+                href="/attendance"
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition-colors"
+              >
+                View My Attendance
+              </Link>
             </div>
           )}
 
-          {visibleState.status === 'error' && (
-            <div className="flex flex-col gap-4">
-              <Alert variant="destructive">
-                <CircleXIcon />
-                <AlertTitle>Check-in failed</AlertTitle>
-                <AlertDescription>{visibleState.message}</AlertDescription>
-              </Alert>
-              <Button asChild variant="outline" className="self-center">
-                <Link href="/dashboard">Go to Dashboard</Link>
-              </Button>
+          {state.status === 'error' && (
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 rounded-full bg-red-500/20 border-2 border-red-500/40 flex items-center justify-center mb-4">
+                <svg className="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </div>
+              <h1 className="text-2xl font-bold text-white mb-2">Check-in Failed</h1>
+              <p className="text-white/70 mb-6">{state.message}</p>
+              <Link
+                href="/attendance"
+                className="px-5 py-2.5 bg-white/10 hover:bg-white/15 border border-white/20 text-white text-sm rounded-lg transition-colors"
+              >
+                Scan a fresh QR code
+              </Link>
             </div>
           )}
-        </CardContent>
-      </Card>
-    </main>
+        </div>
+      </div>
+    </div>
   )
 }
 

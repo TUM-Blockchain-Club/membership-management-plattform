@@ -1,6 +1,7 @@
 import type { DashboardTab } from '@/app/components/dashboard/types'
 
 export const TAB_ROUTES: Record<DashboardTab, string> = {
+  home: '/home',
   profile: '/profile',
   'coffee-chats': '/coffee-chats',
   members: '/members',
@@ -14,7 +15,7 @@ export const TAB_ROUTES: Record<DashboardTab, string> = {
 }
 
 const PATHNAME_TO_TAB: Record<string, DashboardTab> = {
-  '/attendance': 'attendance',
+  '/home': 'home',
   '/coffee-chats': 'coffee-chats',
   '/events': 'events',
   '/link-analytics': 'link-analytics',
@@ -24,6 +25,7 @@ const PATHNAME_TO_TAB: Record<string, DashboardTab> = {
   '/nft-status': 'nft-status',
   '/profile': 'profile',
   '/statistics': 'stats',
+  '/attendance': 'attendance',
 }
 
 export function getDashboardTabForPathname(pathname: string): DashboardTab {
@@ -35,5 +37,9 @@ export function getDashboardTabForPathname(pathname: string): DashboardTab {
     return 'link-analytics'
   }
 
-  return PATHNAME_TO_TAB[pathname] ?? 'profile'
+  if (pathname === '/attendance' || pathname.startsWith('/attendance/')) {
+    return 'attendance'
+  }
+
+  return PATHNAME_TO_TAB[pathname] ?? 'home'
 }

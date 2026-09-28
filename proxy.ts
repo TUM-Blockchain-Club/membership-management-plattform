@@ -1,3 +1,4 @@
+import { safeAuthRedirect } from './lib/authRedirect'
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 import { isLocalDevBypassEnabled } from './lib/devBypass'
@@ -19,12 +20,12 @@ export async function proxy(request: NextRequest) {
   if (coffeeChatsDemo) {
     if (isRootRoute) {
       const demoUrl = request.nextUrl.clone()
-      demoUrl.pathname = '/coffee-chats'
+      demoUrl.pathname = '/home'
       demoUrl.search = ''
       return NextResponse.redirect(demoUrl)
     }
 
-    if (pathname.startsWith('/coffee-chats')) {
+    if (pathname === '/home' || pathname.startsWith('/coffee-chats')) {
       return response
     }
   }
@@ -32,7 +33,7 @@ export async function proxy(request: NextRequest) {
   if (devBypass) {
     if (isSigninRoute || isRootRoute) {
       const dashboardUrl = request.nextUrl.clone()
-      dashboardUrl.pathname = '/dashboard'
+      dashboardUrl.pathname = '/home'
       dashboardUrl.search = ''
       return NextResponse.redirect(dashboardUrl)
     }
@@ -82,7 +83,7 @@ export async function proxy(request: NextRequest) {
 
   if (isRootRoute) {
     const targetUrl = request.nextUrl.clone()
-    targetUrl.pathname = user ? '/dashboard' : '/signin'
+    targetUrl.pathname = user ? '/home' : '/signin'
     targetUrl.search = ''
     return NextResponse.redirect(targetUrl)
   }
@@ -96,10 +97,7 @@ export async function proxy(request: NextRequest) {
 
   if (user && isSigninRoute) {
     const redirectTarget = request.nextUrl.searchParams.get('next')
-    const safeTarget = redirectTarget?.startsWith('/') ? redirectTarget : '/dashboard'
-    const dashboardUrl = request.nextUrl.clone()
-    dashboardUrl.pathname = safeTarget
-    dashboardUrl.search = ''
+    const dashboardUrl = new URL(safeAuthRedirect(redirectTarget), request.url)
     return NextResponse.redirect(dashboardUrl)
   }
 

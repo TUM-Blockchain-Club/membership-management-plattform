@@ -99,12 +99,18 @@ const toUiRequest = (request: AdminQueueRequestRow, requestImage: string): NFTRe
     requestImage,
     displayName: request.display_name,
     highlight: getMemberText(request.member, "highlight", "Highlight"),
-    walletAddress: request.wallet_address,
     submittedAt: formatSubmittedAt(request.created_at),
     submittedAtValue: request.created_at,
     status: request.status,
     reviewNote: request.review_note,
     mintTxHash: request.mint_tx_hash ?? null,
+    memberStatus: getMemberText(request.member, "status", "Status"),
+    batch: getMemberText(request.member, "batch", "Batch"),
+    assetAddress: request.asset_address ?? null,
+    assetState: request.asset_state ?? 'unminted',
+    custodyStatus: request.custody_status ?? 'club',
+    claimWalletAddress: request.claim_wallet_address ?? null,
+    lastChainError: request.last_chain_error ?? null,
   }
 }
 
@@ -118,7 +124,7 @@ const loadAdminQueue = async () => {
   return requestRows.map((request) =>
     toUiRequest(
       request,
-      nftRequestService.getRequestImageProxyUrl(request.image_path, `${request.id}:${request.created_at}`) || request.image_url
+      nftRequestService.getRequestImageProxyUrl(request.id, `${request.id}:${request.created_at}`) || request.image_url
     )
   )
 }
@@ -132,6 +138,8 @@ export function useNftApprovals() {
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [mintingId, setMintingId] = useState<string | null>(null)
   const [previewingId, setPreviewingId] = useState<string | null>(null)
+  const [lifecycleUpdatingId, setLifecycleUpdatingId] = useState<string | null>(null)
+  const [reconciling, setReconciling] = useState(false)
   const { error: loadingError, isLoading, mutate: revalidateRequests } = useSWR(
     "nft-admin-queue",
     loadAdminQueue,
@@ -214,12 +222,11 @@ export function useNftApprovals() {
                 ...request,
                 status: data.request.status,
                 reviewNote: data.request.review_note,
-                walletAddress: data.request.wallet_address,
-                mintTxHash: data.mintTxHash,
+                mintTxHash: data.transactionSignature,
                 requestImage:
                   nftRequestService.getRequestImageProxyUrl(
-                    data.request.image_path,
-                    `${data.request.id}:${data.request.created_at}:${data.request.mint_tx_hash ?? data.mintTxHash}`
+                    data.request.id,
+                    `${data.request.id}:${data.request.created_at}:${data.request.mint_tx_hash ?? data.transactionSignature}`
                   ) || data.request.image_url,
               }
             : request
@@ -236,6 +243,34 @@ export function useNftApprovals() {
     }
   }, [revalidateRequests])
 
+  const runLifecycleAction = useCallback(async (
+    requestId: string,
+    action: 'sync' | 'revoke' | 'claim'
+  ) => {
+    setLifecycleUpdatingId(requestId)
+    setError(null)
+    try {
+      const result = action === 'claim'
+        ? await nftRequestService.approveClaim(requestId)
+        : await nftRequestService.updateLifecycle(requestId, action)
+      if (result.error || !result.data) throw new Error(result.error || 'NFT lifecycle update failed.')
+      void revalidateRequests()
+    } catch (error) {
+      setError(error instanceof Error ? error.message : 'NFT lifecycle update failed.')
+    } finally {
+      setLifecycleUpdatingId(null)
+    }
+  }, [revalidateRequests])
+
+  const handleReconcile = useCallback(async () => {
+    setReconciling(true)
+    setError(null)
+    const { error } = await nftRequestService.reconcile()
+    if (error) setError(error)
+    await revalidateRequests()
+    setReconciling(false)
+  }, [revalidateRequests])
+
   const filtered = useMemo(() => {
     const query = search.trim().toLowerCase()
     const result = requests.filter((request) => {
@@ -246,7 +281,7 @@ export function useNftApprovals() {
         request.memberEmail,
         request.displayName,
         request.highlight ?? "",
-        request.walletAddress ?? "",
+        request.claimWalletAddress ?? "",
       ].some((value) => value.toLowerCase().includes(query))
     })
 
@@ -263,10 +298,16 @@ export function useNftApprovals() {
     filtered,
     handleApprove,
     handleMint,
+    handleApproveClaim: (requestId: string) => void runLifecycleAction(requestId, 'claim'),
+    handleRevoke: (requestId: string) => void runLifecycleAction(requestId, 'revoke'),
+    handleSyncLifecycle: (requestId: string) => void runLifecycleAction(requestId, 'sync'),
     handleRejectConfirm,
+    handleReconcile,
     loading,
+    lifecycleUpdatingId,
     mintingId,
     pendingCount: requests.filter((request) => request.status === "pending").length,
+    reconciling,
     previewingRequest,
     rejectedCount: requests.filter((request) => request.status === "rejected").length,
     rejectingRequest,

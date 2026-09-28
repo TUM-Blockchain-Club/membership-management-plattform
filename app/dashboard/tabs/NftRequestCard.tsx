@@ -3,6 +3,17 @@
 
 import { useState } from "react"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -20,12 +31,18 @@ export interface NFTRequest {
   requestImage: string
   displayName: string
   highlight: string | null
-  walletAddress: string | null
   submittedAt: string
   submittedAtValue: string
   status: NftRequestStatus
   reviewNote: string | null
   mintTxHash: string | null
+  memberStatus: string | null
+  batch: string | null
+  assetAddress: string | null
+  assetState: 'unminted' | 'active' | 'alumni' | 'burned'
+  custodyStatus: 'club' | 'member'
+  claimWalletAddress: string | null
+  lastChainError: string | null
 }
 
 interface NFTRequestCardProps {
@@ -34,6 +51,10 @@ interface NFTRequestCardProps {
   onReject: (id: string) => void
   isUpdating?: boolean
   isMinting?: boolean
+  isLifecycleUpdating?: boolean
+  onApproveClaim: (id: string) => void
+  onSyncLifecycle: (id: string) => void
+  onRevoke: (id: string) => void
 }
 
 const STATUS_STYLES: Record<NftRequestStatus, string> = {
@@ -50,6 +71,10 @@ export function NftRequestCard({
   onReject,
   isUpdating = false,
   isMinting = false,
+  isLifecycleUpdating = false,
+  onApproveClaim,
+  onSyncLifecycle,
+  onRevoke,
 }: NFTRequestCardProps) {
   const isActionable = request.status === "pending"
   const [imageFailed, setImageFailed] = useState(false)
@@ -114,9 +139,9 @@ export function NftRequestCard({
           </div>
 
           <div>
-            <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Wallet</p>
-            <p className="mt-1 break-all text-sm text-white/80">
-              {request.walletAddress || "Central Wallet"}
+            <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Member / NFT Status</p>
+            <p className="mt-1 text-sm text-white/80">
+              {request.memberStatus || 'Unknown'} / {request.assetState}
             </p>
           </div>
 
@@ -141,6 +166,18 @@ export function NftRequestCard({
             <div>
               <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Mint Tx</p>
               <p className="mt-1 break-all text-sm text-emerald-200">{shortenHash(request.mintTxHash)}</p>
+            </div>
+          )}
+          {request.claimWalletAddress && (
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Pending claim</p>
+              <p className="mt-1 break-all text-sm text-amber-200">{request.claimWalletAddress}</p>
+            </div>
+          )}
+          {request.lastChainError && (
+            <div>
+              <p className="text-[11px] uppercase tracking-[0.16em] text-rose-300/80">Reconciliation</p>
+              <p className="mt-1 text-sm text-rose-200">{request.lastChainError}</p>
             </div>
           )}
         </div>
@@ -168,6 +205,45 @@ export function NftRequestCard({
             >
               Reject
             </Button>
+          </CardFooter>
+        ) : request.assetAddress && request.assetState !== 'burned' ? (
+          <CardFooter className="flex-wrap gap-2 border-white/10 bg-transparent">
+            {request.claimWalletAddress && (
+              <Button
+                onClick={() => onApproveClaim(request.id)}
+                disabled={isLifecycleUpdating}
+                className="flex-1"
+              >
+                Confirm claim
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => onSyncLifecycle(request.id)}
+              disabled={isLifecycleUpdating}
+              className="flex-1"
+            >
+              Sync member status
+            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" disabled={isLifecycleUpdating} className="flex-1">
+                  Revoke & burn
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Burn this membership NFT?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This burns the Solana asset and deletes its hosted portrait and metadata. The transaction history remains public.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => onRevoke(request.id)}>Burn NFT</AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </CardFooter>
         ) : null}
     </Card>

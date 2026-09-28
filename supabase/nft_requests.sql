@@ -1,40 +1,7 @@
--- NFT request schema for the current dashboard form.
---
--- Source of truth in the app:
--- app/dashboard/tabs/NftStatusTab.tsx
---
--- The form currently collects:
---   1. displayName
---   2. picture
---   3. funFacts
---   4. useDifferentWallet + walletAddress
---
--- Important note:
--- The current UI only asks for walletAddress when "Send this NFT to a different wallet"
--- is enabled. That means the database can store a wallet override, but there is still no
--- guaranteed default wallet source for every member. If you later want minting to be fully
--- automatic for every approved request, add a wallet field to members_main or make the wallet
--- mandatory in the form.
+-- TUM Blockchain Club Solana membership NFT requests and asset lifecycle.
+-- This script is idempotent and upgrades the existing request table in place.
 
 create extension if not exists pgcrypto;
-
-do $$
-begin
-  if not exists (
-    select 1
-    from pg_type
-    where typname = 'nft_request_status'
-      and typnamespace = 'public'::regnamespace
-  ) then
-    create type public.nft_request_status as enum (
-      'pending',
-      'approved',
-      'rejected',
-      'minted'
-    );
-  end if;
-end
-$$;
 
 create or replace function public.current_member_id()
 returns integer
@@ -69,57 +36,93 @@ grant execute on function public.can_manage_nft_requests() to authenticated;
 
 create table if not exists public.nft_requests (
   id uuid primary key default gen_random_uuid(),
-  created_at timestamptz not null default now(),
-  updated_at timestamptz not null default now(),
-  submitted_by uuid default auth.uid() references auth.users(id) on delete set null,
   member_id integer not null references public.members_main(id) on delete cascade,
-  request_status public.nft_request_status not null default 'pending',
+  status text not null default 'pending',
   display_name text not null,
   fun_facts text,
-  send_to_different_wallet boolean not null default false,
-  wallet_address text,
-  picture_bucket text not null default 'nft-request-images',
-  picture_path text not null,
-  picture_file_name text,
-  picture_mime_type text,
-  review_note text,
+  image_path text not null,
+  image_url text not null,
+  created_at timestamptz not null default now(),
   reviewed_at timestamptz,
   reviewed_by uuid references auth.users(id) on delete set null,
-  minted_at timestamptz,
+  review_note text,
   mint_tx_hash text,
-  constraint nft_requests_display_name_check
-    check (char_length(btrim(display_name)) between 1 and 120),
-  constraint nft_requests_fun_facts_check
-    check (fun_facts is null or char_length(fun_facts) <= 50),
-  constraint nft_requests_picture_path_check
-    check (char_length(btrim(picture_path)) > 0),
-  constraint nft_requests_wallet_logic_check
-    check (
-      (send_to_different_wallet = false and wallet_address is null)
-      or
-      (send_to_different_wallet = true and wallet_address is not null)
-    ),
-  constraint nft_requests_wallet_format_check
-    check (
-      wallet_address is null
-      or wallet_address ~* '^0x[a-f0-9]{40}$'
-    )
+  burn_tx_hash text,
+  update_tx_hash text
 );
 
-create index if not exists nft_requests_member_id_idx
-  on public.nft_requests (member_id);
+alter table public.nft_requests
+  add column if not exists updated_at timestamptz not null default now(),
+  add column if not exists request_image_bucket text,
+  add column if not exists approved_display_name text,
+  add column if not exists approved_fun_facts text,
+  add column if not exists approved_image_path text,
+  add column if not exists approved_image_bucket text,
+  add column if not exists rendered_image_path text,
+  add column if not exists metadata_path text,
+  add column if not exists metadata_url text,
+  add column if not exists metadata_version integer not null default 0,
+  add column if not exists chain_network text not null default 'devnet',
+  add column if not exists collection_address text,
+  add column if not exists asset_address text,
+  add column if not exists owner_address text,
+  add column if not exists custody_status text not null default 'club',
+  add column if not exists asset_state text not null default 'unminted',
+  add column if not exists claim_wallet_address text,
+  add column if not exists claim_requested_at timestamptz,
+  add column if not exists claimed_at timestamptz,
+  add column if not exists minted_at timestamptz,
+  add column if not exists updated_on_chain_at timestamptz,
+  add column if not exists burned_at timestamptz,
+  add column if not exists last_chain_error text,
+  add column if not exists reconciled_at timestamptz;
 
+-- Rows created by the previous implementation keep their source bucket.
+update public.nft_requests
+set request_image_bucket = 'nft-images-picks'
+where request_image_bucket is null;
+
+alter table public.nft_requests
+  alter column request_image_bucket set default 'nft-request-images',
+  alter column request_image_bucket set not null,
+  drop constraint if exists nft_requests_wallet_address_check,
+  drop constraint if exists nft_requests_wallet_format_check,
+  drop constraint if exists nft_requests_wallet_logic_check,
+  drop constraint if exists nft_requests_mint_tx_hash_check,
+  drop constraint if exists nft_requests_burn_tx_hash_check,
+  drop constraint if exists nft_requests_update_tx_hash_check,
+  drop constraint if exists nft_requests_status_check,
+  drop constraint if exists nft_requests_chain_network_check,
+  drop constraint if exists nft_requests_custody_status_check,
+  drop constraint if exists nft_requests_asset_state_check,
+  drop constraint if exists nft_requests_metadata_version_check,
+  drop constraint if exists nft_requests_claim_wallet_address_check;
+
+alter table public.nft_requests
+  drop column if exists wallet_address;
+
+alter table public.nft_requests
+  add constraint nft_requests_status_check check (status in ('pending', 'approved', 'rejected')),
+  add constraint nft_requests_chain_network_check check (chain_network in ('devnet', 'mainnet-beta')),
+  add constraint nft_requests_custody_status_check check (custody_status in ('club', 'member')),
+  add constraint nft_requests_asset_state_check check (asset_state in ('unminted', 'active', 'alumni', 'burned')),
+  add constraint nft_requests_metadata_version_check check (metadata_version >= 0),
+  add constraint nft_requests_claim_wallet_address_check check (
+    claim_wallet_address is null
+    or claim_wallet_address ~ '^[1-9A-HJ-NP-Za-km-z]{32,44}$'
+  );
+
+create unique index if not exists nft_requests_one_per_member on public.nft_requests (member_id);
+create unique index if not exists nft_requests_asset_address_unique
+  on public.nft_requests (asset_address) where asset_address is not null;
 create index if not exists nft_requests_status_created_at_idx
-  on public.nft_requests (request_status, created_at desc);
-
-create unique index if not exists nft_requests_one_pending_request_per_member_idx
-  on public.nft_requests (member_id)
-  where request_status = 'pending';
+  on public.nft_requests (status, created_at desc);
+create index if not exists nft_requests_reconciliation_idx
+  on public.nft_requests (asset_state, reconciled_at)
+  where asset_address is not null and asset_state <> 'burned';
 
 create or replace function public.handle_nft_requests_updated_at()
-returns trigger
-language plpgsql
-as $$
+returns trigger language plpgsql as $$
 begin
   new.updated_at = now();
   return new;
@@ -127,173 +130,71 @@ end;
 $$;
 
 drop trigger if exists set_nft_requests_updated_at on public.nft_requests;
-
 create trigger set_nft_requests_updated_at
 before update on public.nft_requests
-for each row
-execute function public.handle_nft_requests_updated_at();
+for each row execute function public.handle_nft_requests_updated_at();
 
 alter table public.nft_requests enable row level security;
 
 drop policy if exists "members can insert their own nft requests" on public.nft_requests;
-create policy "members can insert their own nft requests"
-on public.nft_requests
-for insert
-to authenticated
-with check (member_id = public.current_member_id());
+create policy "members can insert their own nft requests" on public.nft_requests
+for insert to authenticated with check (member_id = public.current_member_id());
 
 drop policy if exists "members can view own nft requests and admins can view all" on public.nft_requests;
-create policy "members can view own nft requests and admins can view all"
-on public.nft_requests
-for select
-to authenticated
-using (
-  member_id = public.current_member_id()
-  or public.can_manage_nft_requests()
+create policy "members can view own nft requests and admins can view all" on public.nft_requests
+for select to authenticated using (
+  member_id = public.current_member_id() or public.can_manage_nft_requests()
 );
 
 drop policy if exists "admins can update nft requests" on public.nft_requests;
-create policy "admins can update nft requests"
-on public.nft_requests
-for update
-to authenticated
-using (public.can_manage_nft_requests())
+create policy "admins can update nft requests" on public.nft_requests
+for update to authenticated using (public.can_manage_nft_requests())
 with check (public.can_manage_nft_requests());
 
 drop policy if exists "admins can delete nft requests" on public.nft_requests;
-create policy "admins can delete nft requests"
-on public.nft_requests
-for delete
-to authenticated
-using (public.can_manage_nft_requests());
+create policy "admins can delete nft requests" on public.nft_requests
+for delete to authenticated using (public.can_manage_nft_requests());
 
 grant select, insert, update, delete on public.nft_requests to authenticated;
 
 insert into storage.buckets (id, name, public)
-values ('nft-request-images', 'nft-request-images', true)
-on conflict (id) do update
-set public = excluded.public;
+values
+  ('nft-request-images', 'nft-request-images', false),
+  ('nft-public-assets', 'nft-public-assets', true)
+on conflict (id) do update set public = excluded.public;
 
+-- Uploads and deletions are performed by authenticated server routes with the
+-- service role. Remove the former direct-client/public source-image policies.
 drop policy if exists "nft request images are public" on storage.objects;
-create policy "nft request images are public"
-on storage.objects
-for select
-to public
-using (bucket_id = 'nft-request-images');
-
 drop policy if exists "members can upload their own nft request images" on storage.objects;
-create policy "members can upload their own nft request images"
-on storage.objects
-for insert
-to authenticated
-with check (
-  bucket_id = 'nft-request-images'
-  and name like (public.current_member_id()::text || '/%')
-);
-
 drop policy if exists "members and admins can update nft request images" on storage.objects;
-create policy "members and admins can update nft request images"
-on storage.objects
-for update
-to authenticated
-using (
-  bucket_id = 'nft-request-images'
-  and (
-    public.can_manage_nft_requests()
-    or name like (public.current_member_id()::text || '/%')
-  )
-)
-with check (
-  bucket_id = 'nft-request-images'
-  and (
-    public.can_manage_nft_requests()
-    or name like (public.current_member_id()::text || '/%')
-  )
-);
-
 drop policy if exists "members and admins can delete nft request images" on storage.objects;
-create policy "members and admins can delete nft request images"
-on storage.objects
-for delete
-to authenticated
-using (
-  bucket_id = 'nft-request-images'
-  and (
-    public.can_manage_nft_requests()
-    or name like (public.current_member_id()::text || '/%')
-  )
+drop policy if exists "dev_open_nft_images" on storage.objects;
+
+update public.nft_requests r
+set request_image_bucket = 'nft-request-images'
+where r.request_image_bucket = 'nft-images-picks'
+  and not exists (
+    select 1 from storage.objects o
+    where o.bucket_id = r.request_image_bucket and o.name = r.image_path
+  );
+
+create table if not exists public.nft_chain_operations (
+  id uuid primary key default gen_random_uuid(),
+  request_id uuid not null references public.nft_requests(id) on delete cascade,
+  operation text not null check (operation in ('mint', 'update', 'claim', 'burn', 'reconcile')),
+  state text not null default 'started' check (state in ('started', 'confirmed', 'failed')),
+  asset_address text,
+  transaction_signature text,
+  error_message text,
+  created_at timestamptz not null default now(),
+  completed_at timestamptz
 );
 
-create or replace function public.review_nft_request(
-  p_request_id uuid,
-  p_status public.nft_request_status,
-  p_review_note text default null
-)
-returns public.nft_requests
-language plpgsql
-security definer
-set search_path = public
-as $$
-declare
-  v_request public.nft_requests;
-begin
-  if not public.can_manage_nft_requests() then
-    raise exception 'Not authorized to review NFT requests';
-  end if;
+create index if not exists nft_chain_operations_request_created_idx
+  on public.nft_chain_operations (request_id, created_at desc);
 
-  if p_status not in ('approved', 'rejected') then
-    raise exception 'p_status must be approved or rejected';
-  end if;
-
-  update public.nft_requests
-  set request_status = p_status,
-      review_note = nullif(btrim(p_review_note), ''),
-      reviewed_at = now(),
-      reviewed_by = auth.uid()
-  where id = p_request_id
-  returning * into v_request;
-
-  if v_request.id is null then
-    raise exception 'NFT request % not found', p_request_id;
-  end if;
-
-  return v_request;
-end;
-$$;
-
-grant execute on function public.review_nft_request(uuid, public.nft_request_status, text) to authenticated;
-
--- Example admin load query:
--- select
---   r.id,
---   r.created_at,
---   r.request_status,
---   r.display_name,
---   r.fun_facts,
---   r.send_to_different_wallet,
---   r.wallet_address,
---   r.picture_bucket,
---   r.picture_path,
---   r.review_note,
---   m.id as member_id,
---   m."Name" as member_name,
---   m."TBC Email" as member_email,
---   m."Role" as member_role,
---   m."Department" as member_department
--- from public.nft_requests r
--- join public.members_main m on m.id = r.member_id
--- order by r.created_at desc;
-
--- Example approve:
--- select public.review_nft_request(
---   '00000000-0000-0000-0000-000000000000',
---   'approved',
---   'Looks good'
--- );
-
--- Example reject:
--- select public.review_nft_request(
---   '00000000-0000-0000-0000-000000000000',
---   'rejected',
---   'Please upload a clearer portrait'
--- );
+alter table public.nft_chain_operations enable row level security;
+drop policy if exists "admins can view nft chain operations" on public.nft_chain_operations;
+create policy "admins can view nft chain operations" on public.nft_chain_operations
+for select to authenticated using (public.can_manage_nft_requests());

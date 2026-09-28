@@ -154,65 +154,61 @@ Relationships:
 - `event_id` -> `events.id`
 - `member_id` -> `members_main.id`
 
+### `public.lectures`
+
+Board-managed core lectures and side meetings, separate from events. Includes
+`id` (UUID), `title`, `kind`, `scheduled_at`, `location`,
+`lecturer_member_id`, `is_active`, `started_at`, timestamps and private
+`current_code`/`previous_code` with issuance timestamps. Authenticated calendar
+reads have column-level access that excludes codes and their timestamps.
+
 ### `public.attendance`
 
-Check-in table for event attendance.
+One check-in per member and lecture: UUID `id`, integer `member_id`, UUID
+`lecture_id`, and `checked_in_at` (timestamptz). Unique on
+`(member_id, lecture_id)`, indexed by member, lecture and check-in time.
+Members read their own rows; board members read all. Direct authenticated
+inserts are revoked. `attendance_check_in(uuid,text)` derives the member from
+the authenticated session, locks the lecture, validates its active window and
+current/previous code, then inserts atomically. Duplicate scans are idempotent.
 
-| Column | Type | Null | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `id` | `uuid` | no | `gen_random_uuid()` | Primary key. |
-| `member_id` | `integer` | no | none | References `members_main.id`. |
-| `event_id` | `integer` | no | none | References `events.id`. |
-| `checked_in_at` | `timestamptz` | no | `now()` | Check-in timestamp. |
+`attendance_lecture_code(uuid,boolean)` verifies board membership and locks
+the lecture before starting or rotating. All displays share a code for 15
+seconds, with 30 seconds of total validity and a three-hour lecture window.
+Only authenticated users may execute these functions; both use an empty search
+path and explicit schema references.
 
-Constraints and indexes:
-
-- Primary key: `attendance_pkey` on `id`.
-- Unique index: `attendance_member_id_event_id_key` on `(member_id, event_id)`.
-- Index: `attendance_member_id_idx` on `member_id`.
-- Index: `attendance_event_id_idx` on `event_id`.
-
-Relationships:
-
-- `member_id` -> `members_main.id`
-- `event_id` -> `events.id`
+Apply `supabase/attendance_secure_check_in.sql` after the initial lecture
+schema and before deploying the RPC-based application. It preserves attendance.
+Do not rerun the legacy `lectures.sql` on an existing database: its prototype
+conversion drops attendance. See `docs/architecture/attendance.md`.
 
 ### `public.nft_requests`
 
-NFT image/profile request table.
+One row per member combines the reviewable public profile submission with the
+current Solana Metaplex Core asset state.
 
-Current live count: 2 rows.
+Important column groups:
 
-| Column | Type | Null | Default | Notes |
-| --- | --- | --- | --- | --- |
-| `id` | `uuid` | no | `gen_random_uuid()` | Primary key. |
-| `member_id` | `integer` | no | none | References `members_main.id`; one request per member. |
-| `status` | `text` | no | `pending` | Request lifecycle status. |
-| `display_name` | `text` | no | none | Display name for NFT. |
-| `fun_facts` | `text` | yes | none | Optional prompt/profile facts. |
-| `wallet_address` | `text` | yes | none | Optional wallet override. |
-| `image_path` | `text` | no | none | Storage object path. |
-| `image_url` | `text` | no | none | Public image URL. |
-| `created_at` | `timestamptz` | no | `now()` | Creation timestamp. |
-| `reviewed_at` | `timestamptz` | yes | none | Review timestamp. |
-| `reviewed_by` | `uuid` | yes | none | References an auth user. |
-| `review_note` | `text` | yes | none | Admin review note. |
-| `mint_tx_hash` | `text` | yes | none | Mint transaction hash. |
-| `burn_tx_hash` | `text` | yes | none | Burn transaction hash. |
-| `update_tx_hash` | `text` | yes | none | Metadata/update transaction hash. |
+| Group | Columns | Purpose |
+| --- | --- | --- |
+| Request | `status`, `display_name`, `fun_facts`, `image_path`, `request_image_bucket` | Member submission and board review. Source portraits are private. |
+| Public metadata | `rendered_image_path`, `metadata_path`, `metadata_url`, `metadata_version` | Versioned public PNG and JSON files used by wallets and explorers. |
+| Solana identity | `chain_network`, `collection_address`, `asset_address` | Network and Metaplex Core addresses. |
+| Ownership | `owner_address`, `custody_status`, `claim_wallet_address`, `claim_requested_at`, `claimed_at` | Club custody, member claim, and wallet recovery. |
+| Lifecycle | `asset_state`, `minted_at`, `updated_on_chain_at`, `burned_at` | `unminted`, `active`, `alumni`, or `burned`. |
+| Receipts | `mint_tx_hash`, `update_tx_hash`, `burn_tx_hash`, `last_chain_error`, `reconciled_at` | Solana signatures and reconciliation state. |
 
-Constraints and indexes:
+`Alumni` keeps the same asset and publishes updated artwork/metadata. `Left`,
+`Kicked out`, or a manual board revocation burns the asset and deletes hosted
+personal media. Historical transaction records remain on Solana.
 
-- Primary key: `nft_requests_pkey` on `id`.
-- Unique index: `nft_requests_one_per_member` on `member_id`.
-- Unique indexes on `image_path` and `image_url`.
-- Index: `nft_requests_status_created_at_idx` on `(status, created_at desc)`.
-- Check constraints exist for `status`, wallet address, transaction hashes, and `fun_facts`.
+### `public.nft_chain_operations`
 
-Relationships:
-
-- `member_id` -> `members_main.id`
-- `reviewed_by` -> Supabase Auth user id.
+Durable operation receipts for `mint`, `update`, `claim`, `burn`, and
+`reconcile`. A row is created before the blockchain call and ends as
+`confirmed` or `failed`, preserving recovery evidence when a later request-row
+update fails.
 
 ### `public.link_redirect_definitions`
 
@@ -360,6 +356,7 @@ Constraints and indexes:
 | `can_manage_nft_requests()` | `boolean` | Checks NFT admin permissions. |
 | `allow_only_test_domain()` | `trigger` | Auth-related domain guard. |
 | `block_guest_core_updates_email()` | `trigger` | Prevents restricted email updates. |
+| `enforce_member_role_and_department_changes()` | `trigger` | Allows one initial self-selected department and keeps later department and role changes board/admin managed. |
 | `handle_new_user_members_main()` | `trigger` | Auth/member sync helper. |
 | `handle_new_user_test()` | `trigger` | Test/new-user helper. |
 
@@ -371,8 +368,9 @@ This section summarizes the active policies. For exact SQL, inspect Supabase or 
 
 - Authenticated users can read `members_main`.
 - Users can update their own row where `"TBC Email"` matches their auth email.
+- Users may select their own department once while it is empty; later changes are rejected by a database trigger.
 - Board members can insert members.
-- Board members can update members in matching departments.
+- Board members can update members across all departments.
 - Special-access emails can insert members and update all members.
 
 Special-access emails are currently encoded in DB policies and app-side admin checks. Keep them synchronized if changing authorization behavior.
@@ -394,7 +392,7 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 - `event_interest` is readable by authenticated users.
 - Authenticated users can insert their own interest rows (`member_id = current_member_id()`).
 - Authenticated users can delete their own interest rows.
-- `attendance` rows can be inserted by the checked-in member, viewed by the owner, and viewed by board members.
+- `attendance` rows are inserted only through the authenticated check-in function, viewed by the owner, and viewed by board members.
 
 ### NFT Requests
 
@@ -426,7 +424,8 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 - `event-images`: public read access.
 - `event-qr-codes`: public read access; board members can upload/update.
 - `newsletter-assets`: public read access; authenticated special-access users can upload, update, and delete objects.
-- `nft-images-picks`: open policy for anon/authenticated users named `dev_open_nft_images`; review this before production hardening.
+- `nft-request-images`: private member source portraits, accessed through guarded server routes.
+- `nft-public-assets`: public versioned NFT images, metadata, and collection metadata.
 
 ## Storage Buckets
 
@@ -438,7 +437,8 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 | `link-redirect-images` | no | Private board-uploaded visual references for QR/link placements. |
 | `newsletter-assets` | yes | Public reusable images inserted into Mailgun newsletter campaigns. |
 | `coffee-chat-selfies` | no | Private Coffee Chat meeting photos served with short-lived signed URLs. |
-| `nft-images-picks` | yes | NFT request image uploads/picks. |
+| `nft-request-images` | no | Private source portraits for membership NFT requests. |
+| `nft-public-assets` | yes | Public rendered NFT images and JSON metadata. |
 
 ## Coffee Chats Tables (`supabase/coffee_chats.sql`)
 

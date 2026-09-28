@@ -1,6 +1,7 @@
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
 import { NftApplicationForm } from './nft-application-form'
 import { NftRequestSummary } from './nft-request-summary'
 import type { NftStatusSectionsProps } from './types'
@@ -28,7 +29,21 @@ export function NftRequestPanel({ state }: NftStatusSectionsProps) {
         {loadingExistingRequest ? (
           <NftRequestSkeleton />
         ) : existingRequest ? (
-          <NftRequestSummary state={state} />
+          <div className="flex flex-col gap-8">
+            <NftRequestSummary state={state} />
+            {hasMintedNft && (
+              <>
+                <Separator className="bg-white/10" />
+                <div>
+                  <h3 className="mb-2 text-lg font-semibold text-white">Request a profile update</h3>
+                  <p className="mb-5 text-sm text-white/55">
+                    Submit a new portrait or public profile details. A board member reviews the update before Solana changes.
+                  </p>
+                  <NftApplicationForm state={state} />
+                </div>
+              </>
+            )}
+          </div>
         ) : (
           <NftApplicationForm state={state} />
         )}

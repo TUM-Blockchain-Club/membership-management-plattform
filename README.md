@@ -39,7 +39,7 @@ pnpm dev
 
 Open `http://localhost:3000`.
 
-The root route redirects authenticated users to `/dashboard` and unauthenticated users to `/signin`.
+The root route redirects authenticated users to `/home` and unauthenticated users to `/signin`.
 
 ## Common Commands
 
@@ -79,6 +79,7 @@ The Events page defaults to future events plus events from the last seven days. 
 ## Documentation
 
 - `docs/database/schema.md`: canonical database schema overview.
+- `docs/architecture/solana-membership-nfts.md`: membership NFT lifecycle, custody, privacy, and deployment.
 - `docs/maintenance/`: implementation and maintenance notes.
 - `docs/migration/`: shadcn/UI migration planning notes.
 - `AGENTS.md`: repo-specific instructions for future coding agents.

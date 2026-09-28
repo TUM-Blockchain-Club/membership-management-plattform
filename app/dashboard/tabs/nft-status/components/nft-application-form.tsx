@@ -3,7 +3,7 @@ import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel, FieldTitle } from '@/components/ui/field'
+import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
@@ -27,10 +27,6 @@ export function NftApplicationForm({ state }: NftStatusSectionsProps) {
     setFunFacts,
     setHasConsented,
     setSelectedFile,
-    setUseDifferentWallet,
-    setWalletAddress,
-    useDifferentWallet,
-    walletAddress,
   } = state
 
   return (
@@ -115,45 +111,6 @@ export function NftApplicationForm({ state }: NftStatusSectionsProps) {
         />
         <FieldDescription className="text-white/40">Limited to 50 characters.</FieldDescription>
       </Field>
-
-      <Card className="border-white/10 bg-black/20">
-        <CardContent className="p-5">
-          <Field orientation="horizontal">
-            <Checkbox
-              checked={useDifferentWallet}
-              disabled={saving}
-              onCheckedChange={(checked) => {
-                const enabled = checked === true
-                setUseDifferentWallet(enabled)
-                if (!enabled) setWalletAddress('')
-              }}
-              className="mt-1 border-white/20 bg-black/40 text-cyan-400"
-            />
-            <FieldContent>
-              <FieldTitle className="text-white">Send this NFT to a different wallet</FieldTitle>
-              <FieldDescription className="text-white/60">
-                Enable this if you want to specify a separate recipient wallet for minting.
-              </FieldDescription>
-            </FieldContent>
-          </Field>
-
-          {useDifferentWallet && (
-            <Field className="mt-4">
-              <FieldLabel htmlFor="walletAddress" className="text-white">Wallet Address</FieldLabel>
-              <Input
-                id="walletAddress"
-                type="text"
-                name="walletAddress"
-                value={walletAddress}
-                onChange={(event) => setWalletAddress(event.target.value)}
-                placeholder="0x..."
-                disabled={saving}
-                className="border-white/10 bg-black/30 text-white focus-visible:border-cyan-400/50"
-              />
-            </Field>
-          )}
-        </CardContent>
-      </Card>
 
       <NftConsentField hasConsented={hasConsented} saving={saving} setHasConsented={setHasConsented} />
 
@@ -244,8 +201,8 @@ function NftConsentField({
             Data Permanence & Terms of Service Agreement
           </FieldLabel>
           <FieldDescription className="text-xs text-gray-400">
-            I understand that a cryptographic record of this NFT will be permanently minted on the blockchain.
-            While the club maintains the ability to delete off-chain hosted images upon request, the on-chain transaction history cannot be reversed, edited, or deleted.
+            I understand that the Solana transaction history remains public. The club can update or burn the membership NFT
+            and can delete the hosted image and metadata, but third-party caches may retain previously downloaded copies.
           </FieldDescription>
           <FieldDescription className="text-xs text-gray-400">
             By checking this box, I also agree to the TUM Blockchain Club&apos;s{' '}

@@ -4,7 +4,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatEventDate, formatEventTime } from '@/app/dashboard/lib/eventFormatters'
 import {
-  ADMIN_FIELDS,
+  canEditDashboardMember,
+  canEditProfileField,
   getEditableMemberPayload,
   getPictureUrl,
   isDashboardMemberAdmin,
@@ -33,7 +34,7 @@ type DashboardControllerOptions = {
   initialData: DashboardInitialData
 }
 
-export function useDashboardController(routeTab: DashboardTab = 'profile', options: DashboardControllerOptions) {
+export function useDashboardController(routeTab: DashboardTab = 'home', options: DashboardControllerOptions) {
   const router = useRouter()
   const { initialData } = options
 
@@ -138,40 +139,26 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
   }, [router])
 
   const canEditMember = useCallback((targetMember: DashboardMember) => {
-    if (!member || !targetMember) return false
-
-    if (effectiveHasSpecialAccess) return true
-    if (member.id === targetMember.id) return true
-
-    if (effectiveIsBoardMember && targetMember.Department) {
-      const myDepartments = member.Department?.split(',').map((d) => d.trim()) || []
-      const targetDepartments = targetMember.Department.split(',').map((d) => d.trim())
-
-      return myDepartments.some((myDept) =>
-        targetDepartments.some((targetDept) => myDept.toLowerCase() === targetDept.toLowerCase())
-      )
-    }
-
-    return false
+    return canEditDashboardMember({
+      actor: member,
+      target: targetMember,
+      hasSpecialAccess: effectiveHasSpecialAccess,
+      isBoardMember: effectiveIsBoardMember,
+    })
   }, [effectiveHasSpecialAccess, effectiveIsBoardMember, member])
 
   const canEditField = useCallback((fieldKey: string, isOwnProfile: boolean) => {
-    if (fieldKey === 'TBC Email') {
-      if (!effectiveHasSpecialAccess || isOwnProfile) return false
-      if (viewedMemberHasSpecialAccess) return false
-      return true
-    }
+    const currentValue = (viewedMember as Record<string, unknown> | null)?.[fieldKey]
 
-    if (effectiveHasSpecialAccess && !isOwnProfile) return true
-
-    if (ADMIN_FIELDS.includes(fieldKey as (typeof ADMIN_FIELDS)[number])) {
-      if (effectiveHasSpecialAccess) return true
-      if (effectiveIsBoardMember && !isOwnProfile) return true
-      return false
-    }
-
-    return true
-  }, [effectiveHasSpecialAccess, effectiveIsBoardMember, viewedMemberHasSpecialAccess])
+    return canEditProfileField({
+      fieldKey,
+      isOwnProfile,
+      currentValue,
+      hasSpecialAccess: effectiveHasSpecialAccess,
+      isBoardMember: effectiveIsBoardMember,
+      targetHasSpecialAccess: viewedMemberHasSpecialAccess,
+    })
+  }, [effectiveHasSpecialAccess, effectiveIsBoardMember, viewedMember, viewedMemberHasSpecialAccess])
 
   const triggerBlockchainEffect = useCallback(async () => {
     const { default: confetti } = await import('canvas-confetti')
@@ -224,6 +211,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
   }, [])
 
   const handleTitleClick = useCallback(() => {
+    router.push(TAB_ROUTES.home)
     const now = Date.now()
 
     if (now - lastClickTime > 2000) {
@@ -240,7 +228,7 @@ export function useDashboardController(routeTab: DashboardTab = 'profile', optio
       void triggerBlockchainEffect()
       setClickCount(0)
     }
-  }, [clickCount, lastClickTime, triggerBlockchainEffect])
+  }, [clickCount, lastClickTime, router, triggerBlockchainEffect])
 
   const handleAddMember = useCallback(() => {
     setCreatingMember(true)

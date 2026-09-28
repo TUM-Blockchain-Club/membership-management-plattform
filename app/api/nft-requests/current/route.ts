@@ -12,7 +12,6 @@ type CurrentRequestRow = {
   status: string
   display_name: string
   fun_facts: string | null
-  wallet_address: string | null
   image_path: string
   image_url: string
   created_at: string
@@ -20,18 +19,18 @@ type CurrentRequestRow = {
   reviewed_by: string | null
   review_note: string | null
   mint_tx_hash: string | null
+  asset_address: string | null
+  asset_state: string
 }
 
 type SavePayload = {
   display_name?: string
   fun_facts?: string | null
-  wallet_address?: string | null
   image_path?: string
   image_url?: string
 }
 
-const REQUEST_COLUMNS =
-  "id, member_id, status, display_name, fun_facts, wallet_address, image_path, image_url, created_at, reviewed_at, reviewed_by, review_note, mint_tx_hash"
+const REQUEST_COLUMNS = '*'
 
 export async function GET(request: Request) {
   try {
@@ -79,7 +78,6 @@ export async function POST(request: Request) {
 
     const displayName = payload.display_name?.trim()
     const funFacts = payload.fun_facts?.trim() || null
-    const walletAddress = payload.wallet_address?.trim() || null
     const imagePath = payload.image_path?.trim()
     const imageUrl = payload.image_url?.trim()
 
@@ -103,9 +101,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Fun facts must be 50 characters or fewer." }, { status: 400 })
     }
 
-    if (walletAddress && !/^0x[a-fA-F0-9]{40}$/.test(walletAddress)) {
-      return NextResponse.json({ error: "Wallet address must be a valid 42-character 0x address." }, { status: 400 })
-    }
+    const { data: previousRequest } = await dataClient
+      .from("nft_requests")
+      .select("image_path, request_image_bucket, approved_image_path")
+      .eq("member_id", member.ID)
+      .maybeSingle()
 
     const { data, error } = await dataClient
       .from("nft_requests")
@@ -115,9 +115,9 @@ export async function POST(request: Request) {
           status: "pending",
           display_name: displayName,
           fun_facts: funFacts,
-          wallet_address: walletAddress,
           image_path: imagePath,
           image_url: imageUrl,
+          request_image_bucket: NFT_REQUEST_IMAGE_BUCKET,
           reviewed_at: null,
           reviewed_by: null,
           review_note: null,
@@ -134,6 +134,16 @@ export async function POST(request: Request) {
         { error: error?.message || "Could not save the NFT request." },
         { status: 500 }
       )
+    }
+
+    if (
+      previousRequest?.image_path &&
+      previousRequest.image_path !== imagePath &&
+      previousRequest.image_path !== previousRequest.approved_image_path
+    ) {
+      await dataClient.storage
+        .from(previousRequest.request_image_bucket || NFT_REQUEST_IMAGE_BUCKET)
+        .remove([previousRequest.image_path])
     }
 
     return NextResponse.json({
@@ -172,9 +182,9 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "No NFT request exists for the current user." }, { status: 404 })
     }
 
-    if (currentRequest.status === "approved" || currentRequest.mint_tx_hash) {
+    if (currentRequest.asset_address || currentRequest.mint_tx_hash) {
       return NextResponse.json(
-        { error: "Minted or approved NFT requests cannot be deleted from this page." },
+        { error: "Minted NFT requests must be removed through the board lifecycle action." },
         { status: 409 }
       )
     }

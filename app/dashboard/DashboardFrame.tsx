@@ -3,9 +3,13 @@
 import type { ReactNode } from 'react'
 import dynamic from 'next/dynamic'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { Spinner } from '@/components/ui/spinner'
 import { DashboardFooter } from '@/app/components/dashboard/DashboardFooter'
-import { DashboardHeader } from '@/app/components/dashboard/DashboardHeader'
+import {
+  DashboardSidebar,
+  DashboardTopbar,
+} from '@/app/components/dashboard/DashboardSidebar'
 import type { useDashboardController } from './useDashboardController'
 
 type DashboardController = ReturnType<typeof useDashboardController>
@@ -35,14 +39,8 @@ export function DashboardFrame({
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="fixed inset-0 grid-background pointer-events-none">
-        {dashboardBackgroundAnimationEnabled && (
-          <div className="absolute inset-0 grid-pattern" />
-        )}
-      </div>
-
-      <div className="relative z-10">
-        <DashboardHeader
+      <SidebarProvider>
+        <DashboardSidebar
           member={dashboard.member}
           activeTab={dashboard.activeTab}
           onTabChange={dashboard.handleTabChange}
@@ -54,50 +52,63 @@ export function DashboardFrame({
           showNftApprovalsTab={dashboard.showNftApprovalsTab}
           forceMemberView={dashboard.forceMemberView}
           onToggleMemberView={dashboard.setForceMemberView}
+          pictureUrl={dashboard.getPictureUrl(dashboard.member?.Picture)}
         />
 
-        <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-8 md:py-12">
-          {dashboard.message && (
-            <div className="max-w-4xl mx-auto">
-              <Alert
-                variant={dashboard.message.type === 'success' ? 'default' : 'destructive'}
-                className={`mb-4 sm:mb-6 rounded-xl sm:rounded-2xl ${
-                  dashboard.message.type === 'success'
-                    ? 'border-green-500/30 bg-green-500/10 text-green-400'
-                    : 'border-red-500/30 bg-red-500/10 text-red-400'
-                }`}
-              >
-                <AlertDescription className="text-current">{dashboard.message.text}</AlertDescription>
-              </Alert>
-            </div>
-          )}
+        <SidebarInset className="min-w-0">
+          <div className="fixed inset-0 grid-background pointer-events-none">
+            {dashboardBackgroundAnimationEnabled && (
+              <div className="absolute inset-0 grid-pattern" />
+            )}
+          </div>
 
-          {children}
+          <DashboardTopbar activeTab={dashboard.activeTab} />
 
-          {dashboard.showMemberEditorModal && (
-            <MemberEditorModal
-              open={dashboard.showMemberEditorModal}
-              title={dashboard.creatingMember ? 'Add Member' : 'Edit Member'}
-              viewedMember={dashboard.viewedMember}
-              member={dashboard.member}
-              editedMember={dashboard.editedMember}
-              creatingMember={dashboard.creatingMember}
-              saving={dashboard.saving}
-              uploadingImage={dashboard.uploadingImage}
-              canEditField={dashboard.canEditField}
-              getPictureUrl={dashboard.getPictureUrl}
-              handleInputChange={dashboard.handleInputChange}
-              handleSave={dashboard.handleSave}
-              handleCancel={dashboard.handleCancel}
-              setEditedMember={dashboard.setEditedMember}
-              setUploadingImage={dashboard.setUploadingImage}
-              setSelectedImageFile={dashboard.setSelectedImageFile}
-            />
-          )}
-        </main>
+          <div className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-4 py-6 sm:px-6 sm:py-8 md:py-12">
+            {dashboard.message && (
+              <div className="mx-auto max-w-4xl">
+                <Alert
+                  variant={dashboard.message.type === 'success' ? 'default' : 'destructive'}
+                  className={`mb-4 rounded-xl sm:mb-6 sm:rounded-2xl ${
+                    dashboard.message.type === 'success'
+                      ? 'border-green-500/30 bg-green-500/10 text-green-400'
+                      : 'border-red-500/30 bg-red-500/10 text-red-400'
+                  }`}
+                >
+                  <AlertDescription className="text-current">{dashboard.message.text}</AlertDescription>
+                </Alert>
+              </div>
+            )}
 
-        <DashboardFooter />
-      </div>
+            {children}
+
+            {dashboard.showMemberEditorModal && (
+              <MemberEditorModal
+                open={dashboard.showMemberEditorModal}
+                title={dashboard.creatingMember ? 'Add Member' : 'Edit Member'}
+                viewedMember={dashboard.viewedMember}
+                member={dashboard.member}
+                editedMember={dashboard.editedMember}
+                creatingMember={dashboard.creatingMember}
+                saving={dashboard.saving}
+                uploadingImage={dashboard.uploadingImage}
+                canEditField={dashboard.canEditField}
+                getPictureUrl={dashboard.getPictureUrl}
+                handleInputChange={dashboard.handleInputChange}
+                handleSave={dashboard.handleSave}
+                handleCancel={dashboard.handleCancel}
+                setEditedMember={dashboard.setEditedMember}
+                setUploadingImage={dashboard.setUploadingImage}
+                setSelectedImageFile={dashboard.setSelectedImageFile}
+              />
+            )}
+          </div>
+
+          <div className="relative z-10">
+            <DashboardFooter />
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
     </div>
   )
 }

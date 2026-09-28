@@ -49,10 +49,10 @@ export function MintPreviewModal({ request, isMinting, error, onMint, onCancel }
               </div>
               <div>
                 <DialogTitle className="text-lg font-semibold text-white">
-                  Final Mint Preview
+                  {request.assetAddress ? 'Final Update Preview' : 'Final Mint Preview'}
                 </DialogTitle>
                 <DialogDescription className="mt-1 text-sm text-white/55">
-                  This is the exact layered NFT image that will be minted on-chain.
+                  This is the exact image that will be published through the Solana NFT metadata.
                 </DialogDescription>
               </div>
             </div>
@@ -61,7 +61,7 @@ export function MintPreviewModal({ request, isMinting, error, onMint, onCancel }
           <div className="overflow-hidden rounded-[24px] border border-white/10 bg-black/50 shadow-[0_20px_60px_rgba(0,0,0,0.42)]">
             {!imageFailed ? (
               <img
-                src={`${previewUrl}?v=${new Date().getTime()}`}
+                src={previewUrl}
                 alt={`Final NFT preview for ${request.displayName}`}
                 className="block w-full object-cover"
                 onError={() => setImageFailed(true)}
@@ -108,9 +108,9 @@ export function MintPreviewModal({ request, isMinting, error, onMint, onCancel }
 
             <Card className="border-white/10 bg-white/[0.03]">
               <CardContent className="p-4">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Recipient Wallet</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Initial Custody</p>
               <p className="mt-2 break-all text-sm leading-6 text-white/82">
-                {request.walletAddress || "Central Wallet"}
+                TBC club wallet
               </p>
               </CardContent>
             </Card>
@@ -146,7 +146,7 @@ export function MintPreviewModal({ request, isMinting, error, onMint, onCancel }
               className="flex-1 bg-[#5a038d] text-sm font-semibold text-white hover:bg-[#6e0ea5] disabled:bg-[#5a038d]/50"
             >
               {isMinting && <Spinner data-icon="inline-start" />}
-              {isMinting ? "Minting..." : "Mint NFT"}
+              {isMinting ? "Submitting..." : request.assetAddress ? "Update NFT" : "Mint NFT"}
             </Button>
           </DialogFooter>
         </div>

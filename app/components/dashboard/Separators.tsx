@@ -3,8 +3,6 @@
 
 export function SeparatorLine({
   title,
-  gradient: _gradient,
-  color: _color,
   wrapperClassName,
 }: {
   title?: string

@@ -1,5 +1,7 @@
 'use client'
 
+import type { LectureCode } from './LectureQrDisplay'
+
 import { useCallback, useState } from 'react'
 import useSWR from 'swr'
 
@@ -187,7 +189,7 @@ export function useLectureMutations() {
   const start = useCallback(
     (id: string) =>
       run(() =>
-        fetchJson<{ lecture: { id: string; current_code: string }; token: string }>(
+        fetchJson<LectureCode>(
           `/api/lectures/${id}/start`,
           { method: 'POST' }
         )
@@ -204,9 +206,9 @@ export function useLectureMutations() {
   const rotate = useCallback(
     (id: string) =>
       run(() =>
-        fetchJson<{ lecture: { id: string; current_code: string }; token: string }>(
+        fetchJson<LectureCode>(
           `/api/lectures/${id}/rotate-code`,
-          { method: 'POST' }
+          { method: 'POST', signal: AbortSignal.timeout(8000) }
         )
       ),
     []

@@ -25,9 +25,19 @@ For the live schema overview, table columns, relationships, RLS summary, storage
   - Adds hardcoded-vs-soft link status metadata.
   - Adds the private `link-redirect-images` storage bucket.
 
+- `members_board_access.sql`
+  - Allows every board member to update members across all departments.
+  - Replaces the previous matching-department update policy.
+  - Lets members choose their own department once when it is empty and protects later department and role changes in the database.
+
 - `nft_requests.sql`
-  - Creates/updates `public.nft_requests`.
-  - Adds NFT request helper functions, indexes, policies, and storage policies.
+  - Creates/updates the Solana membership request, custody, lifecycle, and receipt schema.
+  - Creates the private source-image and public rendered-asset buckets.
+
+- `coffee_chats.sql`
+  - Adds Coffee Chat profile columns to `members_main`.
+  - Creates rounds, signups, pairings, board/special-access policies, and the atomic pairing function.
+  - Creates the private `coffee-chat-selfies` bucket used by guarded server-side uploads.
 
 - `coffee_chats.sql`
   - Adds Coffee Chat profile columns to `members_main`.
@@ -83,3 +93,11 @@ For external event CSV imports, use:
 ```bash
 pnpm exec node scripts/import-external-events-csv.mjs --file=/absolute/path/events.csv --months-back=1
 ```
+
+## Attendance QR security
+
+Existing lecture installations must apply `attendance_secure_check_in.sql` before
+using the RPC-based check-in routes. This migration preserves records, restricts
+secret-column reads and direct inserts, and installs atomic check-in/issuance.
+Do not rerun the destructive legacy `lectures.sql` setup on a populated database.
+See `docs/architecture/attendance.md` for verification.

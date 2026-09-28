@@ -1,6 +1,57 @@
 import type { DashboardMember, EditableMember } from '@/app/components/dashboard/types'
 
+type MemberEditSubject = Pick<DashboardMember, 'id'>
+
+export const canEditDashboardMember = ({
+  actor,
+  target,
+  hasSpecialAccess,
+  isBoardMember,
+}: {
+  actor: MemberEditSubject | null
+  target: MemberEditSubject | null
+  hasSpecialAccess: boolean
+  isBoardMember: boolean
+}) => Boolean(actor && target && (hasSpecialAccess || isBoardMember || actor.id === target.id))
+
 export const ADMIN_FIELDS = ['Role', 'Status', 'Department', 'Semester Joined'] as const
+
+export const canEditProfileField = ({
+  fieldKey,
+  isOwnProfile,
+  currentValue,
+  hasSpecialAccess,
+  isBoardMember,
+  targetHasSpecialAccess,
+}: {
+  fieldKey: string
+  isOwnProfile: boolean
+  currentValue: unknown
+  hasSpecialAccess: boolean
+  isBoardMember: boolean
+  targetHasSpecialAccess: boolean
+}) => {
+  if (fieldKey === 'TBC Email') {
+    return hasSpecialAccess && !isOwnProfile && !targetHasSpecialAccess
+  }
+
+  if (hasSpecialAccess && !isOwnProfile) return true
+
+  if (ADMIN_FIELDS.includes(fieldKey as (typeof ADMIN_FIELDS)[number])) {
+    if (
+      fieldKey === 'Department' &&
+      isOwnProfile &&
+      (currentValue === null || currentValue === undefined || String(currentValue).trim() === '')
+    ) {
+      return true
+    }
+
+    if (hasSpecialAccess) return true
+    return isBoardMember && !isOwnProfile
+  }
+
+  return true
+}
 
 export const EDITABLE_MEMBER_FIELDS = [
   'Name',
