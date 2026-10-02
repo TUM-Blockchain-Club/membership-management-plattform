@@ -73,6 +73,10 @@ export async function POST(
       return NextResponse.json({ error: 'Pair not found' }, { status: 404 })
     }
 
+    if (pair.status === 'met') {
+      return NextResponse.json({ error: 'Completed meetings cannot be changed.' }, { status: 409 })
+    }
+
     // Check duplicate in same pair
     if (
       (spot !== 'person1' && pair.person1_id === newMemberId) ||
@@ -138,13 +142,21 @@ export async function POST(
       icebreaker_q3: q3,
     }
 
-    const { error: updateError } = await admin
+    const { data: updatedPair, error: updateError } = await admin
       .from('cc_pairs')
       .update(updatePayload)
       .eq('id', pairId)
+      .eq('round_id', roundId)
+      .neq('status', 'met')
+      .select('id')
+      .maybeSingle()
 
     if (updateError) {
       return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
+
+    if (!updatedPair) {
+      return NextResponse.json({ error: 'The pair changed. Refresh the round before replacing a member.' }, { status: 409 })
     }
 
     // Ensure signup entry exists for new member
