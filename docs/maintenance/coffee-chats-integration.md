@@ -35,6 +35,21 @@ optional and progressively disclosed.
   accept board members and delegated Coffee Chats administrators. Board members
   can add or remove delegated administrators from the member directory.
 
+## Admin pairing and replacements
+
+`Auto-suggest Pairs` requests a read-only preview from the guarded pairing API.
+The preview uses saved acquaintance exclusions and previous partners, just like
+the automatic pairing run. It does not save pairings or send emails. Admins may
+edit the draft before confirming it; a failed preview leaves the draft intact.
+Exclusions remain preferences under the existing algorithm: when no compatible
+partner is available, it may fall back to an excluded pairing.
+
+Completed (`met`) meetings cannot have participants replaced. The API checks
+status both when reading the pair and in the conditional update, so a completion
+between those operations also blocks replacement. Existing meeting data and
+selfies are preserved. Replacement may still assign a member who is in another
+pair in the same round; this is an intentional administrative choice.
+
 ## Selfies
 
 `coffee-chat-selfies` is private. `/api/coffee-chats/log-meeting` verifies that

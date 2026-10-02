@@ -21,8 +21,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const { roundId, customPairs } = await request.json() as {
+    const { roundId, customPairs, preview } = await request.json() as {
       roundId?: string
+      preview?: boolean
       customPairs?: Array<{
         person1Id: number
         person2Id: number
@@ -131,7 +132,7 @@ export async function POST(request: Request) {
       })
     } else {
       // Load prior round pairs to build exclusion lists
-      const { data: priorPairs } = await admin
+      const { data: priorPairs, error: priorPairsError } = await admin
         .from('cc_pairs')
         .select('person1_id, person2_id, person3_id, round_id')
         .neq('round_id', roundId)
@@ -140,6 +141,10 @@ export async function POST(request: Request) {
             .flatMap((id) => [`person1_id.eq.${id}`, `person2_id.eq.${id}`, `person3_id.eq.${id}`])
             .join(','),
         )
+
+      if (priorPairsError) {
+        return NextResponse.json({ error: 'Could not load previous pairings.' }, { status: 500 })
+      }
 
       const priorPartnerMap = new Map<number, number[]>()
       for (const pair of (priorPairs ?? [])) {
@@ -184,6 +189,17 @@ export async function POST(request: Request) {
           icebreaker_q2: icebreakerQ2,
           icebreaker_q3: icebreakerQ3,
         }
+      })
+    }
+
+    if (preview === true) {
+      return NextResponse.json({
+        ok: true,
+        pairs: pairInserts.map((pair) => ({
+          person1Id: pair.person1_id,
+          person2Id: pair.person2_id,
+          person3Id: pair.person3_id,
+        })),
       })
     }
 

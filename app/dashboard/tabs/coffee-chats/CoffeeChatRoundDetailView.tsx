@@ -317,23 +317,41 @@ export function CoffeeChatRoundDetailView({ roundId }: { roundId: string }) {
       return
     }
 
-    const pairingMembers = signups.map((s) => ({
-      id: s.memberId,
-      interests: s.interests,
-      alreadyKnow: [],
-      priorPartners: [],
-    }))
+    startTransition(async () => {
+      try {
+        let results: Array<Omit<DraftPair, 'id'>>
+        if (isCoffeeChatsDemoClient()) {
+          results = runPairing(signups.map((s) => ({
+            id: s.memberId,
+            interests: s.interests,
+            alreadyKnow: [],
+            priorPartners: [],
+          })))
+        } else {
+          const response = await fetch('/api/coffee-chats/run-pairing', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ roundId, preview: true }),
+          })
+          const data = await response.json() as {
+            ok?: boolean
+            pairs?: Array<Omit<DraftPair, 'id'>>
+            error?: string
+          }
+          if (!response.ok || !data.ok || !data.pairs) {
+            toast.error(data.error ?? 'Could not suggest pairs.')
+            return
+          }
+          results = data.pairs
+        }
 
-    const results = runPairing(pairingMembers)
-    const newDrafts: DraftPair[] = results.map((r) => ({
-      id: crypto.randomUUID(),
-      person1Id: r.person1Id,
-      person2Id: r.person2Id,
-      person3Id: r.person3Id ?? null,
-    }))
-
-    setDraftPairs(newDrafts)
-    toast.success(`Drafted ${newDrafts.length} pairs from ${signups.length} signups.`)
+        const newDrafts = results.map((pair) => ({ ...pair, id: crypto.randomUUID() }))
+        setDraftPairs(newDrafts)
+        toast.success(`Drafted ${newDrafts.length} pairs from ${signups.length} signups.`)
+      } catch {
+        toast.error('Could not suggest pairs. Please try again.')
+      }
+    })
   }
 
   function handleCommitPairing(custom = false) {
@@ -630,7 +648,7 @@ export function CoffeeChatRoundDetailView({ roundId }: { roundId: string }) {
                 Matched Pairs ({pairs.length})
               </h3>
               <span className="text-xs text-muted-foreground">
-                Click &quot;Replace&quot; on any spot to substitute a member and send them a match email.
+                Replace a member before the meeting is completed. Completed meetings cannot be changed.
               </span>
             </div>
 
@@ -670,6 +688,7 @@ export function CoffeeChatRoundDetailView({ roundId }: { roundId: string }) {
                           size="sm"
                           variant="outline"
                           className="h-8 text-xs shrink-0 ml-2"
+                          disabled={isPending || pair.status === 'met'}
                           onClick={() => {
                             setReplaceTarget({
                               pairId: pair.id,
@@ -701,6 +720,7 @@ export function CoffeeChatRoundDetailView({ roundId }: { roundId: string }) {
                           size="sm"
                           variant="outline"
                           className="h-8 text-xs shrink-0 ml-2"
+                          disabled={isPending || pair.status === 'met'}
                           onClick={() => {
                             setReplaceTarget({
                               pairId: pair.id,
@@ -733,6 +753,7 @@ export function CoffeeChatRoundDetailView({ roundId }: { roundId: string }) {
                             size="sm"
                             variant="outline"
                             className="h-8 text-xs shrink-0 ml-2"
+                            disabled={isPending || pair.status === 'met'}
                             onClick={() => {
                               setReplaceTarget({
                                 pairId: pair.id,
