@@ -13,6 +13,6 @@ The dashboard now uses shadcn compositions for searchable university selection a
 
 ## Coverage
 
-The shared pickers are used by external events, Coffee Chat round administration, and link deployment metadata.
+The shared pickers are used by external events, Coffee Chat round administration, link deployment metadata, and lecture scheduling.
 
 Date value conversion behavior is covered by `tests/date-picker-values.test.ts`.

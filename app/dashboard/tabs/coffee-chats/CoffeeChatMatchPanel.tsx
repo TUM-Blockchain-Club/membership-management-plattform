@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, useTransition } from 'react'
-import { CameraIcon, CheckCircleIcon, MapPinIcon } from 'lucide-react'
+import { CameraIcon, CheckCircleIcon } from 'lucide-react'
 import { toast } from 'sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -94,40 +94,9 @@ export function CoffeeChatMatchPanel({ initialMatch }: { initialMatch: CoffeeCha
               <CardTitle>{partner.name}</CardTitle>
               {partner.department && <CardDescription>{partner.department}</CardDescription>}
             </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              {partner.favouriteSpots.length > 0 ? (
-                <p className="flex items-start gap-2 text-sm text-muted-foreground">
-                  <MapPinIcon aria-hidden="true" className="size-4 shrink-0 text-primary mt-0.5" />
-                  <span>
-                    Recommended spots:{' '}
-                    <span className="text-foreground font-medium">{partner.favouriteSpots.join(', ')}</span>
-                  </span>
-                </p>
-              ) : (
-                <p className="text-sm text-muted-foreground italic">
-                  No specific meeting spots recommended yet.
-                </p>
-              )}
-            </CardContent>
           </Card>
         ))}
       </div>
-
-      {match.pair.icebreakers.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Conversation starters</CardTitle>
-            <CardDescription>Use these if you want an easy way into the conversation.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm text-foreground">
-              {match.pair.icebreakers.map((question) => (
-                <li key={question}>{question}</li>
-              ))}
-            </ol>
-          </CardContent>
-        </Card>
-      )}
 
       {match.pair.selfieUrl && (
         <Card>
