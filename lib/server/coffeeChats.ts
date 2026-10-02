@@ -11,6 +11,8 @@ import {
   demoMember,
   demoRound,
   escapeEmailHtml,
+  formatCoffeeChatDate,
+  formatCoffeeChatMonth,
   isCoffeeChatProfileComplete,
   type CoffeeChatHomeData,
   type CoffeeChatMatch,
@@ -267,7 +269,12 @@ function mailgunBase(): string {
   return region === 'eu' ? 'https://api.eu.mailgun.net' : 'https://api.mailgun.net'
 }
 
-async function sendMail(to: string, subject: string, html: string): Promise<void> {
+async function sendMail(
+  to: string,
+  subject: string,
+  html: string,
+  text?: string,
+): Promise<void> {
   const apiKey = process.env.MAILGUN_API_KEY
   const domain = process.env.MAILGUN_DOMAIN || 'mg.tum-blockchain.com'
 
@@ -276,10 +283,13 @@ async function sendMail(to: string, subject: string, html: string): Promise<void
   }
 
   const form = new URLSearchParams()
-  form.append('from', 'TBC Coffee Chats <coffechats@mg.tum-blockchain.com>')
+  form.append('from', 'TBC Coffee Chats <coffeechats@mg.tum-blockchain.com>')
   form.append('to', to)
   form.append('subject', subject)
   form.append('html', html)
+  if (text) {
+    form.append('text', text)
+  }
 
   const response = await fetch(`${mailgunBase()}/v3/${domain}/messages`, {
     method: 'POST',
@@ -307,67 +317,189 @@ export async function sendMatchEmail(opts: MatchEmailOptions): Promise<void> {
     meetDeadline,
   } = opts
 
-  const partners = thirdPersonName
-    ? `${escapeEmailHtml(partnerName)} (${escapeEmailHtml(partnerEmail)}) and ${escapeEmailHtml(thirdPersonName)} (${escapeEmailHtml(thirdPersonEmail ?? '')})`
-    : `${escapeEmailHtml(partnerName)} (${escapeEmailHtml(partnerEmail)})`
+  const displayMonth = formatCoffeeChatMonth(month)
+  const formattedDeadline = formatCoffeeChatDate(meetDeadline)
 
-  const deadlineText = meetDeadline
-    ? `<p>Try to meet before <strong>${escapeEmailHtml(meetDeadline)}</strong>.</p>`
+  const partnersHtml = thirdPersonName && thirdPersonEmail
+    ? `<a href="mailto:${escapeEmailHtml(partnerEmail)}" style="color: #2563eb; text-decoration: underline; font-weight: 600;">${escapeEmailHtml(partnerName)}</a> (${escapeEmailHtml(partnerEmail)}) &amp; <a href="mailto:${escapeEmailHtml(thirdPersonEmail)}" style="color: #2563eb; text-decoration: underline; font-weight: 600;">${escapeEmailHtml(thirdPersonName)}</a> (${escapeEmailHtml(thirdPersonEmail)})`
+    : `<a href="mailto:${escapeEmailHtml(partnerEmail)}" style="color: #2563eb; text-decoration: underline; font-weight: 600;">${escapeEmailHtml(partnerName)}</a> (${escapeEmailHtml(partnerEmail)})`
+
+  const partnersPlainText = thirdPersonName && thirdPersonEmail
+    ? `${partnerName} (${partnerEmail}) and ${thirdPersonName} (${thirdPersonEmail})`
+    : `${partnerName} (${partnerEmail})`
+
+  const deadlineHtml = formattedDeadline
+    ? `<tr>
+        <td style="padding: 12px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; color: #475569;" class="email-muted">
+          🗓️ Target meeting date: <strong style="color: #0f172a;" class="email-title">${escapeEmailHtml(formattedDeadline)}</strong>
+        </td>
+      </tr>`
     : ''
 
-  const html = `
-<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><style>
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#0a0a0a; color:#e5e5e5; margin:0; padding:0; }
-  .wrap { max-width:600px; margin:40px auto; background:#141414; border:1px solid #262626; border-radius:12px; padding:32px; }
-  h1 { color:#fff; font-size:22px; margin-top:0; }
-  a { color:#60a5fa; }
-  .footer { margin-top:32px; color:#525252; font-size:12px; }
-</style></head>
-<body>
-<div class="wrap">
-  <h1>Your Coffee Chat for ${escapeEmailHtml(month)}</h1>
-  <p>Hi ${escapeEmailHtml(toName)},</p>
-  <p>You have been matched with <strong>${partners}</strong> for this month&apos;s TBC Coffee Chat.</p>
-  ${deadlineText}
-  <p>Once you have met, log your session on the <a href="https://plattform.tum-blockchain.com/coffee-chats/my-match">Coffee Chats platform</a> and upload your selfie for the gallery!</p>
-  <div class="footer">TUM Blockchain Club &mdash; plattform.tum-blockchain.com</div>
-</div>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <title>Your Coffee Chat for ${escapeEmailHtml(displayMonth)}</title>
+  <style>
+    @media (prefers-color-scheme: dark) {
+      body, .email-bg { background-color: #0b0f17 !important; }
+      .email-card { background-color: #161e2e !important; border-color: #26334d !important; }
+      .email-title { color: #f8fafc !important; }
+      .email-text { color: #cbd5e1 !important; }
+      .email-box { background-color: #1e293b !important; border-color: #334155 !important; }
+      .email-muted { color: #94a3b8 !important; }
+      .email-footer { color: #64748b !important; border-color: #26334d !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f5f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-bg" style="background-color: #f4f5f7; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-card" style="max-width: 560px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; padding: 32px; text-align: left; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <tr>
+            <td>
+              <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #2563eb; margin-bottom: 8px;">TUM Blockchain Club &bull; Coffee Chats</div>
+              <h1 class="email-title" style="margin: 0 0 20px 0; color: #0f172a; font-size: 22px; font-weight: 700; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Your Coffee Chat for ${escapeEmailHtml(displayMonth)}</h1>
+              
+              <p class="email-text" style="margin: 0 0 16px 0; color: #334155; font-size: 15px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Hi ${escapeEmailHtml(toName)},</p>
+              
+              <p class="email-text" style="margin: 0 0 20px 0; color: #334155; font-size: 15px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">You have been paired for this month&apos;s TBC Coffee Chat round!</p>
+              
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-box" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin: 0 0 24px 0; padding: 18px 20px;">
+                <tr>
+                  <td style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b;" class="email-muted">
+                    Matched With
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding: 6px 0 0 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 15px; color: #0f172a; line-height: 1.5;" class="email-title">
+                    ${partnersHtml}
+                  </td>
+                </tr>
+                ${deadlineHtml}
+              </table>
+
+              <div style="margin: 28px 0 20px 0; text-align: left;">
+                <a href="https://plattform.tum-blockchain.com/coffee-chats/my-match" style="display: inline-block; background-color: #2563eb; color: #ffffff !important; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">View Match on Platform &rarr;</a>
+              </div>
+
+              <p class="email-muted" style="margin: 20px 0 0 0; color: #64748b; font-size: 13px; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                Once you meet up, grab a coffee, snap a selfie together, and log your session on the platform to share it in the community gallery!
+              </p>
+
+              <div class="email-footer" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                TUM Blockchain Club &mdash; <a href="https://plattform.tum-blockchain.com" style="color: #64748b; text-decoration: underline;">plattform.tum-blockchain.com</a>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`
 
-  await sendMail(toEmail, `Your TBC Coffee Chat match for ${month}`, html)
+  const plainText = `Hi ${toName},
+
+You have been paired for this month's TBC Coffee Chat round (${displayMonth})!
+
+Matched with: ${partnersPlainText}
+${formattedDeadline ? `Try to meet before: ${formattedDeadline}\n` : ''}
+View your match details and profile on the platform:
+https://plattform.tum-blockchain.com/coffee-chats/my-match
+
+Once you meet up, grab a coffee, snap a selfie together, and upload it to the platform gallery!
+
+TUM Blockchain Club — plattform.tum-blockchain.com`
+
+  await sendMail(toEmail, `Your TBC Coffee Chat match for ${displayMonth}`, html, plainText)
 }
 
 export async function sendSignupConfirmEmail(opts: SignupConfirmOptions): Promise<void> {
   const { toEmail, toName, month, signupDeadline } = opts
 
-  const deadlineText = signupDeadline
-    ? `<p>The signup window closes on <strong>${escapeEmailHtml(signupDeadline)}</strong>. Matches will be sent out shortly after.</p>`
+  const displayMonth = formatCoffeeChatMonth(month)
+  const formattedDeadline = formatCoffeeChatDate(signupDeadline)
+
+  const deadlineHtml = formattedDeadline
+    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-box" style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; margin: 0 0 24px 0; padding: 14px 18px;">
+        <tr>
+          <td style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; font-size: 14px; color: #475569;" class="email-muted">
+            ⏳ Signup window closes: <strong style="color: #0f172a;" class="email-title">${escapeEmailHtml(formattedDeadline)}</strong>
+          </td>
+        </tr>
+      </table>`
     : ''
 
-  const html = `
-<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="UTF-8"><style>
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#0a0a0a; color:#e5e5e5; margin:0; padding:0; }
-  .wrap { max-width:600px; margin:40px auto; background:#141414; border:1px solid #262626; border-radius:12px; padding:32px; }
-  h1 { color:#fff; font-size:22px; margin-top:0; }
-  a { color:#60a5fa; }
-  .footer { margin-top:32px; color:#525252; font-size:12px; }
-</style></head>
-<body>
-<div class="wrap">
-  <h1>You&apos;re signed up for Coffee Chats!</h1>
-  <p>Hi ${escapeEmailHtml(toName)},</p>
-  <p>You have successfully signed up for the <strong>${escapeEmailHtml(month)}</strong> TBC Coffee Chat round.</p>
-  ${deadlineText}
-  <p>We will email you your match once pairings are done. In the meantime, make sure your <a href="https://plattform.tum-blockchain.com/coffee-chats/setup">Coffee Chat profile</a> is up to date so we can find you the best match.</p>
-  <div class="footer">TUM Blockchain Club &mdash; plattform.tum-blockchain.com</div>
-</div>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <title>You're signed up for Coffee Chats!</title>
+  <style>
+    @media (prefers-color-scheme: dark) {
+      body, .email-bg { background-color: #0b0f17 !important; }
+      .email-card { background-color: #161e2e !important; border-color: #26334d !important; }
+      .email-title { color: #f8fafc !important; }
+      .email-text { color: #cbd5e1 !important; }
+      .email-box { background-color: #1e293b !important; border-color: #334155 !important; }
+      .email-muted { color: #94a3b8 !important; }
+      .email-footer { color: #64748b !important; border-color: #26334d !important; }
+    }
+  </style>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f4f5f7; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; -webkit-text-size-adjust: 100%;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-bg" style="background-color: #f4f5f7; padding: 32px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" class="email-card" style="max-width: 560px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; padding: 32px; text-align: left; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+          <tr>
+            <td>
+              <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: #2563eb; margin-bottom: 8px;">TUM Blockchain Club &bull; Coffee Chats</div>
+              <h1 class="email-title" style="margin: 0 0 20px 0; color: #0f172a; font-size: 22px; font-weight: 700; line-height: 1.3; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">You&apos;re signed up for Coffee Chats!</h1>
+              
+              <p class="email-text" style="margin: 0 0 16px 0; color: #334155; font-size: 15px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Hi ${escapeEmailHtml(toName)},</p>
+              
+              <p class="email-text" style="margin: 0 0 20px 0; color: #334155; font-size: 15px; line-height: 1.6; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">You have successfully signed up for the <strong>${escapeEmailHtml(displayMonth)}</strong> TBC Coffee Chat round.</p>
+              
+              ${deadlineHtml}
+
+              <div style="margin: 28px 0 20px 0; text-align: left;">
+                <a href="https://plattform.tum-blockchain.com/coffee-chats/setup" style="display: inline-block; background-color: #2563eb; color: #ffffff !important; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-weight: 600; font-size: 14px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">Review Matching Profile &rarr;</a>
+              </div>
+
+              <p class="email-muted" style="margin: 20px 0 0 0; color: #64748b; font-size: 13px; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                We will email you your match once pairings are generated. In the meantime, make sure your Coffee Chat profile preferences are up to date!
+              </p>
+
+              <div class="email-footer" style="margin-top: 32px; padding-top: 20px; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; line-height: 1.5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                TUM Blockchain Club &mdash; <a href="https://plattform.tum-blockchain.com" style="color: #64748b; text-decoration: underline;">plattform.tum-blockchain.com</a>
+              </div>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>`
 
-  await sendMail(toEmail, `TBC Coffee Chats ${month} — You&apos;re in!`, html)
+  const plainText = `Hi ${toName},
+
+You have successfully signed up for the ${displayMonth} TBC Coffee Chat round.
+${formattedDeadline ? `The signup window closes on ${formattedDeadline}.\n` : ''}
+We will email you your match once pairings are generated. In the meantime, make sure your Coffee Chat profile preferences are up to date:
+https://plattform.tum-blockchain.com/coffee-chats/setup
+
+TUM Blockchain Club — plattform.tum-blockchain.com`
+
+  await sendMail(toEmail, `TBC Coffee Chats ${displayMonth} — You're in!`, html, plainText)
 }

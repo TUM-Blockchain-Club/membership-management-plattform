@@ -1,9 +1,10 @@
 'use client'
 
 import { useContext, useEffect, useMemo, useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { PlusIcon, PlayIcon, ShieldIcon, Trash2Icon, UserMinusIcon, UserPlusIcon, UsersIcon } from 'lucide-react'
+import { ChevronRightIcon, PlusIcon, PlayIcon, ShieldIcon, Trash2Icon, UserMinusIcon, UserPlusIcon, UsersIcon } from 'lucide-react'
 import { getSupabaseBrowserClient } from '@/lib/supabase'
 import { DatePicker, MonthPicker } from '@/components/date-picker'
 import { Button } from '@/components/ui/button'
@@ -31,7 +32,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { DashboardContext } from '@/app/dashboard/DashboardContext'
-import { demoRounds, isCoffeeChatsDemoClient, localDateToUtcIso } from '@/lib/coffee-chats'
+import { demoRounds, formatCoffeeChatMonth, isCoffeeChatsDemoClient, localDateToUtcIso } from '@/lib/coffee-chats'
 
 interface Round {
   id: string
@@ -424,45 +425,16 @@ export function CoffeeChatsAdminView() {
 
   if (loading) {
     return (
-      <div className="flex w-full flex-col gap-8" aria-label="Loading Coffee Chats admin">
-        <div className="flex flex-col gap-2">
-          <Skeleton className="h-7 w-52" />
-          <Skeleton className="h-4 w-80 max-w-full" />
-        </div>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-5 w-40" />
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            <div className="grid gap-4 sm:grid-cols-3">
-              {Array.from({ length: 3 }, (_, index) => (
-                <div key={index} className="flex flex-col gap-2">
-                  <Skeleton className="h-4 w-24" />
-                  <Skeleton className="h-9 w-full" />
-                </div>
-              ))}
-            </div>
-            <Skeleton className="h-9 w-32" />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <Skeleton className="h-5 w-32" />
-            <Skeleton className="h-4 w-72 max-w-full" />
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3">
-            {Array.from({ length: 4 }, (_, index) => (
-              <Skeleton key={index} className="h-10 w-full" />
-            ))}
-          </CardContent>
-        </Card>
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-4">
+        <Skeleton className="h-7 w-48" />
+        <Skeleton className="h-64 w-full rounded-xl" />
       </div>
     )
   }
 
   if (!canManageCoffeeChats || !isAdmin) {
     return (
-      <Empty className="max-w-lg border">
+      <Empty className="mx-auto max-w-lg border">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <UsersIcon />
@@ -477,7 +449,7 @@ export function CoffeeChatsAdminView() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-8">
+    <div className="mx-auto flex w-full max-w-4xl flex-col gap-8">
       <div className="flex flex-col gap-1">
         <h3 className="text-xl font-semibold tracking-tight text-foreground">Coffee Chats admin</h3>
         <p className="text-sm text-muted-foreground">Manage rounds, pairings, and administrators.</p>
@@ -552,8 +524,25 @@ export function CoffeeChatsAdminView() {
               </TableHeader>
               <TableBody>
                 {rounds.map((round) => (
-                  <TableRow key={round.id} className="border-border">
-                    <TableCell className="font-medium">{round.month}</TableCell>
+                  <TableRow
+                    key={round.id}
+                    className="border-border hover:bg-muted/40 cursor-pointer"
+                    onClick={(e) => {
+                      // Prevent row click if clicking a button or its children
+                      if ((e.target as HTMLElement).closest('button, a')) return
+                      router.push(`/coffee-chats/admin/rounds/${round.id}`)
+                    }}
+                  >
+                    <TableCell className="font-medium">
+                      <Link
+                        href={`/coffee-chats/admin/rounds/${round.id}`}
+                        className="hover:underline flex items-center gap-1.5 text-foreground font-semibold"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {formatCoffeeChatMonth(round.month)}
+                        <ChevronRightIcon className="size-3.5 text-muted-foreground opacity-60" />
+                      </Link>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={statusVariant(round.status)}>{round.status}</Badge>
                     </TableCell>
@@ -564,7 +553,17 @@ export function CoffeeChatsAdminView() {
                       {pairCounts[round.id] ?? 0}
                     </TableCell>
                     <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-2">
+                      <div className="flex items-center justify-end gap-2" onClick={(e) => e.stopPropagation()}>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          asChild
+                          className="text-xs h-8"
+                        >
+                          <Link href={`/coffee-chats/admin/rounds/${round.id}`}>
+                            Details
+                          </Link>
+                        </Button>
                         {round.status === 'open' && (
                           <Button
                             size="sm"

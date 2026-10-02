@@ -21,7 +21,15 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
 
-    const { roundId } = await request.json() as { roundId?: string }
+    const { roundId, customPairs, preview } = await request.json() as {
+      roundId?: string
+      preview?: boolean
+      customPairs?: Array<{
+        person1Id: number
+        person2Id: number
+        person3Id?: number | null
+      }>
+    }
     if (!roundId) {
       return NextResponse.json({ error: 'roundId is required' }, { status: 400 })
     }
@@ -60,7 +68,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Not enough signups to pair (need at least 2)' }, { status: 400 })
     }
 
-    const memberIds = signups.map((s) => s.member_id as number)
+    const signupMemberIds = new Set(signups.map((s) => s.member_id as number))
+    const memberIds = Array.from(signupMemberIds)
 
     // Load member coffee-chat profile data
     const { data: members, error: membersError } = await admin
@@ -72,64 +81,127 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: membersError?.message ?? 'Could not load members' }, { status: 500 })
     }
 
-    // Load prior round pairs to build exclusion lists
-    const { data: priorPairs } = await admin
-      .from('cc_pairs')
-      .select('person1_id, person2_id, person3_id, round_id')
-      .neq('round_id', roundId)
-      .or(
-        memberIds
-          .flatMap((id) => [`person1_id.eq.${id}`, `person2_id.eq.${id}`, `person3_id.eq.${id}`])
-          .join(','),
-      )
-
-    const priorPartnerMap = new Map<number, number[]>()
-    for (const pair of (priorPairs ?? [])) {
-      const p1 = pair.person1_id as number
-      const p2 = pair.person2_id as number
-      const p3 = pair.person3_id as number | null
-
-      const add = (a: number, b: number) => {
-        if (!priorPartnerMap.has(a)) priorPartnerMap.set(a, [])
-        priorPartnerMap.get(a)!.push(b)
-      }
-      add(p1, p2); add(p2, p1)
-      if (p3) { add(p1, p3); add(p3, p1); add(p2, p3); add(p3, p2) }
-    }
-
-    const pairingMembers = members.map((m) => ({
-      id: m.id as number,
-      interests: (m.cc_interests as string[] | null) ?? [],
-      alreadyKnow: (m.cc_already_know as number[] | null) ?? [],
-      priorPartners: priorPartnerMap.get(m.id as number) ?? [],
-    }))
-
-    const pairs = runPairing(pairingMembers)
-
-    // Persist pairs
     const memberMap = new Map(members.map((m) => [m.id as number, m]))
 
-    const pairInserts = pairs.map((pair) => {
-      const m1 = memberMap.get(pair.person1Id)
-      const m2 = memberMap.get(pair.person2Id)
-      const m3 = pair.person3Id ? memberMap.get(pair.person3Id) : null
-      const [icebreakerQ1, icebreakerQ2, icebreakerQ3] = getQuestionsForPair(
-        (m1?.cc_interests as string[] | null) ?? [],
-        [
-          ...((m2?.cc_interests as string[] | null) ?? []),
-          ...((m3?.cc_interests as string[] | null) ?? []),
-        ],
-      )
+    let pairInserts: Array<{
+      person1_id: number
+      person2_id: number
+      person3_id: number | null
+      icebreaker_q1: string
+      icebreaker_q2: string
+      icebreaker_q3: string
+    }> = []
 
-      return {
-        person1_id: pair.person1Id,
-        person2_id: pair.person2Id,
-        person3_id: m3 ? pair.person3Id ?? null : null,
-        icebreaker_q1: icebreakerQ1,
-        icebreaker_q2: icebreakerQ2,
-        icebreaker_q3: icebreakerQ3,
+    if (customPairs && customPairs.length > 0) {
+      // Validate custom pairs
+      for (const pair of customPairs) {
+        if (!pair.person1Id || !pair.person2Id) {
+          return NextResponse.json({ error: 'Each pair must have two members' }, { status: 400 })
+        }
+        if (pair.person1Id === pair.person2Id) {
+          return NextResponse.json({ error: 'A member cannot be paired with themselves' }, { status: 400 })
+        }
+        if (!signupMemberIds.has(pair.person1Id) || !signupMemberIds.has(pair.person2Id)) {
+          return NextResponse.json({ error: 'All paired members must be signed up for this round' }, { status: 400 })
+        }
+        if (pair.person3Id && !signupMemberIds.has(pair.person3Id)) {
+          return NextResponse.json({ error: 'All paired members must be signed up for this round' }, { status: 400 })
+        }
       }
-    })
+
+      pairInserts = customPairs.map((pair) => {
+        const m1 = memberMap.get(pair.person1Id)
+        const m2 = memberMap.get(pair.person2Id)
+        const m3 = pair.person3Id ? memberMap.get(pair.person3Id) : null
+        const [icebreakerQ1, icebreakerQ2, icebreakerQ3] = getQuestionsForPair(
+          (m1?.cc_interests as string[] | null) ?? [],
+          [
+            ...((m2?.cc_interests as string[] | null) ?? []),
+            ...((m3?.cc_interests as string[] | null) ?? []),
+          ],
+        )
+
+        return {
+          person1_id: pair.person1Id,
+          person2_id: pair.person2Id,
+          person3_id: m3 ? (pair.person3Id ?? null) : null,
+          icebreaker_q1: icebreakerQ1,
+          icebreaker_q2: icebreakerQ2,
+          icebreaker_q3: icebreakerQ3,
+        }
+      })
+    } else {
+      // Load prior round pairs to build exclusion lists
+      const { data: priorPairs, error: priorPairsError } = await admin
+        .from('cc_pairs')
+        .select('person1_id, person2_id, person3_id, round_id')
+        .neq('round_id', roundId)
+        .or(
+          memberIds
+            .flatMap((id) => [`person1_id.eq.${id}`, `person2_id.eq.${id}`, `person3_id.eq.${id}`])
+            .join(','),
+        )
+
+      if (priorPairsError) {
+        return NextResponse.json({ error: 'Could not load previous pairings.' }, { status: 500 })
+      }
+
+      const priorPartnerMap = new Map<number, number[]>()
+      for (const pair of (priorPairs ?? [])) {
+        const p1 = pair.person1_id as number
+        const p2 = pair.person2_id as number
+        const p3 = pair.person3_id as number | null
+
+        const add = (a: number, b: number) => {
+          if (!priorPartnerMap.has(a)) priorPartnerMap.set(a, [])
+          priorPartnerMap.get(a)!.push(b)
+        }
+        add(p1, p2); add(p2, p1)
+        if (p3) { add(p1, p3); add(p3, p1); add(p2, p3); add(p3, p2) }
+      }
+
+      const pairingMembers = members.map((m) => ({
+        id: m.id as number,
+        interests: (m.cc_interests as string[] | null) ?? [],
+        alreadyKnow: (m.cc_already_know as number[] | null) ?? [],
+        priorPartners: priorPartnerMap.get(m.id as number) ?? [],
+      }))
+
+      const pairs = runPairing(pairingMembers)
+
+      pairInserts = pairs.map((pair) => {
+        const m1 = memberMap.get(pair.person1Id)
+        const m2 = memberMap.get(pair.person2Id)
+        const m3 = pair.person3Id ? memberMap.get(pair.person3Id) : null
+        const [icebreakerQ1, icebreakerQ2, icebreakerQ3] = getQuestionsForPair(
+          (m1?.cc_interests as string[] | null) ?? [],
+          [
+            ...((m2?.cc_interests as string[] | null) ?? []),
+            ...((m3?.cc_interests as string[] | null) ?? []),
+          ],
+        )
+
+        return {
+          person1_id: pair.person1Id,
+          person2_id: pair.person2Id,
+          person3_id: m3 ? pair.person3Id ?? null : null,
+          icebreaker_q1: icebreakerQ1,
+          icebreaker_q2: icebreakerQ2,
+          icebreaker_q3: icebreakerQ3,
+        }
+      })
+    }
+
+    if (preview === true) {
+      return NextResponse.json({
+        ok: true,
+        pairs: pairInserts.map((pair) => ({
+          person1Id: pair.person1_id,
+          person2Id: pair.person2_id,
+          person3Id: pair.person3_id,
+        })),
+      })
+    }
 
     const { data: pairsCreated, error: commitError } = await admin.rpc('commit_coffee_chat_pairing', {
       target_round_id: roundId,
