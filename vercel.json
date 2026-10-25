@@ -4,5 +4,6 @@
       "path": "/api/cron/nft-reconcile",
       "schedule": "17 3 * * *"
     }
-  ]
+  ],
+  "installCommand": "pnpm install --frozen-lockfile --ignore-scripts"
 }
