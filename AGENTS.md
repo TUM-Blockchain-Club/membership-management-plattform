@@ -2,6 +2,7 @@
 
 - Use `pnpm` for all Node.js commands.
 - `Prod` is the production branch; `main` feeds Preview. After a production merge, merge `Prod` into `main` so Preview contains all released changes. Preserve Preview-only work; never promote `main` into `Prod` automatically.
+- Board tool permissions live in `lib/member-permissions.ts`. Use the controller's effective board-tool permission for dashboard admin controls so Normal Member View hides them. NFT API authorization and dashboard visibility must use the same NFT permission predicate; data and storage operations remain server-side.
 - Keep migration and implementation notes in Markdown under `docs/`, especially `docs/migration/` for shadcn migration work.
 - Prefer sustainable component structure over one-off compatibility fallbacks. If a fallback seems necessary, document the tradeoff before implementing it.
 - For shadcn work, use the project components under `components/ui/` and keep feature-level composition near the route or tab that owns it.

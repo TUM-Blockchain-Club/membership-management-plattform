@@ -20,6 +20,7 @@ import { auth } from '@/lib/auth'
 import { memberService } from '@/lib/members'
 import { supabase } from '@/lib/supabase'
 import { canShowCoffeeChatAdmin } from '@/lib/coffee-chats'
+import { canManageBoardTools } from '@/lib/member-permissions'
 import type {
   DashboardMember,
   DashboardMessage,
@@ -91,9 +92,10 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
 
   const effectiveHasSpecialAccess = hasSpecialAccess && !forceMemberView
   const effectiveIsBoardMember = member?.Role === 'Board Member' && !forceMemberView
-  const showLinkAnalyticsTab = (effectiveIsBoardMember || effectiveHasSpecialAccess) && !forceMemberView
+  const effectiveCanManageBoardTools = canManageBoardTools(member, hasSpecialAccess) && !forceMemberView
+  const showLinkAnalyticsTab = effectiveCanManageBoardTools
   const showNftApprovalsTab = canManageNftRequests && !forceMemberView
-  const showNewsletterTab = effectiveIsBoardMember || effectiveHasSpecialAccess
+  const showNewsletterTab = effectiveCanManageBoardTools
   const canManageCoffeeChats = canShowCoffeeChatAdmin({
     forceMemberView,
     hasSpecialAccess,
@@ -444,6 +446,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     editedMember,
     editing,
     effectiveHasSpecialAccess,
+    effectiveCanManageBoardTools,
     events,
     exCoreAdvisors,
     exCoreAlumni,

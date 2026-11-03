@@ -6,7 +6,7 @@ import { AttendanceTab } from '@/app/dashboard/tabs/AttendanceTab'
 
 export default function AttendancePageRoute() {
   const dashboard = use(DashboardContext)!
-  const isBoard = dashboard.effectiveHasSpecialAccess || dashboard.member?.Role === 'Board Member'
+  const isBoard = dashboard.effectiveCanManageBoardTools
 
   return (
     <AttendanceTab
