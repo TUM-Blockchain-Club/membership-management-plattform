@@ -23,7 +23,7 @@ export function EventsTab(props: {
   showInterestedModal: boolean
   setShowInterestedModal: (show: boolean) => void
   member: DashboardMember | null
-  hasSpecialAccess: boolean
+  canManageEvents: boolean
   handleViewParticipants: (eventId: string | number, title: string) => void
   showParticipantsModal: boolean
   modalEventTitle: string

@@ -23,7 +23,7 @@ export default function EventsPageRoute() {
       showInterestedModal={d.showInterestedModal}
       setShowInterestedModal={d.setShowInterestedModal}
       member={d.member}
-      hasSpecialAccess={d.effectiveHasSpecialAccess}
+      canManageEvents={d.effectiveCanManageBoardTools}
       handleViewParticipants={d.handleViewParticipants}
       showParticipantsModal={d.showParticipantsModal}
       modalEventTitle={d.modalEventTitle}

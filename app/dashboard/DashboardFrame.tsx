@@ -83,6 +83,9 @@ export function DashboardFrame({
             {children}
 
             {dashboard.showMemberEditorModal && (
+              dashboard.effectiveCanManageBoardTools ||
+              (!dashboard.creatingMember && dashboard.viewedMember?.id === dashboard.member?.id)
+            ) && (
               <MemberEditorModal
                 open={dashboard.showMemberEditorModal}
                 title={dashboard.creatingMember ? 'Add Member' : 'Edit Member'}

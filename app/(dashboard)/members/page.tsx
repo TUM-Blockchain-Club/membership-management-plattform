@@ -16,7 +16,7 @@ export default function MembersPage() {
       exCoreOthers={d.exCoreOthers}
       otherMembers={d.otherMembers}
       member={d.member}
-      hasSpecialAccess={d.effectiveHasSpecialAccess}
+      canAddMembers={d.effectiveCanManageBoardTools}
       handleAddMember={d.handleAddMember}
       searchQuery={d.searchQuery}
       setSearchQuery={d.setSearchQuery}
