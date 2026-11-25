@@ -272,7 +272,7 @@ function HourHeatmap({ buckets }: { buckets: LinkAnalyticsSummary['hourlyBuckets
           key={bucket.key}
           className="rounded-lg border border-white/10 bg-white/[0.03] px-2 py-2 text-center"
         >
-          <p className="font-mono text-[0.68rem] text-white/45">{bucket.label.slice(0, 2)}</p>
+          <p className="font-mono text-xs text-white/60">{bucket.label.slice(0, 2)}</p>
           <div className="mt-2 h-10 rounded bg-white/10">
             <div
               className="mt-auto rounded bg-white"
