@@ -5,6 +5,12 @@ import fs from 'fs';
 
 const ASSETS_DIR = path.join(process.cwd(), 'public', 'assets');
 
+// librsvg ignores embedded SVG fonts and resolves font-family through fontconfig,
+// and serverless hosts such as Vercel ship no system fonts (text renders as tofu).
+// Point fontconfig at the bundled Raleway files before the first text render so
+// every host draws the same glyphs. next.config.ts traces this folder into the routes.
+process.env.FONTCONFIG_FILE = path.join(process.cwd(), 'lib', 'server', 'fonts', 'fonts.conf');
+
 // ─── SINGLE SOURCE OF TRUTH FOR CANVAS LAYOUT ───────────────────────────────
 // All coordinates are relative to this fixed canvas.
 export const CANVAS_W = 1190;
@@ -115,28 +121,15 @@ export async function buildNftImage(params: {
 
   // ── 5. SVG text layer ─────────────────────────────────────────────────────
   const TEXT_X = 350;
-  // 1. Read your existing Raleway font file and convert it to Base64
-  // (Make sure ASSETS_DIR is defined at the top of your file!)
-  const fontPath = path.join(ASSETS_DIR, 'Raleway-Regular.ttf'); 
-  const fontBase64 = fs.readFileSync(fontPath).toString('base64');
-
   const programLines = programs; 
   
-  // 2. Inject the Base64 font directly into the SVG
   const svgText = `
     <svg xmlns="http://www.w3.org/2000/svg" width="${CANVAS_W}" height="${CANVAS_H}">
       <style>
-        @font-face {
-          font-family: 'Raleway';
-          /* Removed charset=utf-8, changed to font/ttf, and added format */
-          src: url('data:font/ttf;base64,${fontBase64}') format('truetype');
-          font-weight: normal;
-          font-style: normal;
-        }
         .batch { 
           font-family: 'Raleway', sans-serif; 
           font-weight: normal; 
-          font-size: 105px; 
+          font-size: 56px; 
           fill: #5EA5F6; 
           text-anchor: middle; 
           dominant-baseline: central; 
