@@ -406,6 +406,7 @@ Constraints and indexes:
 | `enforce_member_role_and_department_changes()` | `trigger` | Allows one initial self-selected department and keeps later department and role changes board/admin managed. |
 | `handle_new_user_members_main()` | `trigger` | Auth/member sync helper. |
 | `handle_new_user_test()` | `trigger` | Test/new-user helper. |
+| `members_main_strapi_webhook()` | `trigger` | `Strapi Webhook` on `members_main`: posts insert/update/delete payloads to the `hello-world` Edge Function with the bearer key from Vault secret `members_main_webhook_service_key` (`supabase/members_main_webhook_vault.sql`). |
 
 ## Row Level Security And Policies
 
