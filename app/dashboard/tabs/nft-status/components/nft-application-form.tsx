@@ -2,7 +2,7 @@ import { NftDraftPreview } from './nft-draft-preview'
 import { NftLegalDialog } from './nft-legal-dialog'
 import { useId } from 'react'
 import { NFT_CONSENT_TEXT, NFT_LEGAL_VERSION } from '@/lib/nftLegal'
-import { AlertTriangleIcon, Building2Icon, CopyIcon, FileImageIcon, WalletIcon } from 'lucide-react'
+import { AlertTriangleIcon, Building2Icon, CheckIcon, CopyIcon, FileImageIcon, WalletIcon } from 'lucide-react'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -24,6 +24,7 @@ export function NftApplicationForm({ state }: NftStatusSectionsProps) {
     handleCopyPrompt,
     handleSubmit,
     hasConsented,
+    hasMintedNft,
     mintDestination,
     requestedWalletAddress,
     saving,
@@ -79,7 +80,8 @@ export function NftApplicationForm({ state }: NftStatusSectionsProps) {
         </Field>
       </FieldGroup>
 
-      <FieldSet>
+      {/* A minted NFT keeps its owner; wallet changes go through claim/recovery. */}
+      {!hasMintedNft && <FieldSet>
         <FieldLegend className="text-white">Where should we mint your NFT?</FieldLegend>
         <FieldDescription className="text-white/55">
           Choose the TBC club wallet for club custody, or mint directly to your own Solana wallet.
@@ -98,15 +100,17 @@ export function NftApplicationForm({ state }: NftStatusSectionsProps) {
           <ToggleGroupItem value="club" className="w-full" aria-label="Mint to the TBC club wallet">
             <Building2Icon data-icon="inline-start" aria-hidden="true" />
             TBC Club Wallet
+            <CheckIcon data-icon="inline-end" aria-hidden="true" className="hidden group-data-[state=on]/toggle:block" />
           </ToggleGroupItem>
           <ToggleGroupItem value="member" className="w-full" aria-label="Mint to my Solana wallet">
             <WalletIcon data-icon="inline-start" aria-hidden="true" />
             My Solana Wallet
+            <CheckIcon data-icon="inline-end" aria-hidden="true" className="hidden group-data-[state=on]/toggle:block" />
           </ToggleGroupItem>
         </ToggleGroup>
-      </FieldSet>
+      </FieldSet>}
 
-      {mintDestination === 'member' && (
+      {!hasMintedNft && mintDestination === 'member' && (
         <Field>
           <FieldLabel htmlFor="requested-wallet-address" className="text-white">Solana Wallet Address</FieldLabel>
           <Input

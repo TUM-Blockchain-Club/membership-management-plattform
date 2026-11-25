@@ -14,7 +14,7 @@ export function StatCard({ title, value, icon, color }: { title: string; value: 
       <CardContent className="p-3 sm:p-4 md:p-6">
         <div className="flex items-center justify-between">
         <div>
-          <p className="text-white/60 text-[10px] sm:text-xs md:text-sm font-medium mb-0.5 sm:mb-1">{title}</p>
+          <p className="text-white/70 text-sm font-medium mb-0.5 sm:mb-1">{title}</p>
           <p className="text-2xl sm:text-3xl md:text-4xl font-bold text-white">{value}</p>
         </div>
         <div className="opacity-60">{icon}</div>

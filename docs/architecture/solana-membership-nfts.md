@@ -50,6 +50,20 @@ No email address, internal member ID, credential ID, or full legal name is
 written into NFT metadata. Public fields are display name, portrait, department,
 batch/club period, member flex, and membership status.
 
+Display names follow one documented rule, stated to members in the NFT terms
+(`lib/nftLegal.ts`, section 2): a first name with a surname initial, never a full
+legal name. `getSuggestedNftDisplayName` in `lib/nftDisplayName.ts` is the only
+implementation: it keeps the first word and the initial of the last word and drops
+middle names ("Ada Maria Lovelace" becomes "Ada L."). New applications are
+prefilled with this suggestion; members may edit it before submitting. A profile
+update of a minted NFT starts from the display name currently on the NFT
+(`getInitialNftDisplayName`), so the form never silently proposes a different name.
+
+The mint destination is chosen only before the first mint. Profile updates of a
+minted NFT do not show the wallet choice, and the request API keeps the saved
+destination (`getSavedMintDestination`), because the update route never changes
+the owner. Ownership changes only through a board-approved claim or recovery.
+
 The batch displayed in the request form is read-only and comes from
 `members_main.Batch`. This keeps the member form, board preview, rendered
 artwork, and on-chain metadata on the same authoritative value. The application

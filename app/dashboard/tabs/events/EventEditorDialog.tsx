@@ -201,7 +201,7 @@ export function EventEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+      <DialogContent className="flex max-h-[90dvh] max-w-2xl flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="border-b px-6 py-5">
           <DialogTitle>{isCreate ? 'Create external event' : 'Edit external event'}</DialogTitle>
           <DialogDescription>{isCreate ? 'Add a new conference or hackathon.' : event?.title ?? 'External event'}</DialogDescription>

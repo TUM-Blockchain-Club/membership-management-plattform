@@ -38,120 +38,124 @@ export function MintPreviewModal({ request, isMinting, error, onMint, onCancel }
       if (!open && !isMinting) onCancel()
     }}>
       <DialogContent
-        className="flex w-full max-w-5xl flex-col overflow-hidden border-white/12 bg-[#090b15] p-0 text-white shadow-2xl shadow-black/50 lg:flex-row"
+        className="flex max-w-5xl flex-col gap-0 overflow-hidden border-white/12 bg-[#090b15] p-0 text-white shadow-2xl shadow-black/50"
         showCloseButton={!isMinting}
       >
-        <div className="flex-1 border-b border-white/10 bg-[radial-gradient(circle_at_top,_rgba(90,3,141,0.26),_transparent_58%)] p-5 lg:border-b-0 lg:border-r lg:p-6">
-          <DialogHeader className="mb-4">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#5a038d]/15 text-[#d9a8ff]">
-                <HexagonIcon className="h-5 w-5" aria-hidden="true" />
-              </div>
-              <div>
-                <DialogTitle className="text-lg font-semibold text-white">
-                  {request.assetAddress ? 'Final Update Preview' : 'Final Mint Preview'}
-                </DialogTitle>
-                <DialogDescription className="mt-1 text-sm text-white/55">
-                  This is the exact image that will be published through the Solana NFT metadata.
-                </DialogDescription>
-              </div>
-            </div>
-          </DialogHeader>
-
-          <div className="overflow-hidden rounded-[24px] border border-white/10 bg-black/50 shadow-[0_20px_60px_rgba(0,0,0,0.42)]">
-            {!imageFailed ? (
-              <img
-                src={previewUrl}
-                alt={`Final NFT preview for ${request.displayName}`}
-                className="block w-full object-cover"
-                onError={() => setImageFailed(true)}
-              />
-            ) : (
-              <div className="flex aspect-[1190/1684] items-center justify-center px-8 text-center">
+        {/* Only the details scroll, so the mint action stays reachable at every viewport size. */}
+        <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row">
+          <div className="flex-1 border-b border-white/10 bg-[radial-gradient(circle_at_top,_rgba(90,3,141,0.26),_transparent_58%)] p-5 lg:border-b-0 lg:border-r lg:p-6">
+            <DialogHeader className="mb-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#5a038d]/15 text-[#d9a8ff]">
+                  <HexagonIcon className="h-5 w-5" aria-hidden="true" />
+                </div>
                 <div>
-                  <p className="text-base font-semibold text-white">Preview unavailable</p>
-                  <p className="mt-2 text-sm text-white/50">
-                    The final layered image could not be rendered. Check storage access and try again.
-                  </p>
+                  <DialogTitle className="text-lg font-semibold text-white">
+                    {request.assetAddress ? 'Final Update Preview' : 'Final Mint Preview'}
+                  </DialogTitle>
+                  <DialogDescription className="mt-1 text-sm text-white/55">
+                    This is the exact image that will be published through the Solana NFT metadata.
+                  </DialogDescription>
                 </div>
               </div>
-            )}
+            </DialogHeader>
+
+            <div className="overflow-hidden rounded-[24px] border border-white/10 bg-black/50 shadow-[0_20px_60px_rgba(0,0,0,0.42)]">
+              {!imageFailed ? (
+                <img
+                  src={previewUrl}
+                  alt={`Final NFT preview for ${request.displayName}`}
+                  className="mx-auto block max-h-[60dvh] w-auto max-w-full object-contain"
+                  onError={() => setImageFailed(true)}
+                />
+              ) : (
+                <div className="flex aspect-[1190/1684] items-center justify-center px-8 text-center">
+                  <div>
+                    <p className="text-base font-semibold text-white">Preview unavailable</p>
+                    <p className="mt-2 text-sm text-white/50">
+                      The final layered image could not be rendered. Check storage access and try again.
+                    </p>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="w-full max-w-xl p-5 lg:p-6">
+            <Card className="border-white/10 bg-white/[0.03]">
+              <CardContent className="p-4">
+              <p className="text-[11px] uppercase tracking-[0.2em] text-cyan-200/65">Display Name</p>
+              <p className="mt-2 text-2xl font-semibold text-white">{request.displayName}</p>
+              </CardContent>
+            </Card>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <Card className="border-white/10 bg-white/[0.03]">
+                <CardContent className="p-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Department</p>
+                <p className="mt-2 text-sm leading-6 text-white/82">
+                  {request.memberDepartment || "No department available."}
+                </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-white/10 bg-white/[0.03]">
+                <CardContent className="p-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Degree @ Uni</p>
+                <p className="mt-2 text-sm leading-6 text-white/82 italic">
+                  {request.degreeAtUni || "Not specified"}
+                </p>
+                </CardContent>
+              </Card>
+
+              <Card className="border-white/10 bg-white/[0.03]">
+                <CardContent className="p-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Mint Destination</p>
+                <p className="mt-2 break-all text-sm leading-6 text-white/82">
+                  {request.mintDestination === 'member'
+                    ? request.requestedWalletAddress || 'Member wallet'
+                    : 'TBC club wallet'}
+                </p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card className="mt-4 border-white/10 bg-white/[0.03]">
+              <CardContent className="p-4">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Member Flex</p>
+                <p className="mt-2 text-sm leading-7 text-white/82">
+                  {request.highlight || "No highlight provided."}
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
-        <div className="w-full max-w-xl p-5 lg:p-6">
-          <Card className="border-white/10 bg-white/[0.03]">
-            <CardContent className="p-4">
-            <p className="text-[11px] uppercase tracking-[0.2em] text-cyan-200/65">Display Name</p>
-            <p className="mt-2 text-2xl font-semibold text-white">{request.displayName}</p>
-            </CardContent>
-          </Card>
-
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
-            <Card className="border-white/10 bg-white/[0.03]">
-              <CardContent className="p-4">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Department</p>
-              <p className="mt-2 text-sm leading-6 text-white/82">
-                {request.memberDepartment || "No department available."}
-              </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-white/10 bg-white/[0.03]">
-              <CardContent className="p-4">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Degree @ Uni</p>
-              <p className="mt-2 text-sm leading-6 text-white/82 italic">
-                {request.degreeAtUni || "Not specified"}
-              </p>
-              </CardContent>
-            </Card>
-
-            <Card className="border-white/10 bg-white/[0.03]">
-              <CardContent className="p-4">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Mint Destination</p>
-              <p className="mt-2 break-all text-sm leading-6 text-white/82">
-                {request.mintDestination === 'member'
-                  ? request.requestedWalletAddress || 'Member wallet'
-                  : 'TBC club wallet'}
-              </p>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card className="mt-4 border-white/10 bg-white/[0.03]">
-            <CardContent className="p-4">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Member Flex</p>
-              <p className="mt-2 text-sm leading-7 text-white/82">
-                {request.highlight || "No highlight provided."}
-              </p>
-            </CardContent>
-          </Card>
-
+        <DialogFooter className="m-0 shrink-0 flex-col items-stretch rounded-none border-white/10 bg-[#090b15] p-4 sm:flex-col lg:px-6">
           {error && (
-            <Alert variant="destructive" className="mt-4 border-rose-500/30 bg-rose-500/10 text-rose-200">
+            <Alert variant="destructive" className="border-rose-500/30 bg-rose-500/10 text-rose-200">
               <AlertDescription className="text-current">{error}</AlertDescription>
             </Alert>
           )}
-
-          <DialogFooter className="mt-5 border-0 bg-transparent p-0">
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button
               variant="outline"
               onClick={onCancel}
               disabled={isMinting}
-              className="flex-1 border-white/12 text-white/65 hover:border-white/20 hover:text-white"
+              className="border-white/12 text-white/65 sm:flex-1 hover:border-white/20 hover:text-white"
             >
               Cancel
             </Button>
             <Button
               onClick={onMint}
               disabled={isMinting}
-              className="flex-1 bg-[#5a038d] text-sm font-semibold text-white hover:bg-[#6e0ea5] disabled:bg-[#5a038d]/50"
+              className="bg-[#5a038d] text-sm sm:flex-1 font-semibold text-white hover:bg-[#6e0ea5] disabled:bg-[#5a038d]/50"
             >
               {isMinting && <Spinner data-icon="inline-start" />}
               {isMinting ? "Submitting..." : request.assetAddress ? "Update NFT" : "Mint NFT"}
             </Button>
-          </DialogFooter>
-        </div>
+          </div>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )

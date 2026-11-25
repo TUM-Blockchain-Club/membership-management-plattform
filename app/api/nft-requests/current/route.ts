@@ -3,6 +3,7 @@ import { hasCurrentNftConsent } from '@/lib/server/nftPublicationConsent'
 import { NextResponse } from "next/server"
 import { NFT_REQUEST_IMAGE_BUCKET } from "@/lib/nftRequestConstants"
 import { isSolanaPublicKey } from "@/lib/solanaAddress"
+import { getSavedMintDestination } from "@/lib/nftLifecycle"
 import {
   NftRequestCurrentMemberError,
   resolveCurrentNftRequestMember,
@@ -73,8 +74,12 @@ export async function POST(request: Request) {
     const funFacts = payload.fun_facts?.trim() || null
     const imagePath = payload.image_path?.trim()
     const imageUrl = payload.image_url?.trim()
-    const mintDestination = payload.mint_destination ?? 'club'
-    const requestedWalletAddress = payload.requested_wallet_address?.trim() || null
+    const { data: previousRequest } = await dataClient
+      .from("nft_requests")
+      .select("image_path, request_image_bucket, approved_image_path, asset_address, mint_destination, requested_wallet_address")
+      .eq("member_id", member.ID)
+      .maybeSingle()
+    const { mintDestination, requestedWalletAddress } = getSavedMintDestination(payload, previousRequest)
 
     if (!displayName) {
       return NextResponse.json({ error: "Display name is required." }, { status: 400 })
@@ -104,18 +109,12 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Fun facts must be 50 characters or fewer." }, { status: 400 })
     }
 
-    const { data: previousRequest } = await dataClient
-      .from("nft_requests")
-      .select("image_path, request_image_bucket, approved_image_path")
-      .eq("member_id", member.ID)
-      .maybeSingle()
-
     const { data, error } = await dataClient.rpc('save_nft_request_with_consent', {
       p_member_id: member.ID,
       p_actor_id: user.id,
       p_payload: { display_name: displayName, fun_facts: funFacts, image_path: imagePath,
         image_url: imageUrl, mint_destination: mintDestination,
-        requested_wallet_address: mintDestination === 'member' ? requestedWalletAddress : null,
+        requested_wallet_address: requestedWalletAddress,
         publication_consent: true, legal_version: NFT_LEGAL_DOCUMENTS.version },
       p_documents: NFT_LEGAL_DOCUMENTS,
     })
