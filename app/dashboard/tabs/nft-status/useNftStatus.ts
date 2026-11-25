@@ -5,7 +5,7 @@ import { useMemo, useState, type FormEvent } from "react"
 import useSWR from "swr"
 import type { DashboardMember } from "@/app/components/dashboard/types"
 import { getSolanaExplorerUrl, type NftMintDestination } from "@/lib/nftLifecycle"
-import { getSuggestedNftDisplayName } from "@/lib/nftDisplayName"
+import { getInitialNftDisplayName, getSuggestedNftDisplayName } from "@/lib/nftDisplayName"
 import { nftRequestService, type CurrentNftRequestResponse, type NftRequestRow } from "@/lib/nftRequests"
 import { isSolanaPublicKey } from "@/lib/solanaAddress"
 
@@ -115,8 +115,8 @@ export function useNftStatus(member: DashboardMember | null) {
         setCurrentMemberProfile(data.member)
         setResolvedMemberId(data.memberId)
         setExistingRequest(data.request)
-        if (!displayNameManuallyEdited && data.member.name?.trim()) {
-          setDisplayName(getSuggestedNftDisplayName(data.member.name))
+        if (!displayNameManuallyEdited) {
+          setDisplayName(getInitialNftDisplayName(data.member.name, data.request))
         }
       },
       onError(error: unknown) {
@@ -205,7 +205,8 @@ export function useNftStatus(member: DashboardMember | null) {
       return
     }
 
-    if (mintDestination === 'member' && !isSolanaPublicKey(trimmedRequestedWalletAddress)) {
+    // Wallet ownership of a minted NFT changes only through claim/recovery.
+    if (!hasMintedNft && mintDestination === 'member' && !isSolanaPublicKey(trimmedRequestedWalletAddress)) {
       setSubmissionMessage({ type: "error", text: "Please enter a valid Solana wallet address." })
       return
     }
@@ -226,8 +227,10 @@ export function useNftStatus(member: DashboardMember | null) {
         fun_facts: trimmedFunFacts || null,
         image_path: imageData.imagePath,
         image_url: imageData.imageUrl,
-        mint_destination: mintDestination,
-        requested_wallet_address: mintDestination === 'member' ? trimmedRequestedWalletAddress : null,
+        ...(hasMintedNft ? {} : {
+          mint_destination: mintDestination,
+          requested_wallet_address: mintDestination === 'member' ? trimmedRequestedWalletAddress : null,
+        }),
       })
 
       if (requestError || !requestData?.request) {

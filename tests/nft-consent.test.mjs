@@ -31,6 +31,7 @@ const current = load('app/api/nft-requests/current/route.ts', {
   ...common,
   '@/lib/nftRequestConstants': { NFT_REQUEST_IMAGE_BUCKET: 'nft-request-images' },
   '@/lib/solanaAddress': { isSolanaPublicKey: () => true },
+  '@/lib/nftLifecycle': load('lib/nftLifecycle.ts'),
   '@/lib/server/nftPublicationConsent': { hasCurrentNftConsent: async () => false },
 })
 const renewal = load('app/api/nft-requests/current/consent/route.ts', common)
@@ -57,6 +58,16 @@ test('renewal binds identity and full legal snapshot server-side and calls atomi
   assert.equal(args.payload.p_actor_id, 'signed-in-user')
   assert.equal(args.payload.p_documents, legal.NFT_LEGAL_DOCUMENTS)
   assert.equal(args.payload.p_renew_only, true)
+})
+test('a profile update of a minted NFT keeps the saved mint destination instead of the submitted one', async () => {
+  let args
+  const previous = { image_path: '7/old.png', approved_image_path: '7/old.png', asset_address: 'asset', mint_destination: 'member', requested_wallet_address: 'member-wallet' }
+  const query = { select() { return this }, eq() { return this }, async maybeSingle() { return { data: previous, error: null } } }
+  identity.dataClient = { from: () => query, rpc: async (name, payload) => { args = payload; return { data: { id: 'r' }, error: null } } }
+  const response = await current.POST(request({ publication_consent: true, legal_version: legal.NFT_LEGAL_VERSION, display_name: 'Ada L.', image_path: '7/new.png', image_url: 'https://x/7/new.png', mint_destination: 'club' }))
+  assert.equal(response.status, 200)
+  assert.equal(args.p_payload.mint_destination, 'member')
+  assert.equal(args.p_payload.requested_wallet_address, 'member-wallet')
 })
 test('publication gate fails closed for missing/mismatched evidence and DB errors', async () => {
   const consent = load('lib/server/nftPublicationConsent.ts', { 'server-only': {}, '@/lib/nftLegal': legal })

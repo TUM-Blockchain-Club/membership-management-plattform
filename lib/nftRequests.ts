@@ -165,7 +165,8 @@ export const nftRequestService = {
   },
 
   saveCurrentRequest: async (
-    request: Omit<NftRequestUpsert, 'member_id' | 'status' | 'reviewed_at' | 'reviewed_by' | 'review_note'>
+    request: Omit<NftRequestUpsert, 'member_id' | 'status' | 'reviewed_at' | 'reviewed_by' | 'review_note' | 'mint_destination' | 'requested_wallet_address'>
+      & Partial<Pick<NftRequestUpsert, 'mint_destination' | 'requested_wallet_address'>>
   ) => {
     const response = await fetch('/api/nft-requests/current', {
       method: 'POST',
