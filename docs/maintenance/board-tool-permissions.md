@@ -6,10 +6,11 @@ authentication metadata.
 
 NFT administration uses `canManageNftRequests` from `lib/member-permissions.ts` in
 both dashboard initialization and every guarded NFT administration API route.
-Board members and special-access users are accepted, and existing explicit NFT
-administrators retain access. NFT data and storage operations already run through
-the server-only service-role client after this authorization check. No database
-migration or additional direct database grants are required.
+Board members and special-access users are accepted, and explicit NFT
+administrators are the central `nfts` admin assignments (read through the
+`nft_admins` view, see `docs/architecture/admin-access.md`); the former hardcoded
+member-ID allowlist is gone. NFT data and storage operations run through the
+server-only service-role client after this authorization check.
 
 The dashboard exposes one effective board-tool permission. Attendance controls,
 member creation, event editing, and event participant controls consume it instead

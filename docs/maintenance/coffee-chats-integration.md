@@ -10,7 +10,12 @@ The default route is a state-aware current-round experience. It derives one
 next action from matching-preference completion, signup state, the open round,
 and the latest outstanding match. The old `/coffee-chats/join` and
 `/coffee-chats/my-match` URLs redirect to this default route for compatibility.
-Preferences, gallery, and authorized admin tools are secondary routes.
+Preferences and gallery remain in the member page navigation. Authorized admin
+tools at `/coffee-chats/admin` have a separate Coffee Chats Admin entry in the
+sidebar Administration group, their own active tab and heading, and no member
+subnavigation. Visibility uses the existing effective Coffee Chat admin permission
+and respects Normal Member View; entering that view returns admins to the member
+route. Route changes use the shared dashboard router and keep its shell mounted.
 
 The preferences page contains meeting-place recommendations and a searchable
 checklist of every member except the signed-in member for `cc_already_know`.
@@ -33,7 +38,9 @@ optional and progressively disclosed.
   and converted to UTC ISO timestamps before they are written to Supabase.
 - Member signup and pair reads remain protected by RLS. Administrative actions
   accept board members and delegated Coffee Chats administrators. Board members
-  can add or remove delegated administrators from the member directory.
+  manage delegated rights through the central `/admin-access` page. The
+  `cc_admins` relation is a read-only view of the `coffee_chats` scope in
+  `admin_assignments`; the Coffee Chats workspace has no role editor.
 
 ## Admin pairing and replacements
 
@@ -74,3 +81,26 @@ The database transaction check is in `tests/coffee-chats-db.sql` and must run
 against the target Supabase database inside its built-in rollback transaction.
 The protected production browser workflow is documented in
 `docs/maintenance/coffee-chats-production-e2e.md`.
+
+## Round administration details
+
+Round rows open a Radix dialog with signup names, departments and signup times.
+A visible “View round” button supports keyboard access; the whole row also
+responds to pointer clicks. Pairing and confirmed deletion live inside the
+round detail flow rather than the overview table.
+
+`GET /api/coffee-chats/rounds/[roundId]` and `PATCH` require authenticated board
+or delegated Coffee Chat administrator access before using the admin client.
+The response includes only participant fields needed by this view and is not
+cached. Deadline edits accept UTC timestamps or null, validate ordering and
+update only the two existing deadline fields. The UI shows local dates and
+times and preserves untouched timestamps. Reading a round never runs pairing
+or modifies signups. No database migration is required.
+
+Home and the match view show partner avatars (with initials when absent), names
+and departments. Home also shows the meeting deadline. Partner image URLs use
+the same legacy-picture decoding as member cards. An unfinished match no longer
+hides a later signup round: a separate notice links Home to the signup action on
+Coffee Chats while retaining the current match. The notice distinguishes joined,
+open and deadline-passed rounds; joining still uses the existing authenticated
+signup endpoint and profile requirements. Two partners are supported for triples.

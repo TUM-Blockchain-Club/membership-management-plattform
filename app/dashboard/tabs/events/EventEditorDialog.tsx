@@ -39,6 +39,7 @@ export type EventEditorDraft = {
   formats: string[]
   image_url: string
   event_link_url: string
+  grant_url: string
   tally_url: string
   whatsapp_url: string
 }
@@ -92,6 +93,7 @@ const emptyDraft = (): EventEditorDraft => ({
   formats: [],
   image_url: '',
   event_link_url: '',
+  grant_url: '',
   tally_url: '',
   whatsapp_url: '',
 })
@@ -110,6 +112,7 @@ const toDraft = (event: DashboardEvent | null): EventEditorDraft => {
     formats: splitStoredOptions(event.format, FORMAT_OPTIONS),
     image_url: event.image_url ?? '',
     event_link_url: event.event_link_url ?? '',
+    grant_url: event.grant_url ?? '',
     tally_url: event.tally_url ?? '',
     whatsapp_url: event.whatsapp_url ?? '',
   }
@@ -198,7 +201,7 @@ export function EventEditorDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[90vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+      <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
         <DialogHeader className="border-b px-6 py-5">
           <DialogTitle>{isCreate ? 'Create external event' : 'Edit external event'}</DialogTitle>
           <DialogDescription>{isCreate ? 'Add a new conference or hackathon.' : event?.title ?? 'External event'}</DialogDescription>
@@ -346,10 +349,16 @@ export function EventEditorDialog({
                 placeholder="https://chat.whatsapp.com/..."
               />
             </Field>
+
+          <Field><FieldLabel htmlFor="grant-url">Grant application link (optional)</FieldLabel>
+            <Input id="grant-url" type="url" value={draft.grant_url} onChange={event => setDraft(current => ({ ...current, grant_url: event.target.value }))} placeholder="https://…" />
+            <FieldDescription>Leave empty for one-click applications inside the platform.</FieldDescription>
+          </Field>
+
           </FieldGroup>
         </div>
 
-        <DialogFooter className="shrink-0 border-t bg-muted/30 px-6 py-4">
+        <DialogFooter className="mx-0 mb-0 shrink-0 border-t bg-muted/30 px-6 py-4">
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving || uploading}>
             Cancel
           </Button>

@@ -52,11 +52,13 @@ for (const [name, Route, control] of [
 }
 
 // Exercise the real API guards; only authenticated Supabase I/O is replaced.
-function guard(path: string, member: { id: number; Role: string }, special = false, error: string | null = null, signedIn = true) {
+function guard(path: string, member: { id: number; Role: string }, special = false, error: string | null = null, signedIn = true, nftAdminIds: number[] = []) {
   const client = {
     auth: { getUser: async () => ({ data: { user: signedIn ? { id: 'test', email: 'board@example.invalid' } : null } }) },
     rpc: async () => ({ data: special, error: error ? { message: error } : null }),
-    from: () => ({ select: () => ({ ilike: () => ({ maybeSingle: async () => ({ data: member, error: null }) }) }) }),
+    from: (table: string) => table === 'nft_admins'
+      ? { select: () => ({ eq: (_column: string, id: number) => ({ maybeSingle: async () => ({ data: nftAdminIds.includes(id) ? { member_id: id } : null, error: null }) }) }) }
+      : { select: () => ({ ilike: () => ({ maybeSingle: async () => ({ data: member, error: null }) }) }) },
   }
   const loadedModule = { exports: {} as Record<string, (client: unknown) => Promise<unknown>> }
   const code = ts.transpileModule(readFileSync(path, 'utf8'), {
@@ -99,15 +101,15 @@ for (const [path, name] of [
   })
 }
 
-test('existing non-board NFT administrators retain access', async () => {
-  const f = guard('lib/server/nftRequestAdmin.ts', { id: 107, Role: 'Core Member' })
+test('explicit non-board NFT administrators retain access', async () => {
+  const f = guard('lib/server/nftRequestAdmin.ts', { id: 107, Role: 'Core Member' }, false, null, true, [107])
   await expect(f.exports.requireNftRequestAdmin(f.client)).resolves.toBeDefined()
 })
 
 test('NFT navigation and API use the same board, special-access and legacy-admin permission', () => {
-  expect(canManageNftRequests({ id: 39, Role: 'Board Member' }, false)).toBe(true)
-  expect(canManageNftRequests({ id: 40, Role: 'Core Member' }, false)).toBe(false)
-  expect(canManageNftRequests({ id: 40, Role: 'Core Member' }, true)).toBe(true)
-  expect(canManageNftRequests({ id: 107, Role: 'Core Member' }, false)).toBe(true)
-  expect(canManageNftRequests(null, false)).toBe(false)
+  expect(canManageNftRequests({ id: 39, Role: 'Board Member' }, false, false)).toBe(true)
+  expect(canManageNftRequests({ id: 40, Role: 'Core Member' }, false, false)).toBe(false)
+  expect(canManageNftRequests({ id: 40, Role: 'Core Member' }, true, false)).toBe(true)
+  expect(canManageNftRequests({ id: 107, Role: 'Core Member' }, false, true)).toBe(true)
+  expect(canManageNftRequests(null, false, true)).toBe(false)
 })

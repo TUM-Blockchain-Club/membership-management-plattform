@@ -1,3 +1,4 @@
+import { useDashboardResource } from '@/app/dashboard/lib/useDashboardResource'
 import { useCallback, useState } from 'react'
 import type {
   DashboardEvent,
@@ -15,9 +16,11 @@ type SetDashboardMessage = (message: DashboardMessage | null) => void
 export function useDashboardEvents(
   member: DashboardMember | null,
   setMessage: SetDashboardMessage,
-  initialEvents: DashboardEvent[] = []
+  enabled = false
 ) {
-  const [events, setEvents] = useState<DashboardEvent[]>(initialEvents)
+  const resource = useDashboardResource<DashboardEvent>('events', enabled && Boolean(member))
+  const events = resource.data ?? []
+  const setEvents = resource.setData
 
   // Internal event participants modal
   const [participants, setParticipants] = useState<DashboardParticipant[]>([])
@@ -39,7 +42,7 @@ export function useDashboardEvents(
     const { data: eventsData, error: eventsError } = await eventService.getUpcomingEvents(memberId)
     if (eventsError || !eventsData) return
     setEvents(eventsData)
-  }, [])
+  }, [setEvents])
 
   const handleEventRegistration = useCallback(async (eventId: string | number, isCurrentlyRegistered: boolean) => {
     if (!member) return
@@ -115,7 +118,7 @@ export function useDashboardEvents(
     } catch {
       setMessage({ type: 'error', text: 'Failed to update interest. Please try again.' })
     }
-  }, [member, setMessage])
+  }, [member, setMessage, setEvents])
 
   /**
    * Load and display the list of members interested in an external event.
@@ -155,6 +158,7 @@ export function useDashboardEvents(
           formats: draft.formats,
           event_link_url: draft.event_link_url,
           tally_url: draft.tally_url,
+          grant_url: draft.grant_url,
           whatsapp_url: draft.whatsapp_url,
         }),
       })
@@ -176,7 +180,7 @@ export function useDashboardEvents(
     } finally {
       setSavingEvent(false)
     }
-  }, [setMessage])
+  }, [setMessage, setEvents])
 
   const handleCreateExternalEvent = useCallback(async (draft: EventEditorDraft) => {
     setSavingEvent(true)
@@ -197,6 +201,7 @@ export function useDashboardEvents(
           formats: draft.formats,
           event_link_url: draft.event_link_url,
           tally_url: draft.tally_url,
+          grant_url: draft.grant_url,
           whatsapp_url: draft.whatsapp_url,
         }),
       })
@@ -218,7 +223,7 @@ export function useDashboardEvents(
     } finally {
       setSavingEvent(false)
     }
-  }, [setMessage])
+  }, [setMessage, setEvents])
 
   const handleUploadExternalEventImage = useCallback(async (eventId: string | number, file: File) => {
     setUploadingEventImage(true)
@@ -251,9 +256,12 @@ export function useDashboardEvents(
     } finally {
       setUploadingEventImage(false)
     }
-  }, [setMessage])
+  }, [setMessage, setEvents])
 
   return {
+    eventsLoading: resource.loading,
+    eventsError: resource.error,
+    retryEvents: resource.retry,
     events,
     handleEventRegistration,
     handleCreateExternalEvent,

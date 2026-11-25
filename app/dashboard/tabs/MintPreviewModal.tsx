@@ -108,9 +108,11 @@ export function MintPreviewModal({ request, isMinting, error, onMint, onCancel }
 
             <Card className="border-white/10 bg-white/[0.03]">
               <CardContent className="p-4">
-              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Initial Custody</p>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-white/45">Mint Destination</p>
               <p className="mt-2 break-all text-sm leading-6 text-white/82">
-                TBC club wallet
+                {request.mintDestination === 'member'
+                  ? request.requestedWalletAddress || 'Member wallet'
+                  : 'TBC club wallet'}
               </p>
               </CardContent>
             </Card>

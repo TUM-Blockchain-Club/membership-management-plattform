@@ -41,6 +41,8 @@ export interface NFTRequest {
   assetAddress: string | null
   assetState: 'unminted' | 'active' | 'alumni' | 'burned'
   custodyStatus: 'club' | 'member'
+  mintDestination: 'club' | 'member'
+  requestedWalletAddress: string | null
   claimWalletAddress: string | null
   lastChainError: string | null
 }
@@ -143,6 +145,16 @@ export function NftRequestCard({
             <p className="mt-1 text-sm text-white/80">
               {request.memberStatus || 'Unknown'} / {request.assetState}
             </p>
+          </div>
+
+          <div>
+            <p className="text-[11px] uppercase tracking-[0.16em] text-white/45">Mint destination</p>
+            <p className="mt-1 text-sm text-white/80">
+              {request.mintDestination === 'member' ? 'Member wallet' : 'TBC club wallet'}
+            </p>
+            {request.requestedWalletAddress && (
+              <p className="mt-1 break-all text-xs text-white/55">{request.requestedWalletAddress}</p>
+            )}
           </div>
 
           <div>

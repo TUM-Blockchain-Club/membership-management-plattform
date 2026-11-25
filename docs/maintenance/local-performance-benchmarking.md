@@ -35,7 +35,7 @@ PERF_LOG_SERVER=true
 
 3. Watch the browser console for `[web-vitals]` and `[members-perf]` entries. This reports Next.js Web Vitals, Long Tasks, resource timings, mounted virtual rows/member cards, and scroll frame drops.
 
-4. Watch the server terminal for `[dashboard-perf]` entries. This separates auth, member lookup, route data loading, member count, approximate JSON payload size, and approximate picture payload size.
+4. Inspect `/api/dashboard/data?resource=members` in the browser network panel. Directory data now loads separately from the persistent shell, so initial HTML timing alone does not measure directory readiness. See `docs/architecture/dashboard-loading.md` for the request boundaries.
 
 5. Run the lightweight server benchmark against a running app:
 

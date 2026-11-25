@@ -1,9 +1,11 @@
 'use client'
 
+import type { DashboardEvent } from '@/app/components/dashboard/types'
 import Link from 'next/link'
 import Image from 'next/image'
 import { use } from 'react'
 import {
+  TriangleAlertIcon,
   ArrowRightIcon,
   CalendarDaysIcon,
   CheckCircle2Icon,
@@ -13,6 +15,7 @@ import {
   MapPinIcon,
 } from 'lucide-react'
 import { DashboardContext } from '@/app/dashboard/DashboardContext'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -25,10 +28,14 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
+import { CoffeeChatPartnerSummary } from '../coffee-chats/CoffeeChatPartnerSummary'
+import { CoffeeChatNextRoundNotice } from '../coffee-chats/CoffeeChatNextRoundNotice'
+import { NftPreview } from '@/components/nft-preview'
 import { Progress } from '@/components/ui/progress'
-import { getCoffeeChatNextStep, type CoffeeChatHomeData } from '@/lib/coffee-chats'
+import { getCoffeeChatNextStep, getAdditionalCoffeeChatRound, type CoffeeChatHomeData } from '@/lib/coffee-chats'
 
 const PROFILE_CHECKLIST = [
+  { key: 'Department', label: 'Department' },
   { key: 'Picture', label: 'Profile photo' },
   { key: 'Area of Expertise', label: 'Area of expertise' },
   { key: 'Linkedin', label: 'LinkedIn' },
@@ -113,10 +120,10 @@ function getCoffeeChatOverview(data: CoffeeChatHomeData | null) {
 
 export function MemberHomePage({
   coffeeChatData,
-  currentTime,
+  upcomingEvents,
 }: {
   coffeeChatData: CoffeeChatHomeData | null
-  currentTime: string
+  upcomingEvents: DashboardEvent[]
 }) {
   const dashboard = use(DashboardContext)!
   const member = dashboard.member
@@ -127,12 +134,14 @@ export function MemberHomePage({
   const completedProfileItems = checklist.filter((item) => item.complete).length
   const profileProgress = Math.round((completedProfileItems / checklist.length) * 100)
   const coffeeChat = getCoffeeChatOverview(coffeeChatData)
+  const pendingMatch = coffeeChatData?.match?.pair.status !== 'met' ? coffeeChatData?.match : null
+  const nextRound = coffeeChatData ? getAdditionalCoffeeChatRound(coffeeChatData) : null
   const pictureUrl = dashboard.getPictureUrl(member?.Picture)
-  const now = Date.parse(currentTime)
-  const upcomingEvents = dashboard.events.filter((event) => {
-    const end = Date.parse(event.end_at)
-    return Number.isNaN(end) || end >= now
-  }).slice(0, 2)
+  const profileReminder = !hasValue(member?.Department)
+    ? { message: "You haven't selected a department yet. Choose your department in your profile.", action: 'Choose department' }
+    : !pictureUrl
+      ? { message: "You haven't added a profile photo yet. Upload a photo so other members can recognise you.", action: 'Add profile photo' }
+      : null
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6">
@@ -158,10 +167,9 @@ export function MemberHomePage({
               <Badge variant="secondary">{coffeeChat.label}</Badge>
             </CardAction>
           </CardHeader>
-          <CardContent className="flex-1">
-            <p className="max-w-2xl text-base leading-relaxed text-foreground">
-              {coffeeChat.description}
-            </p>
+          <CardContent className="flex-1 space-y-4">
+            {pendingMatch ? <CoffeeChatPartnerSummary partners={pendingMatch.partners} meetDeadline={pendingMatch.round.meetDeadline} /> : <p className="max-w-2xl text-base leading-relaxed text-foreground">{coffeeChat.description}</p>}
+            {nextRound && coffeeChatData && <CoffeeChatNextRoundNotice round={nextRound} isSignedUp={coffeeChatData.isSignedUp} profileIsComplete={coffeeChatData.isProfileComplete} />}
           </CardContent>
           <CardFooter className="mt-auto justify-end border-border bg-muted/30">
             <Button asChild>
@@ -189,6 +197,12 @@ export function MemberHomePage({
             </div>
           </CardHeader>
           <CardContent className="flex flex-1 flex-col gap-4">
+            {profileReminder && (
+              <Alert className="border-orange-500/30 bg-orange-500/10 text-orange-300">
+                <TriangleAlertIcon aria-hidden="true" />
+                <AlertDescription className="text-orange-200">{profileReminder.message}</AlertDescription>
+              </Alert>
+            )}
             <Progress value={profileProgress} aria-label={`Profile ${profileProgress}% complete`} />
             <ul className="flex flex-col gap-2">
               {checklist.map((item) => (
@@ -206,7 +220,7 @@ export function MemberHomePage({
           <CardFooter className="mt-auto justify-end border-border bg-muted/30">
             <Button asChild variant="outline">
               <Link href="/profile">
-                Edit profile
+                {profileReminder?.action ?? 'Edit profile'}
                 <ArrowRightIcon data-icon="inline-end" />
               </Link>
             </Button>
@@ -295,13 +309,20 @@ export function MemberHomePage({
             </CardTitle>
             <CardDescription>Your digital TUM Blockchain Club membership collectible.</CardDescription>
           </CardHeader>
-          <CardContent className="flex-1">
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Apply for your NFT or follow the review and minting status of your existing request.
-            </p>
+          <CardContent className="flex flex-1 flex-col items-start gap-4 sm:flex-row sm:items-center sm:gap-6">
+            <div className="mx-auto w-44 shrink-0 sm:mx-0 sm:w-40 lg:w-44">
+              <NftPreview compact />
+            </div>
+            <div className="flex min-w-0 flex-col gap-2">
+              <p className="text-sm font-medium text-foreground">A collectible. Uniquely yours.</p>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                Your portrait, your story, your place in the club. Create your membership NFT.
+              </p>
+              <p className="text-xs text-muted-foreground">Interactive collectible preview</p>
+            </div>
           </CardContent>
           <CardFooter className="mt-auto justify-end border-border bg-muted/30">
-            <Button asChild variant="outline">
+            <Button asChild>
               <Link href="/nft-status">
                 View NFT status
                 <ArrowRightIcon data-icon="inline-end" />

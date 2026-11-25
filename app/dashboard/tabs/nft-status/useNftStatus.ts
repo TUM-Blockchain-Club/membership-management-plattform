@@ -1,10 +1,13 @@
 "use client"
 
+import { NFT_LEGAL_VERSION } from '@/lib/nftLegal'
 import { useMemo, useState, type FormEvent } from "react"
 import useSWR from "swr"
 import type { DashboardMember } from "@/app/components/dashboard/types"
-import { getSolanaExplorerUrl } from "@/lib/nftLifecycle"
+import { getSolanaExplorerUrl, type NftMintDestination } from "@/lib/nftLifecycle"
+import { getSuggestedNftDisplayName } from "@/lib/nftDisplayName"
 import { nftRequestService, type CurrentNftRequestResponse, type NftRequestRow } from "@/lib/nftRequests"
+import { isSolanaPublicKey } from "@/lib/solanaAddress"
 
 export const getLabel = (value: string | null | undefined, fallback: string) => {
   const trimmed = value?.trim()
@@ -78,11 +81,12 @@ const loadCurrentNftRequest = async (): Promise<CurrentNftRequestResponse> => {
 export function useNftStatus(member: DashboardMember | null) {
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [displayName, setDisplayName] = useState("")
-  const [batch, setBatch] = useState("")
   const [hasConsented, setHasConsented] = useState(false)
   const [displayNameManuallyEdited, setDisplayNameManuallyEdited] = useState(false)
   const [funFacts, setFunFacts] = useState("")
   const [claimWalletAddress, setClaimWalletAddress] = useState("")
+  const [mintDestination, setMintDestination] = useState<NftMintDestination>('club')
+  const [requestedWalletAddress, setRequestedWalletAddress] = useState("")
   const [claiming, setClaiming] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
@@ -94,6 +98,7 @@ export function useNftStatus(member: DashboardMember | null) {
   const [currentMemberProfile, setCurrentMemberProfile] = useState<{
     id: number
     name: string | null
+    batch: string | null
     email: string | null
     department: string | null
   } | null>(null)
@@ -111,7 +116,7 @@ export function useNftStatus(member: DashboardMember | null) {
         setResolvedMemberId(data.memberId)
         setExistingRequest(data.request)
         if (!displayNameManuallyEdited && data.member.name?.trim()) {
-          setDisplayName(data.member.name.trim())
+          setDisplayName(getSuggestedNftDisplayName(data.member.name))
         }
       },
       onError(error: unknown) {
@@ -124,7 +129,9 @@ export function useNftStatus(member: DashboardMember | null) {
   )
 
   const selectedFileName = selectedFile?.name ?? null
+  const batch = currentMemberProfile?.batch?.trim() || "Not set"
   const currentMemberName = currentMemberProfile?.name?.trim() || member?.Name?.trim() || null
+  const suggestedDisplayName = getSuggestedNftDisplayName(currentMemberName)
   const loadingExistingRequest = isLoading && !existingRequest && !requestLookupError
   const statusCopy = getRequestStatusCopy(existingRequest, loadingExistingRequest)
   const hasMintedNft = Boolean(existingRequest?.asset_address && existingRequest.asset_state !== 'burned')
@@ -164,6 +171,10 @@ export function useNftStatus(member: DashboardMember | null) {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
+    if (!hasConsented || saving) {
+      setSubmissionMessage({ type: "error", text: "Please confirm the NFT publication consent first." })
+      return
+    }
 
     if (resolvedMemberId === null) {
       setSubmissionMessage({ type: "error", text: "Could not determine your member id. Please contact support." })
@@ -172,6 +183,7 @@ export function useNftStatus(member: DashboardMember | null) {
 
     const trimmedDisplayName = displayName.trim()
     const trimmedFunFacts = funFacts.trim()
+    const trimmedRequestedWalletAddress = requestedWalletAddress.trim()
 
     if (!trimmedDisplayName) {
       setSubmissionMessage({ type: "error", text: "Please enter the display name you want on the NFT." })
@@ -193,6 +205,11 @@ export function useNftStatus(member: DashboardMember | null) {
       return
     }
 
+    if (mintDestination === 'member' && !isSolanaPublicKey(trimmedRequestedWalletAddress)) {
+      setSubmissionMessage({ type: "error", text: "Please enter a valid Solana wallet address." })
+      return
+    }
+
     setSaving(true)
     setSubmissionMessage(null)
 
@@ -203,10 +220,14 @@ export function useNftStatus(member: DashboardMember | null) {
       }
 
       const { data: requestData, error: requestError } = await nftRequestService.saveCurrentRequest({
+        publication_consent: hasConsented,
+        legal_version: NFT_LEGAL_VERSION,
         display_name: trimmedDisplayName,
         fun_facts: trimmedFunFacts || null,
         image_path: imageData.imagePath,
         image_url: imageData.imageUrl,
+        mint_destination: mintDestination,
+        requested_wallet_address: mintDestination === 'member' ? trimmedRequestedWalletAddress : null,
       })
 
       if (requestError || !requestData?.request) {
@@ -216,7 +237,8 @@ export function useNftStatus(member: DashboardMember | null) {
       setResolvedMemberId(requestData.memberId)
       setExistingRequest(requestData.request)
       setSelectedFile(null)
-      setSubmissionMessage({ type: "success", text: "NFT request saved successfully." })
+      setHasConsented(false)
+      setSubmissionMessage({ type: "success", text: "NFT request and publication consent saved successfully." })
       void revalidateExistingRequest()
     } catch (error) {
       const text = error instanceof Error ? error.message : "Something went wrong while saving your request."
@@ -246,10 +268,12 @@ export function useNftStatus(member: DashboardMember | null) {
       }
 
       setExistingRequest(null)
-      setDisplayName(currentMemberName ?? "")
+      setDisplayName(suggestedDisplayName)
       setDisplayNameManuallyEdited(false)
       setFunFacts("")
       setClaimWalletAddress("")
+      setMintDestination('club')
+      setRequestedWalletAddress("")
       setSelectedFile(null)
       setFailedImageUrl(null)
       setDeleteConfirmationRequestId(null)
@@ -286,6 +310,7 @@ export function useNftStatus(member: DashboardMember | null) {
   }
 
   return {
+    refreshRequest: () => revalidateExistingRequest(),
     batch,
     assetUrl,
     canDeleteExistingRequest,
@@ -307,10 +332,12 @@ export function useNftStatus(member: DashboardMember | null) {
     hasMintedNft,
     loadingExistingRequest,
     mintTxUrl,
+    mintDestination,
     requestLookupError,
+    requestedWalletAddress,
     saving,
+    selectedFile,
     selectedFileName,
-    setBatch,
     setDeleteConfirmationArmed: (armed: boolean) => {
       setDeleteConfirmationRequestId(armed ? existingRequest?.id ?? null : null)
     },
@@ -318,6 +345,8 @@ export function useNftStatus(member: DashboardMember | null) {
     setDisplayNameManuallyEdited,
     setFunFacts,
     setHasConsented,
+    setMintDestination,
+    setRequestedWalletAddress,
     setSelectedFile,
     setSummaryImageFailed: (failed: boolean) => {
       setFailedImageUrl(failed ? existingRequestImageUrl || null : null)

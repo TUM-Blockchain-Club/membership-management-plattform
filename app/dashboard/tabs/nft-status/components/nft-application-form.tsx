@@ -1,12 +1,17 @@
-import { AlertTriangleIcon, CopyIcon, FileImageIcon } from 'lucide-react'
+import { NftDraftPreview } from './nft-draft-preview'
+import { NftLegalDialog } from './nft-legal-dialog'
+import { useId } from 'react'
+import { NFT_CONSENT_TEXT, NFT_LEGAL_VERSION } from '@/lib/nftLegal'
+import { AlertTriangleIcon, Building2Icon, CopyIcon, FileImageIcon, WalletIcon } from 'lucide-react'
 import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
-import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
+import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSet } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import type { NftStatusController } from '../useNftStatus'
 import type { NftStatusSectionsProps } from './types'
 
@@ -19,13 +24,16 @@ export function NftApplicationForm({ state }: NftStatusSectionsProps) {
     handleCopyPrompt,
     handleSubmit,
     hasConsented,
+    mintDestination,
+    requestedWalletAddress,
     saving,
     selectedFileName,
-    setBatch,
     setDisplayName,
     setDisplayNameManuallyEdited,
     setFunFacts,
     setHasConsented,
+    setMintDestination,
+    setRequestedWalletAddress,
     setSelectedFile,
   } = state
 
@@ -61,14 +69,63 @@ export function NftApplicationForm({ state }: NftStatusSectionsProps) {
             type="text"
             name="batch"
             value={batch}
-            onChange={(event) => setBatch(event.target.value)}
-            placeholder="e.g. 8"
-            disabled={saving}
-            autoComplete="off"
-            className="h-14 border-white/10 bg-black/30 text-white focus-visible:border-cyan-400/50"
+            readOnly
+            aria-readonly="true"
+            className="h-14 border-white/10 bg-black/30 text-white/70"
           />
+          <FieldDescription className="text-white/45">
+            Batch comes from your member profile and is used for the NFT metadata.
+          </FieldDescription>
         </Field>
       </FieldGroup>
+
+      <FieldSet>
+        <FieldLegend className="text-white">Where should we mint your NFT?</FieldLegend>
+        <FieldDescription className="text-white/55">
+          Choose the TBC club wallet for club custody, or mint directly to your own Solana wallet.
+        </FieldDescription>
+        <ToggleGroup
+          type="single"
+          value={mintDestination}
+          onValueChange={(value) => {
+            if (value === 'club' || value === 'member') setMintDestination(value)
+          }}
+          variant="outline"
+          className="grid w-full grid-cols-1 sm:grid-cols-2"
+          disabled={saving}
+          aria-label="NFT mint destination"
+        >
+          <ToggleGroupItem value="club" className="w-full" aria-label="Mint to the TBC club wallet">
+            <Building2Icon data-icon="inline-start" aria-hidden="true" />
+            TBC Club Wallet
+          </ToggleGroupItem>
+          <ToggleGroupItem value="member" className="w-full" aria-label="Mint to my Solana wallet">
+            <WalletIcon data-icon="inline-start" aria-hidden="true" />
+            My Solana Wallet
+          </ToggleGroupItem>
+        </ToggleGroup>
+      </FieldSet>
+
+      {mintDestination === 'member' && (
+        <Field>
+          <FieldLabel htmlFor="requested-wallet-address" className="text-white">Solana Wallet Address</FieldLabel>
+          <Input
+            id="requested-wallet-address"
+            name="requestedWalletAddress"
+            value={requestedWalletAddress}
+            onChange={(event) => setRequestedWalletAddress(event.target.value)}
+            placeholder="Your Solana wallet address"
+            autoComplete="off"
+            required
+            aria-required="true"
+            disabled={saving}
+            className="h-14 border-white/10 bg-black/30 text-white focus-visible:border-cyan-400/50"
+          />
+          <FieldDescription className="text-white/55">
+            The approved NFT will be minted directly to this address. Check it carefully before submitting.
+          </FieldDescription>
+        </Field>
+      )}
 
       <NftGenerationKit copiedPrompt={copiedPrompt} handleCopyPrompt={handleCopyPrompt} />
 
@@ -111,6 +168,8 @@ export function NftApplicationForm({ state }: NftStatusSectionsProps) {
         />
         <FieldDescription className="text-white/40">Limited to 50 characters.</FieldDescription>
       </Field>
+
+      <NftDraftPreview file={state.selectedFile} displayName={displayName} funFacts={funFacts} />
 
       <NftConsentField hasConsented={hasConsented} saving={saving} setHasConsented={setHasConsented} />
 
@@ -180,16 +239,17 @@ function NftGenerationKit({
   )
 }
 
-function NftConsentField({
+export function NftConsentField({
   hasConsented,
   saving,
   setHasConsented,
 }: Pick<NftStatusController, 'hasConsented' | 'saving' | 'setHasConsented'>) {
+  const consentId = useId()
   return (
     <Alert className="border-red-900/30 bg-red-900/10">
       <Field orientation="horizontal">
         <Checkbox
-          id="consent"
+          id={consentId}
           required
           checked={hasConsented}
           disabled={saving}
@@ -197,18 +257,17 @@ function NftConsentField({
           className="mt-1 size-5 border-gray-700 bg-gray-900 text-blue-600"
         />
         <FieldContent>
-          <FieldLabel htmlFor="consent" className="text-gray-200">
-            Data Permanence & Terms of Service Agreement
+          <FieldLabel htmlFor={consentId} className="text-gray-200">
+            Permission to publish my membership NFT
           </FieldLabel>
           <FieldDescription className="text-xs text-gray-400">
-            I understand that the Solana transaction history remains public. The club can update or burn the membership NFT
-            and can delete the hosted image and metadata, but third-party caches may retain previously downloaded copies.
+            {NFT_CONSENT_TEXT}
           </FieldDescription>
           <FieldDescription className="text-xs text-gray-400">
-            By checking this box, I also agree to the TUM Blockchain Club&apos;s{' '}
-            <a href="/terms" target="_blank" className="text-blue-400 hover:underline">Terms of Service</a>
+            Version {NFT_LEGAL_VERSION}. Read the{' '}
+            <NftLegalDialog document="terms" />
             {' '}and{' '}
-            <a href="/privacy" target="_blank" className="text-blue-400 hover:underline">Privacy Policy</a>.
+            <NftLegalDialog document="privacy" />.
           </FieldDescription>
         </FieldContent>
       </Field>

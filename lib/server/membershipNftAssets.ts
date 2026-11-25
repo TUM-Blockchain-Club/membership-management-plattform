@@ -1,4 +1,5 @@
 import 'server-only'
+import { requireNftPublicationConsent } from '@/lib/server/nftPublicationConsent'
 
 import { buildMembershipMetadata } from '@/lib/nftLifecycle'
 import { NFT_PUBLIC_ASSET_BUCKET } from '@/lib/nftRequestConstants'
@@ -9,6 +10,7 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient
 
 export type MembershipNftRecord = {
   request: {
+    consent_receipt_id: string | null
     id: string
     member_id: number
     status: 'pending' | 'approved' | 'rejected'
@@ -20,6 +22,8 @@ export type MembershipNftRecord = {
     metadata_version: number
     asset_address: string | null
     asset_state: 'unminted' | 'active' | 'alumni' | 'burned'
+    mint_destination: 'club' | 'member'
+    requested_wallet_address: string | null
     claim_wallet_address: string | null
     source_images: Array<{ bucket: string; path: string }>
   }
@@ -33,7 +37,7 @@ export type MembershipNftRecord = {
 }
 
 const REQUEST_COLUMNS =
-  'id, member_id, status, display_name, fun_facts, image_path, image_url, request_image_bucket, approved_display_name, approved_fun_facts, approved_image_path, approved_image_bucket, metadata_version, asset_address, asset_state, claim_wallet_address'
+  'consent_receipt_id, id, member_id, status, display_name, fun_facts, image_path, image_url, request_image_bucket, approved_display_name, approved_fun_facts, approved_image_path, approved_image_bucket, metadata_version, asset_address, asset_state, mint_destination, requested_wallet_address, claim_wallet_address'
 
 export const loadMembershipNftRecord = async (
   supabase: SupabaseServerClient,
@@ -97,6 +101,7 @@ export const renderAndUploadMembershipAssets = async (
   record: MembershipNftRecord,
   assetState: 'active' | 'alumni'
 ) => {
+  await requireNftPublicationConsent(supabase, record.request)
   const image = await renderMembershipImage(supabase, record, assetState)
   const version = record.request.metadata_version + 1
   const basePath = `members/${record.request.member_id}/${record.request.id}`
@@ -160,21 +165,27 @@ export const renderMembershipImage = async (
     throw new Error(sourceError?.message || 'Could not load the member image.')
   }
 
+  return renderMembershipDraft({ name: record.request.display_name, flex: record.request.fun_facts, department: record.member.department, batch: record.member.batch, image: Buffer.from(await sourceImage.arrayBuffer()), assetState })
+}
+
+export const renderMembershipDraft = async ({ name, flex, department, batch, image, assetState }: {
+  name: string; flex: string | null; department: string | null; batch: string | null; image: Buffer; assetState: 'active' | 'alumni'
+}) => {
   const alumniYear = assetState === 'alumni' ? new Date().getUTCFullYear() : null
-  const membershipPeriod = record.member.batch
+  const membershipPeriod = batch
     ? assetState === 'alumni'
-      ? `Batch ${record.member.batch} – ${alumniYear}`
-      : `Batch ${record.member.batch} – Present`
+      ? `Batch ${batch} – ${alumniYear}`
+      : `Batch ${batch} – Present`
     : assetState === 'alumni'
       ? `Alumni ${alumniYear}`
       : 'Active member'
   return buildNftImage({
-    nickname: record.request.display_name,
-    batch: record.member.batch ? `B${record.member.batch}` : 'TBC',
-    degreeAtUni: record.member.department || record.member.degreeAtUni || 'TUM Blockchain Club',
-    programs: record.request.fun_facts || membershipPeriod,
-    department: record.member.department || 'Board',
-    imageBuffer: Buffer.from(await sourceImage.arrayBuffer()),
+    nickname: name,
+    batch: batch ? `B${batch}` : 'TBC',
+    degreeAtUni: department || 'TUM Blockchain Club',
+    programs: flex || membershipPeriod,
+    department: department || 'Board',
+    imageBuffer: image,
     membershipPeriod,
     membershipStatus: assetState === 'alumni' ? 'ALUMNI' : 'ACTIVE',
   })

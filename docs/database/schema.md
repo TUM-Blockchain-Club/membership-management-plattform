@@ -35,7 +35,7 @@ Current live count: 139 rows.
 | `id` | `bigint` | no | none | Primary key. |
 | `created_at` | `timestamptz` | no | `now()` | Creation timestamp. |
 | `Name` | `text` | no | none | Display name. |
-| `Role` | `text` | yes | none | Examples include `Core Member`, `Board Member`, `Ex-Core Member`, `Guest`. |
+| `Role` | `text` | yes | `Core Member` | New auth-provisioned members use the database default. Explicit Board/Ex-Core roles survive account linking. `members_default_role.sql` backfills Guest/empty roles only. |
 | `Status` | `text` | yes | none | Examples include `Active`, `Passive`, `Left`, `Kicked out`. |
 | `Department` | `text` | yes | none | May contain comma-separated departments. |
 | `Project/Task` | `text` | yes | none | Current project/task. |
@@ -59,7 +59,7 @@ Current live count: 139 rows.
 | `degree_at_uni` | `text` | yes | none | Additional degree metadata. |
 | `highlight` | `text` | yes | none | Profile highlight. |
 | `nft_avatar` | `text` | yes | none | NFT avatar reference. |
-| `nft_consent` | `boolean` | yes | `false` | Consent for NFT flows. |
+| `nft_consent` | `boolean` | yes | `false` | Legacy flag; not proof of NFT publication consent. |
 | `nickname` | `text` | yes | none | Preferred nickname. |
 
 Constraints and indexes:
@@ -110,7 +110,7 @@ App behavior:
 
 - Internal events use registration, participant count, capacity, organizer, and check-in flows.
 - External events use structured metadata from CSV/admin edits.
-- Events page defaults to P1/P2 priorities and hides events older than seven days unless `Past Events` is enabled.
+- Events page defaults to P1/P2/P3 priorities and hides events that ended before the UTC day boundary seven days ago unless `Past Events` is enabled. Home independently loads only the next two P1/P2 events whose end time has not passed, ordered by start time.
 - Full external CSV imports use `scripts/import-external-events-csv.mjs`.
 
 ### `public.event_interest`
@@ -183,6 +183,36 @@ schema and before deploying the RPC-based application. It preserves attendance.
 Do not rerun the legacy `lectures.sql` on an existing database: its prototype
 conversion drops attendance. See `docs/architecture/attendance.md`.
 
+### Scoped administrator access
+
+`admin_assignments` is the canonical delegated-permissions table. Its composite
+primary key is `(member_id, scope)` with scopes `coffee_chats`, `nfts`,
+`newsletter`; it also records `assigned_by` and `created_at`. Board members have
+automatic access without assignments. `admin_access_audit` stores immutable
+application-level grant/revoke/import history with target, scope, actor member
+and auth IDs, and timestamp.
+
+Only `set_admin_access` can mutate assignments: it checks the authenticated Board
+Member in the database and appends audit evidence atomically. Direct mutations
+are revoked. Board-only server routes expose the management page; RLS allows
+non-board members to read only their own grants and no audit records.
+
+`cc_admins` and `nft_admins` are now read-only compatibility views. See
+`docs/architecture/admin-access.md` and `supabase/admin_access.sql`. Legacy setup
+files must not be rerun over these views.
+
+### `public.nft_admins` (compatibility view)
+
+Projects the `nfts` scope from `admin_assignments`. Every member whose
+`members_main.Role` is `Board Member` receives NFT administration access
+automatically and does not need a row here.
+
+| Column | Type | Null | Default | Notes |
+| --- | --- | --- | --- | --- |
+| `member_id` | `bigint` | no | none | Primary key and member reference. |
+| `assigned_by` | `bigint` | yes | none | Board member who assigned access. |
+| `created_at` | `timestamptz` | no | `now()` | Assignment timestamp. |
+
 ### `public.nft_requests`
 
 One row per member combines the reviewable public profile submission with the
@@ -193,15 +223,31 @@ Important column groups:
 | Group | Columns | Purpose |
 | --- | --- | --- |
 | Request | `status`, `display_name`, `fun_facts`, `image_path`, `request_image_bucket` | Member submission and board review. Source portraits are private. |
+| Publication consent | `consent_receipt_id` | Reference to server-recorded, versioned consent evidence; null for legacy requests. |
 | Public metadata | `rendered_image_path`, `metadata_path`, `metadata_url`, `metadata_version` | Versioned public PNG and JSON files used by wallets and explorers. |
 | Solana identity | `chain_network`, `collection_address`, `asset_address` | Network and Metaplex Core addresses. |
-| Ownership | `owner_address`, `custody_status`, `claim_wallet_address`, `claim_requested_at`, `claimed_at` | Club custody, member claim, and wallet recovery. |
+| Mint destination | `mint_destination`, `requested_wallet_address` | Member choice between initial club custody and direct minting to their wallet. |
+| Ownership | `owner_address`, `custody_status`, `claim_wallet_address`, `claim_requested_at`, `claimed_at` | Current custody, later member claim, and wallet recovery. |
 | Lifecycle | `asset_state`, `minted_at`, `updated_on_chain_at`, `burned_at` | `unminted`, `active`, `alumni`, or `burned`. |
 | Receipts | `mint_tx_hash`, `update_tx_hash`, `burn_tx_hash`, `last_chain_error`, `reconciled_at` | Solana signatures and reconciliation state. |
 
 `Alumni` keeps the same asset and publishes updated artwork/metadata. `Left`,
 `Kicked out`, or a manual board revocation burns the asset and deletes hosted
 personal media. Historical transaction records remain on Solana.
+
+### `public.nft_consent_receipts`
+
+Private, append-only application evidence: `request_id`, `member_id`, authenticated
+`actor_id`, database-generated `accepted_at`, `legal_version`, full `documents`
+and a `submission` snapshot. Request deletion does not cascade to this minimal
+evidence. There is no automatic retention cleanup; operators must review legal
+retention needs and erase evidence when no longer necessary. Browser roles have
+no access. The service role can read/insert but cannot update/delete receipts.
+
+`save_nft_request_with_consent` is service-role-only and saves the request and
+receipt in one transaction, or records renewal without changing request status.
+The API derives actor/member identity from authentication and supplies the current
+legal text. Apply `supabase/nft_publication_consent.sql` after `nft_requests.sql`.
 
 ### `public.nft_chain_operations`
 
@@ -350,10 +396,11 @@ Constraints and indexes:
 | `current_member_id()` | `integer` | Resolves current authenticated user to `members_main.id`. |
 | `has_special_access()` | `boolean` | Checks whether the current user has special admin access. |
 | `check_email_has_special_access(check_email text)` | `boolean` | Checks special access for a supplied email. |
-| `check_email_can_manage_newsletter(check_email text)` | `boolean` | Checks newsletter manager access for board members or special-access users. |
-| `check_email_can_manage_coffee_chats(check_email text)` | `boolean` | Checks Coffee Chat administrator access for board members or special-access users. |
+| `check_email_can_manage_newsletter(check_email text)` | `boolean` | Checks Board Member or delegated `newsletter` access. |
+| `check_email_can_manage_coffee_chats(check_email text)` | `boolean` | Checks Board Member or delegated `coffee_chats` access. |
+| `check_email_can_manage_nft_requests(check_email text)` | `boolean` | Internal helper that checks NFT access for board members and explicitly assigned NFT administrators. |
 | `commit_coffee_chat_pairing(target_round_id uuid, pair_rows jsonb)` | `integer` | Locks an open round, validates participants, inserts all pairs, and advances the round atomically. Service-role only. |
-| `can_manage_nft_requests()` | `boolean` | Checks NFT admin permissions. |
+| `can_manage_nft_requests()` | `boolean` | Checks current-user NFT admin permissions. |
 | `allow_only_test_domain()` | `trigger` | Auth-related domain guard. |
 | `block_guest_core_updates_email()` | `trigger` | Prevents restricted email updates. |
 | `enforce_member_role_and_department_changes()` | `trigger` | Allows one initial self-selected department and keeps later department and role changes board/admin managed. |
@@ -378,7 +425,7 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 ### Newsletter
 
 - Newsletter projects, assets, deliveries, and delivery events are managed by newsletter managers.
-- Newsletter managers are members with `Role = 'Board Member'` or users accepted by `check_email_has_special_access(check_email text)`.
+- Newsletter managers are Board Members or members explicitly assigned the `newsletter` scope; the existing newsletter permission function delegates to this central model.
 - API routes verify the same access through `check_email_can_manage_newsletter(check_email text)` before calling Mailgun or mutating newsletter data.
 
 ### Events And Registration
@@ -396,10 +443,10 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 
 ### NFT Requests
 
-- Members can insert their own NFT request.
+- Authenticated server routes save member requests and consent atomically; browser roles cannot directly mutate requests.
 - Members can view their own request.
-- NFT admins can view all, update, and delete requests.
-- The platform's guarded NFT administration API accepts board members, special-access users, and existing explicit NFT administrators. Dashboard visibility uses the same predicate in `lib/member-permissions.ts`. These routes use the server-only service-role client; this application authorization does not grant broader direct database access through `can_manage_nft_requests()`.
+- NFT admins can view all requests; authorized server routes handle mutations.
+- The platform's guarded NFT administration API accepts board members, special-access users, and explicit `nfts` admin assignments (`nft_admins` view). Dashboard visibility uses the same rule (`lib/member-permissions.ts`, `requireNftRequestAdmin`). These routes use the server-only service-role client; this application authorization does not grant broader direct database access through `can_manage_nft_requests()`.
 
 ### Link Redirect Analytics
 
@@ -409,9 +456,9 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 
 ### Newsletter Projects
 
-- Authenticated special-access users can read, insert, update, and delete newsletter projects.
+- Authenticated Board Members and delegated Mail administrators can read, insert, update, and delete newsletter projects.
 - Inserts require `created_by = auth.uid()` in normal authenticated sessions.
-- Updates and deletes are shared across special-access users; `created_by` is audit metadata, not ownership enforcement.
+- Updates and deletes are shared across Mail administrators; `created_by` is audit metadata, not ownership enforcement.
 
 ### Newsletter Deliveries
 
@@ -550,3 +597,9 @@ pnpm exec tsc --noEmit
 pnpm lint
 pnpm build
 ```
+
+### Event grant applications
+
+`supabase/event_grants.sql` adds optional `events.grant_url` and `event_grant_applications(event_id, member_id, created_at)`. The composite key prevents duplicate applications. RLS permits members to read/withdraw only their own applications and apply only to non-ended external events without an external grant link. Board members and the central `grants` scope can read all applications. No public applicant counts or lists are exposed. External form clicks are not recorded as completed applications.
+
+The central role assignment and audit scope constraints now include `grants`; only Board Members may assign this scope through `set_admin_access`.
