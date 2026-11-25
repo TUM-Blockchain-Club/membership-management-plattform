@@ -9,6 +9,7 @@ import {
   resolveCurrentNftRequestMember,
 } from "@/lib/server/nftRequestCurrentMember"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { getConfiguredSolanaNetwork } from "@/lib/server/solanaNetwork"
 
 type SavePayload = {
   publication_consent?: unknown
@@ -42,6 +43,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({
+      network: getConfiguredSolanaNetwork(),
       memberId: member.ID,
       member: {
         id: member.ID,
@@ -137,6 +139,7 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({
+      network: getConfiguredSolanaNetwork(),
       memberId: member.ID,
       request: { ...data, consent_required: false },
     })

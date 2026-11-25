@@ -1,7 +1,7 @@
 import 'server-only'
 import { requireNftPublicationConsent } from '@/lib/server/nftPublicationConsent'
 
-import { buildMembershipMetadata } from '@/lib/nftLifecycle'
+import { buildMembershipMetadata, type SolanaNetwork } from '@/lib/nftLifecycle'
 import { NFT_PUBLIC_ASSET_BUCKET } from '@/lib/nftRequestConstants'
 import { buildNftImage } from '@/lib/server/buildNftImage'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
@@ -22,6 +22,7 @@ export type MembershipNftRecord = {
     metadata_version: number
     asset_address: string | null
     asset_state: 'unminted' | 'active' | 'alumni' | 'burned'
+    chain_network: SolanaNetwork
     mint_destination: 'club' | 'member'
     requested_wallet_address: string | null
     claim_wallet_address: string | null
@@ -37,7 +38,7 @@ export type MembershipNftRecord = {
 }
 
 const REQUEST_COLUMNS =
-  'consent_receipt_id, id, member_id, status, display_name, fun_facts, image_path, image_url, request_image_bucket, approved_display_name, approved_fun_facts, approved_image_path, approved_image_bucket, metadata_version, asset_address, asset_state, mint_destination, requested_wallet_address, claim_wallet_address'
+  'consent_receipt_id, id, member_id, status, display_name, fun_facts, image_path, image_url, request_image_bucket, approved_display_name, approved_fun_facts, approved_image_path, approved_image_bucket, metadata_version, asset_address, asset_state, chain_network, mint_destination, requested_wallet_address, claim_wallet_address'
 
 export const loadMembershipNftRecord = async (
   supabase: SupabaseServerClient,
