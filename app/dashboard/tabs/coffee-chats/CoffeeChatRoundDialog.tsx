@@ -103,7 +103,7 @@ export function CoffeeChatRoundDialog({ round, busy, onClose, onUpdated, onPair,
 
   return (
     <Dialog open onOpenChange={(open) => { if (!open && !disabled) onClose() }}>
-      <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl" showCloseButton={!disabled} onCloseAutoFocus={() => document.getElementById(`coffee-round-${round.id}`)?.focus()}>
+      <DialogContent className="flex max-h-[90dvh] max-w-2xl flex-col gap-0 overflow-hidden p-0" showCloseButton={!disabled} onCloseAutoFocus={() => document.getElementById(`coffee-round-${round.id}`)?.focus()}>
         <DialogHeader className="shrink-0 border-b p-5 pr-12">
           <DialogTitle>Coffee Chat · {round.month}</DialogTitle>
           <DialogDescription>Review signups, edit deadlines and manage this round.</DialogDescription>

@@ -16,6 +16,22 @@ export const getRequestedMintOwnerAddress = (
   return walletAddress
 }
 
+/**
+ * Ownership of a minted asset changes only through claim/recovery, so a profile
+ * update keeps the saved destination instead of the submitted one.
+ */
+export const getSavedMintDestination = (
+  submitted: { mint_destination?: NftMintDestination; requested_wallet_address?: string | null },
+  previous: { asset_address?: string | null; mint_destination?: NftMintDestination; requested_wallet_address?: string | null } | null
+) => {
+  const source = previous?.asset_address ? previous : submitted
+  const mintDestination = source.mint_destination ?? 'club'
+  return {
+    mintDestination,
+    requestedWalletAddress: mintDestination === 'member' ? source.requested_wallet_address?.trim() || null : null,
+  }
+}
+
 export const isBurningMemberStatus = (status: string | null | undefined) =>
   BURNING_MEMBER_STATUSES.has(status?.trim().toLowerCase() ?? '')
 

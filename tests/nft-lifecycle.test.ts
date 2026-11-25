@@ -7,10 +7,11 @@ const {
   getMembershipAssetAction,
   getMembershipAssetState,
   getRequestedMintOwnerAddress,
+  getSavedMintDestination,
   getSolanaExplorerUrl,
   isBurningMemberStatus,
 } = await import(moduleUrl.href) as typeof import('../lib/nftLifecycle')
-const { getSuggestedNftDisplayName } = await import(
+const { getInitialNftDisplayName, getSuggestedNftDisplayName } = await import(
   new URL('../lib/nftDisplayName.ts', import.meta.url).href
 ) as typeof import('../lib/nftDisplayName')
 const { isSolanaPublicKey } = await import(
@@ -22,6 +23,38 @@ test('display-name suggestions keep only the first name and surname initial', ()
   assert.equal(getSuggestedNftDisplayName('  Ada  Lovelace  '), 'Ada L.')
   assert.equal(getSuggestedNftDisplayName('Satoshi'), 'Satoshi')
   assert.equal(getSuggestedNftDisplayName(null), '')
+})
+
+test('display-name suggestions apply the documented first-name plus surname-initial rule to multi-word names', () => {
+  assert.equal(getSuggestedNftDisplayName('E2E Test Member'), 'E2E M.')
+})
+
+test('a profile-update form starts from the name on the minted NFT, a new application from the suggestion', () => {
+  assert.equal(getInitialNftDisplayName('E2E Test Member', null), 'E2E M.')
+  assert.equal(getInitialNftDisplayName('E2E Test Member', { display_name: 'E2E Test M.', asset_address: 'asset', asset_state: 'active' }), 'E2E Test M.')
+  assert.equal(getInitialNftDisplayName('E2E Test Member', { display_name: 'E2E Test M.', asset_address: null, asset_state: 'unminted' }), 'E2E M.')
+  assert.equal(getInitialNftDisplayName('E2E Test Member', { display_name: 'E2E Test M.', asset_address: 'asset', asset_state: 'burned' }), 'E2E M.')
+})
+
+test('profile updates of a minted NFT keep the saved mint destination', () => {
+  const minted = { asset_address: 'asset', mint_destination: 'member' as const, requested_wallet_address: 'member-wallet' }
+  assert.deepEqual(getSavedMintDestination({ mint_destination: 'club', requested_wallet_address: null }, minted), {
+    mintDestination: 'member',
+    requestedWalletAddress: 'member-wallet',
+  })
+  assert.deepEqual(getSavedMintDestination({}, minted), { mintDestination: 'member', requestedWalletAddress: 'member-wallet' })
+})
+
+test('new requests use the submitted mint destination, defaulting to club custody', () => {
+  assert.deepEqual(getSavedMintDestination({ mint_destination: 'member', requested_wallet_address: ' wallet ' }, null), {
+    mintDestination: 'member',
+    requestedWalletAddress: 'wallet',
+  })
+  assert.deepEqual(getSavedMintDestination({ mint_destination: 'club', requested_wallet_address: 'stale' }, { asset_address: null }), {
+    mintDestination: 'club',
+    requestedWalletAddress: null,
+  })
+  assert.deepEqual(getSavedMintDestination({}, null), { mintDestination: 'club', requestedWalletAddress: null })
 })
 
 test('mint destination selects club custody or the requested member wallet', () => {
