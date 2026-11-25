@@ -389,7 +389,7 @@ export function NewsletterPage({ canManageNewsletter }: Props) {
             <MailIcon />
           </EmptyMedia>
           <EmptyTitle>Newsletter access required</EmptyTitle>
-          <EmptyDescription>This workspace tool is only available to board members and special-access users.</EmptyDescription>
+          <EmptyDescription>This workspace tool is available to board members and assigned Mail administrators.</EmptyDescription>
         </EmptyHeader>
       </Empty>
     )

@@ -1,8 +1,20 @@
 export type MembershipAssetState = 'active' | 'alumni' | 'burned'
 export type MembershipAssetAction = 'none' | 'update_alumni' | 'burn'
 export type SolanaNetwork = 'devnet' | 'mainnet-beta'
+export type NftMintDestination = 'club' | 'member'
 
 const BURNING_MEMBER_STATUSES = new Set(['left', 'kicked out', 'revoked'])
+
+export const getRequestedMintOwnerAddress = (
+  destination: NftMintDestination,
+  requestedWalletAddress: string | null | undefined
+) => {
+  if (destination === 'club') return null
+
+  const walletAddress = requestedWalletAddress?.trim()
+  if (!walletAddress) throw new Error('A Solana wallet address is required for member custody.')
+  return walletAddress
+}
 
 export const isBurningMemberStatus = (status: string | null | undefined) =>
   BURNING_MEMBER_STATUSES.has(status?.trim().toLowerCase() ?? '')

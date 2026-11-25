@@ -1,9 +1,12 @@
 import type { DashboardTab } from '@/app/components/dashboard/types'
 
 export const TAB_ROUTES: Record<DashboardTab, string> = {
+  'event-grants': '/event-grants',
+  'admin-access': '/admin-access',
   home: '/home',
   profile: '/profile',
   'coffee-chats': '/coffee-chats',
+  'coffee-chats-admin': '/coffee-chats/admin',
   members: '/members',
   stats: '/statistics',
   events: '/events',
@@ -15,6 +18,8 @@ export const TAB_ROUTES: Record<DashboardTab, string> = {
 }
 
 const PATHNAME_TO_TAB: Record<string, DashboardTab> = {
+  '/event-grants': 'event-grants',
+  '/admin-access': 'admin-access',
   '/home': 'home',
   '/coffee-chats': 'coffee-chats',
   '/events': 'events',
@@ -29,6 +34,10 @@ const PATHNAME_TO_TAB: Record<string, DashboardTab> = {
 }
 
 export function getDashboardTabForPathname(pathname: string): DashboardTab {
+  if (pathname === '/coffee-chats/admin' || pathname.startsWith('/coffee-chats/admin/')) {
+    return 'coffee-chats-admin'
+  }
+
   if (pathname === '/coffee-chats' || pathname.startsWith('/coffee-chats/')) {
     return 'coffee-chats'
   }

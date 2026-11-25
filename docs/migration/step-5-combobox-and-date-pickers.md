@@ -9,6 +9,7 @@ The dashboard now uses shadcn compositions for searchable university selection a
 - Date-time values remain local `YYYY-MM-DDTHH:mm` strings until the existing mutation boundary converts them to UTC. This prevents the picker from shifting the displayed calendar date.
 - Coffee Chat deadlines are date-only controls. Their selected `YYYY-MM-DD` value is stored as local midnight and converted to UTC only at the mutation boundary.
 - `components/date-picker.tsx` owns the shared `DatePicker`, `MonthPicker`, and `DateTimePicker` compositions built from shadcn `Calendar`, `Popover`, `Button`, and `Input` primitives.
+- `MonthPicker` uses twelve month buttons and previous/next year controls instead of a day calendar. It opens at the selected year, focuses the selected month, and closes after selection; values remain `YYYY-MM`. Deadline date pickers retain their day calendars.
 - Hidden file inputs remain native because they provide browser file selection and do not duplicate a shadcn interaction primitive.
 
 ## Coverage

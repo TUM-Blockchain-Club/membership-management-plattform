@@ -20,7 +20,6 @@ import {
 } from '@metaplex-foundation/umi'
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
 import type { SolanaNetwork } from '@/lib/nftLifecycle'
-
 const requiredEnv = (key: string) => {
   const value = process.env[key]?.trim()
   if (!value) throw new Error(`Missing required Solana environment variable: ${key}`)
@@ -105,32 +104,26 @@ export const createSolanaMembershipClient = () => {
 
 const signatureToString = (signature: Uint8Array) => base58.deserialize(signature)[0]
 
-export const isSolanaPublicKey = (value: string) => {
-  try {
-    publicKey(value)
-    return true
-  } catch {
-    return false
-  }
-}
-
 export const mintMembershipAsset = async ({
   name,
+  ownerAddress,
   uri,
 }: {
   name: string
+  ownerAddress?: string | null
   uri: string
 }) => {
   const { umi, signer, config } = createSolanaMembershipClient()
   await assertConfiguredNetwork(config.rpcUrl, config.network)
   const collection = await fetchCollectionV1(umi, config.collectionAddress)
   const asset = generateSigner(umi)
+  const owner = ownerAddress ? publicKey(ownerAddress) : signer.publicKey
   const result = await create(umi, {
     asset,
     authority: signer,
     collection,
     name,
-    owner: signer.publicKey,
+    owner,
     uri,
     plugins: [
       { type: 'PermanentFreezeDelegate', frozen: true },
@@ -142,7 +135,7 @@ export const mintMembershipAsset = async ({
   return {
     assetAddress: String(asset.publicKey),
     collectionAddress: String(collection.publicKey),
-    ownerAddress: String(signer.publicKey),
+    ownerAddress: String(owner),
     signature: signatureToString(result.signature),
     network: config.network,
   }

@@ -61,12 +61,14 @@ export async function buildNftImage(params: {
   const deptOverlay = DEPT_MAP[department] || "overlay_board.png";
 
   // ── 1. Base canvas: ALWAYS resize to exact fixed dimensions ──────────────
-  const baseCanvasBuffer = await sharp(path.join(ASSETS_DIR, 'base1.png'))
-    .resize(CANVAS_W, CANVAS_H, { fit: 'fill' })   
+  const baseCanvasBuffer = await sharp({ create: { width: CANVAS_W, height: CANVAS_H, channels: 4, background: '#000000' } })
+    .png()
     .toBuffer();
 
   // ── 2. Avatar ─────────────────────────────────────────────────────────────
-  let avatarBuffer: Buffer | null = imageBuffer ?? null;
+  let avatarBuffer: Buffer | null = imageBuffer
+    ? await sharp(imageBuffer, { limitInputPixels: 25_000_000 }).rotate().resize(AVATAR_W, AVATAR_H, { fit: 'cover' }).png().toBuffer()
+    : null;
   if (!avatarBuffer && imageUrl) {
     try {
       const res = await fetch(imageUrl);
@@ -222,6 +224,11 @@ export async function buildNftImage(params: {
       left: ICON_CENTER_X - Math.floor(CUBE_SIZE / 2) 
     });
   }
+
+  // Rasterize the supplied vector at output resolution, above the portrait.
+  const wordmark = await sharp(path.join(ASSETS_DIR, 'tbc-wordmark-vector-white.svg'), { density: 288 })
+    .resize(270).png().toBuffer();
+  layers.push({ input: wordmark, left: CANVAS_W - 330, top: 60 });
 
   // LAYER 5: The Text (Top)
   layers.push({ input: Buffer.from(svgText), top: 0, left: 0 });

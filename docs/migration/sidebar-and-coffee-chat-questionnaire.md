@@ -53,3 +53,13 @@ pnpm exec playwright test --config=playwright.demo.config.ts
 be enabled on the production deployment. Demo saves are simulated and do not
 verify persistence against Supabase. Authenticated production testing remains
 governed by the existing protected production E2E workflow.
+
+## Searchable choices
+
+University selection and Link Analytics Type/Campaign controls use the shared
+`SearchableSelect` composition (Radix Popover + shadcn Command/cmdk). University
+suggestions retain the existing acronym/name search. Creating a value requires
+selecting the explicit new-value option; merely typing or dismissing does not
+change saved form values. Link creation suggestions derive from loaded link
+metadata, and the overview has searchable existing-only Type/Campaign filters.
+No schema changes are required; existing server validation remains authoritative.

@@ -46,7 +46,7 @@ const PRIORITY_OPTIONS = [
   { value: 'P3', label: 'P3 😁' },
   { value: 'P4', label: 'P4 🧐' },
 ]
-const DEFAULT_PRIORITY_FILTER = ['P1', 'P2']
+const DEFAULT_PRIORITY_FILTER = ['P1', 'P2', 'P3']
 const RECENT_PAST_DAYS = 7
 
 export function EventsPage({
@@ -106,6 +106,7 @@ export function EventsPage({
   const [searchQuery, setSearchQuery] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [priorityFilter, setPriorityFilter] = useState<string[]>(DEFAULT_PRIORITY_FILTER)
+  const [grantNow] = useState(() => Date.now())
   const [showOlderPastEvents, setShowOlderPastEvents] = useState(false)
   const [, startTransition] = useTransition()
   const internalEvents = events.filter((event) => event.event_kind === 'internal')
@@ -234,7 +235,7 @@ export function EventsPage({
               </EmptyHeader>
             </Empty>
           ) : (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
               {internalEvents.map((event) => (
                 <InternalEventCard
                   key={event.id}
@@ -344,7 +345,7 @@ export function EventsPage({
             </EmptyHeader>
           </Empty>
         ) : (
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 items-stretch gap-4 lg:grid-cols-2">
             {filteredExternalEvents.map((event) => (
               <ExternalEventCard
                 key={event.id}
@@ -360,6 +361,9 @@ export function EventsPage({
                 attendingNames={event.attending_names}
                 canEdit={canManageEvents}
                 onEdit={() => setEditingEvent(event)}
+                eventId={Number(event.id)}
+                grantUrl={event.grant_url ?? null}
+                grantClosed={Date.parse(event.end_at) < grantNow}
                 tallyUrl={event.tally_url ?? null}
                 whatsappUrl={event.whatsapp_url ?? null}
                 interestCount={event.interest_count ?? 0}

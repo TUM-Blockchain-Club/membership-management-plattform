@@ -1,5 +1,7 @@
+import { NftPublicationConsentError } from '@/lib/server/nftPublicationConsent'
 import { NextResponse } from 'next/server'
-import { getMembershipAssetState } from '@/lib/nftLifecycle'
+import { getMembershipAssetState, getRequestedMintOwnerAddress } from '@/lib/nftLifecycle'
+import { isSolanaPublicKey } from '@/lib/solanaAddress'
 import {
   confirmNftChainOperation,
   failNftChainOperation,
@@ -39,6 +41,16 @@ export async function POST(request: Request, context: RouteContext) {
       return NextResponse.json({ error: 'This membership NFT has been burned.' }, { status: 409 })
     }
 
+    const requestedOwnerAddress = record.request.asset_address
+      ? null
+      : getRequestedMintOwnerAddress(
+          record.request.mint_destination,
+          record.request.requested_wallet_address
+        )
+    if (requestedOwnerAddress && !isSolanaPublicKey(requestedOwnerAddress)) {
+      return NextResponse.json({ error: 'The requested Solana wallet address is invalid.' }, { status: 409 })
+    }
+
     const assetState = desiredState === 'alumni' ? 'alumni' : 'active'
     const rendered = await renderAndUploadMembershipAssets(dataClient, record, assetState)
     const operation = record.request.asset_address ? 'update' : 'mint'
@@ -51,6 +63,7 @@ export async function POST(request: Request, context: RouteContext) {
         })
       : await mintMembershipAsset({
           name: `${record.request.display_name} — TBC Membership`,
+          ownerAddress: requestedOwnerAddress,
           uri: rendered.metadataUrl,
         })
 
@@ -85,7 +98,7 @@ export async function POST(request: Request, context: RouteContext) {
         collection_address: 'collectionAddress' in chainResult ? chainResult.collectionAddress : undefined,
         asset_address: assetAddress,
         owner_address: 'ownerAddress' in chainResult ? chainResult.ownerAddress : undefined,
-        custody_status: record.request.asset_address ? undefined : 'club',
+        custody_status: record.request.asset_address ? undefined : requestedOwnerAddress ? 'member' : 'club',
         asset_state: assetState,
         mint_tx_hash: record.request.asset_address ? undefined : chainResult.signature,
         update_tx_hash: record.request.asset_address ? chainResult.signature : undefined,
@@ -134,7 +147,7 @@ export async function POST(request: Request, context: RouteContext) {
       const dataClient = getSupabaseAdminClient()
       if (dataClient) await failNftChainOperation(dataClient, operationId, message)
     }
-    if (error instanceof NftRequestAdminError) {
+    if (error instanceof NftRequestAdminError || error instanceof NftPublicationConsentError) {
       return NextResponse.json({ error: message }, { status: error.status })
     }
     return NextResponse.json({ error: message }, { status: 500 })

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { MemberHomePage } from '@/app/dashboard/tabs/home/MemberHomePage'
+import { loadHomeEvents } from '@/lib/server/dashboardData'
 import { loadCoffeeChatHome } from '@/lib/server/coffeeChats'
 
 export const metadata: Metadata = {
@@ -8,12 +9,12 @@ export const metadata: Metadata = {
 }
 
 export default async function HomePage() {
-  const coffeeChatData = await loadCoffeeChatHome()
+  const [coffeeChatData, upcomingEvents] = await Promise.all([loadCoffeeChatHome(), loadHomeEvents()])
 
   return (
     <MemberHomePage
       coffeeChatData={coffeeChatData}
-      currentTime={new Date().toISOString()}
+      upcomingEvents={upcomingEvents}
     />
   )
 }

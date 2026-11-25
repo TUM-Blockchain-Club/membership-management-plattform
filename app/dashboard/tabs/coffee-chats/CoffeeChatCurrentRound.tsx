@@ -26,10 +26,12 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { Progress } from '@/components/ui/progress'
 import { Spinner } from '@/components/ui/spinner'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { CoffeeChatNextRoundNotice } from './CoffeeChatNextRoundNotice'
 import { CoffeeChatMatchPanel } from './CoffeeChatMatchPanel'
 import {
   type CoffeeChatHomeData,
   getCoffeeChatNextStep,
+  getAdditionalCoffeeChatRound,
   isCoffeeChatsDemoClient,
 } from '@/lib/coffee-chats'
 
@@ -99,31 +101,36 @@ export function CoffeeChatCurrentRound({
     activeMatch?.pair.status === 'met',
   ].filter(Boolean).length
   const displayRound = activeMatch?.round ?? initialData.openRound
+  const nextRound = getAdditionalCoffeeChatRound({ ...initialData, match })
 
   function handleSignup() {
     startTransition(async () => {
-      if (isCoffeeChatsDemoClient()) {
+      try {
+        if (isCoffeeChatsDemoClient()) {
+          setIsSignedUp(true)
+          setDemoScenario('waiting')
+          toast.success('Demo signup completed.')
+          return
+        }
+
+        const response = await fetch('/api/coffee-chats/signup', { method: 'POST' })
+        const json = (await response.json()) as { ok?: boolean; alreadySignedUp?: boolean; error?: string }
+
+        if (!response.ok || !json.ok) {
+          toast.error(json.error ?? 'We could not add you to this round. Please try again.')
+          return
+        }
+
         setIsSignedUp(true)
-        setDemoScenario('waiting')
-        toast.success('Demo signup completed.')
-        return
+        toast.success(
+          json.alreadySignedUp
+            ? 'You are already signed up for this round.'
+            : 'You are in. We will email you when your match is ready.',
+        )
+        router.refresh()
+      } catch {
+        toast.error('Could not join the round. Please try again.')
       }
-
-      const response = await fetch('/api/coffee-chats/signup', { method: 'POST' })
-      const json = (await response.json()) as { ok?: boolean; alreadySignedUp?: boolean; error?: string }
-
-      if (!response.ok || !json.ok) {
-        toast.error(json.error ?? 'We could not add you to this round. Please try again.')
-        return
-      }
-
-      setIsSignedUp(true)
-      toast.success(
-        json.alreadySignedUp
-          ? 'You are already signed up for this round.'
-          : 'You are in. We will email you when your match is ready.',
-      )
-      router.refresh()
     })
   }
 
@@ -197,6 +204,8 @@ export function CoffeeChatCurrentRound({
           )}
         </CardContent>
       </Card>
+
+      {nextRound && <CoffeeChatNextRoundNotice round={nextRound} isSignedUp={effectiveSignedUp} profileIsComplete={profileIsComplete} onJoin={handleSignup} pending={isPending} />}
 
       {nextStep.kind === 'preferences' && (
         <Card>
