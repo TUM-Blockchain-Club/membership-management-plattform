@@ -1,5 +1,7 @@
 'use client'
 
+import { SearchableSelect } from '@/components/searchable-select'
+
 import NextImage from 'next/image'
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
@@ -636,9 +638,12 @@ function MetadataEditor({
 }
 
 function SoftLinkCreator({
+  types, campaigns,
   windowDays,
   onCreated,
 }: {
+  types: string[]
+  campaigns: string[]
   windowDays: number
   onCreated: (link: LinkAnalyticsSummary) => void
 }) {
@@ -747,24 +752,14 @@ function SoftLinkCreator({
           <div className="grid gap-4 sm:grid-cols-2">
             <Field>
               <FieldLabel htmlFor="soft_origin">Type</FieldLabel>
-              <Input
-                id="soft_origin"
-                value={form.origin}
-                onChange={(event) => updateForm('origin', event.target.value)}
-                placeholder="flyer"
-              />
+              <SearchableSelect id="soft_origin" label="Type" value={form.origin} onChange={value => updateForm('origin', value)} allowCreate disabled={isPending} options={types.map(value => ({value,label:value}))} />
               <FieldDescription>
                 The material or channel, for example flyer, roll-up, poster, or instagram.
               </FieldDescription>
             </Field>
             <Field>
               <FieldLabel htmlFor="soft_campaign">Campaign</FieldLabel>
-              <Input
-                id="soft_campaign"
-                value={form.campaign}
-                onChange={(event) => updateForm('campaign', event.target.value)}
-                placeholder="conference-2026"
-              />
+              <SearchableSelect id="soft_campaign" label="Campaign" value={form.campaign} onChange={value => updateForm('campaign', value)} allowCreate disabled={isPending} options={campaigns.map(value => ({value,label:value}))} />
               <FieldDescription>
                 Groups related links for reporting, for example conference-2026 or flyer-2026.
               </FieldDescription>
@@ -784,7 +779,8 @@ export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyt
   const [links, setLinks] = useState(initialData.links)
   const [inputValue, setInputValue] = useState('')
   const [searchQuery, setSearchQuery] = useState('')
-  const [typeFilter, setTypeFilter] = useState('all')
+  const [typeFilter, setTypeFilter] = useState('')
+  const [campaignFilter, setCampaignFilter] = useState('')
   const [sortMode, setSortMode] = useState<LinkSortMode>('engagement')
   const [, startTransition] = useTransition()
 
@@ -801,12 +797,15 @@ export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyt
     [links]
   )
 
+  const uniqueCampaigns = useMemo(() => [...new Set(links.map(link => link.definition.campaign).filter(Boolean))].sort(), [links])
+
   const visibleLinks = useMemo(() => {
     const query = searchQuery.trim().toLowerCase()
 
     return links
       .filter((link) => {
-        if (typeFilter !== 'all' && link.definition.origin !== typeFilter) return false
+        if (typeFilter && link.definition.origin !== typeFilter) return false
+        if (campaignFilter && link.definition.campaign !== campaignFilter) return false
         if (!query) return true
 
         return [
@@ -827,15 +826,16 @@ export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyt
 
         return b.totalClicks - a.totalClicks || a.definition.slug.localeCompare(b.definition.slug)
       })
-  }, [links, searchQuery, sortMode, typeFilter])
+  }, [links, searchQuery, sortMode, typeFilter, campaignFilter])
 
-  const hasActiveFilters = typeFilter !== 'all' || sortMode !== 'engagement' || searchQuery
+  const hasActiveFilters = !!typeFilter || !!campaignFilter || sortMode !== 'engagement' || searchQuery
 
   const clearFilters = () => {
     setInputValue('')
     startTransition(() => {
       setSearchQuery('')
-      setTypeFilter('all')
+      setTypeFilter('')
+      setCampaignFilter('')
       setSortMode('engagement')
     })
   }
@@ -867,7 +867,7 @@ export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyt
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
-            <SoftLinkCreator
+            <SoftLinkCreator types={uniqueTypes} campaigns={uniqueCampaigns}
               windowDays={initialData.windowDays}
               onCreated={(createdLink) => {
                 setLinks((current) => [...current, createdLink])
@@ -885,7 +885,7 @@ export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyt
                   {visibleLinks.length} of {links.length} links. Engagement sort puts the most clicked link at the top.
                 </CardDescription>
               </div>
-              <SoftLinkCreator
+              <SoftLinkCreator types={uniqueTypes} campaigns={uniqueCampaigns}
                 windowDays={initialData.windowDays}
                 onCreated={(createdLink) => {
                   setLinks((current) => [...current, createdLink])
@@ -908,21 +908,8 @@ export function LinkAnalyticsOverview({ initialData }: { initialData: LinkAnalyt
                 />
               </InputGroup>
 
-              <Select value={typeFilter} onValueChange={updateTypeFilter}>
-                <SelectTrigger size="sm" className="h-8 w-36">
-                  <SelectValue placeholder="Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all">All Types</SelectItem>
-                    {uniqueTypes.map((type) => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+              <SearchableSelect label="Type" value={typeFilter} onChange={updateTypeFilter} className="h-8 w-40" options={[{value:'',label:'All Types'}, ...uniqueTypes.map(value => ({value,label:value}))]} />
+              <SearchableSelect label="Campaign" value={campaignFilter} onChange={setCampaignFilter} className="h-8 w-44" options={[{value:'',label:'All Campaigns'}, ...uniqueCampaigns.map(value => ({value,label:value}))]} />
 
               <Select value={sortMode} onValueChange={updateSortMode}>
                 <SelectTrigger size="sm" className="h-8 w-44">

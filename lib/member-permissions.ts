@@ -5,10 +5,9 @@ export const canManageBoardTools = (
   hasSpecialAccess: boolean,
 ) => hasSpecialAccess || member?.Role?.trim() === 'Board Member'
 
-// Preserve existing explicit NFT administrators alongside board access.
-const NFT_ADMIN_MEMBER_IDS = new Set([0, 99, 107, 26, 126])
-
+// Explicit NFT administrators are central `nfts` admin assignments (the `nft_admins` view).
 export const canManageNftRequests = (
   member: MemberPermissions | null,
   hasSpecialAccess: boolean,
-) => canManageBoardTools(member, hasSpecialAccess) || Boolean(member && NFT_ADMIN_MEMBER_IDS.has(member.id))
+  hasNftAssignment: boolean,
+) => canManageBoardTools(member, hasSpecialAccess) || Boolean(member && hasNftAssignment)

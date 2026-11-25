@@ -1,5 +1,6 @@
 'use client'
 
+import { useDashboardResource } from '@/app/dashboard/lib/useDashboardResource'
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatEventDate, formatEventTime } from '@/app/dashboard/lib/eventFormatters'
@@ -41,7 +42,9 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
 
   const [member, setMember] = useState<DashboardMember | null>(initialData.member)
   const [viewedMember, setViewedMember] = useState<DashboardMember | null>(initialData.member)
-  const [allMembers, setAllMembers] = useState<DashboardMember[]>(initialData.allMembers)
+  const membersResource = useDashboardResource<DashboardMember>('members', Boolean(member) && ['members', 'stats', 'attendance'].includes(routeTab))
+  const allMembers = membersResource.data ?? initialData.allMembers
+  const setAllMembers = membersResource.setData
 
   const [loading] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -69,6 +72,9 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
   const [forceMemberView, setForceMemberView] = useState(false)
   const {
     events,
+    eventsLoading,
+    eventsError,
+    retryEvents,
     handleCreateExternalEvent,
     handleEventRegistration,
     handleUpdateExternalEvent,
@@ -88,17 +94,18 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     showInterestedModal,
     showParticipantsModal,
     uploadingEventImage,
-  } = useDashboardEvents(member, setMessage, initialData.events)
+  } = useDashboardEvents(member, setMessage, routeTab === 'events')
 
   const effectiveHasSpecialAccess = hasSpecialAccess && !forceMemberView
   const effectiveIsBoardMember = member?.Role === 'Board Member' && !forceMemberView
   const effectiveCanManageBoardTools = canManageBoardTools(member, hasSpecialAccess) && !forceMemberView
   const showLinkAnalyticsTab = effectiveCanManageBoardTools
   const showNftApprovalsTab = canManageNftRequests && !forceMemberView
-  const showNewsletterTab = effectiveCanManageBoardTools
+  const showGrantAdminTab = (effectiveIsBoardMember || initialData.canManageGrants === true) && !forceMemberView
+  const showAdminAccessTab = effectiveIsBoardMember
+  const showNewsletterTab = (effectiveIsBoardMember || initialData.canManageNewsletter === true) && !forceMemberView
   const canManageCoffeeChats = canShowCoffeeChatAdmin({
     forceMemberView,
-    hasSpecialAccess,
     isBoardMember: member?.Role === 'Board Member',
     isCoffeeChatAdmin: initialData.canManageCoffeeChats,
   })
@@ -116,6 +123,16 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     })
     setViewedMemberHasSpecialAccess((data as AccessResponse) === true)
   }, [])
+
+  useEffect(() => {
+    if (!loading && activeTab === 'admin-access' && !showAdminAccessTab) router.replace(TAB_ROUTES.home)
+  }, [activeTab, loading, router, showAdminAccessTab])
+
+  useEffect(() => {
+    if (!loading && activeTab === 'coffee-chats-admin' && !canManageCoffeeChats) {
+      router.replace(TAB_ROUTES['coffee-chats'])
+    }
+  }, [activeTab, loading, router, canManageCoffeeChats])
 
   useEffect(() => {
     if (!loading && activeTab === 'nft-approvals' && !showNftApprovalsTab) {
@@ -233,6 +250,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
   }, [clickCount, lastClickTime, router, triggerBlockchainEffect])
 
   const handleAddMember = useCallback(() => {
+    if (!effectiveCanManageBoardTools) return
     setCreatingMember(true)
     setViewedMember(null)
     setEditedMember(makeEmptyMember())
@@ -240,7 +258,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     setShowMemberEditorModal(true)
     setMessage(null)
     setSelectedImageFile(null)
-  }, [])
+  }, [effectiveCanManageBoardTools])
 
   const handleEditClick = useCallback(async () => {
     setCreatingMember(false)
@@ -382,7 +400,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     } finally {
       setSaving(false)
     }
-  }, [creatingMember, editedMember, member, selectedImageFile, viewedMember])
+  }, [creatingMember, editedMember, member, selectedImageFile, viewedMember, setAllMembers])
 
   const handleProfileTabSelected = useCallback(() => {
     setViewedMember(member)
@@ -399,13 +417,23 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
       return
     }
 
+    if (tab === 'admin-access' && !showAdminAccessTab) {
+      router.push(TAB_ROUTES.home)
+      return
+    }
+
+    if (tab === 'coffee-chats-admin' && !canManageCoffeeChats) {
+      router.push(TAB_ROUTES['coffee-chats'])
+      return
+    }
+
     if (tab === 'nft-approvals' && !showNftApprovalsTab) {
       router.push(TAB_ROUTES['nft-status'])
       return
     }
 
     router.push(TAB_ROUTES[tab])
-  }, [router, showNftApprovalsTab, handleProfileTabSelected])
+  }, [router, showNftApprovalsTab, showAdminAccessTab, canManageCoffeeChats, handleProfileTabSelected])
 
   const canViewRemovedMembers = effectiveIsBoardMember || effectiveHasSpecialAccess
 
@@ -434,6 +462,9 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
   const sections = useProfileSections(viewedMember)
 
   return {
+    routeDataLoading: membersResource.loading || eventsLoading,
+    routeDataError: ['members', 'stats', 'attendance'].includes(routeTab) ? membersResource.error : routeTab === 'events' ? eventsError : null,
+    retryRouteData: routeTab === 'events' ? retryEvents : membersResource.retry,
     activeTab,
     boardMembers,
     canEditField,
@@ -506,6 +537,8 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     showInterestedModal,
     showLinkAnalyticsTab,
     showMemberEditorModal,
+    showAdminAccessTab,
+    showGrantAdminTab,
     showNewsletterTab,
     showNftApprovalsTab,
     showParticipantsModal,

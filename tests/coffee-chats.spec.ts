@@ -2,6 +2,8 @@ import { expect, test } from '@playwright/test'
 
 import {
   buildMeetingUpdate,
+  demoMatch,
+  getAdditionalCoffeeChatRound,
   canShowCoffeeChatAdmin,
   dateToCalendarDate,
   escapeEmailHtml,
@@ -19,7 +21,7 @@ import {
   runPairing,
   validateSelfieUpload,
 } from '../lib/coffee-chats'
-import { getDashboardTabForPathname } from '../app/dashboard/lib/routes'
+import { getDashboardTabForPathname, TAB_ROUTES } from '../app/dashboard/lib/routes'
 import { getQuestionsForPair } from '../lib/coffee-chat-icebreakers'
 
 test('empty optional Coffee Chat spots are stored as an empty list', () => {
@@ -231,19 +233,21 @@ test('Coffee Chat profiles are complete only when active with an interest', () =
   expect(isCoffeeChatProfileComplete(false, ['Travel'])).toBe(false)
 })
 
-test('dashboard routing keeps every Coffee Chats page in the Coffee Chats tab', () => {
+test('dashboard routing separates Coffee Chats administration from member pages', () => {
+  expect(TAB_ROUTES['coffee-chats-admin']).toBe('/coffee-chats/admin')
+  expect(getDashboardTabForPathname('/coffee-chats/admin')).toBe('coffee-chats-admin')
+  expect(getDashboardTabForPathname('/coffee-chats/admin/rounds')).toBe('coffee-chats-admin')
+  expect(getDashboardTabForPathname('/home')).toBe('home')
   expect(getDashboardTabForPathname('/coffee-chats')).toBe('coffee-chats')
   expect(getDashboardTabForPathname('/coffee-chats/setup')).toBe('coffee-chats')
   expect(getDashboardTabForPathname('/coffee-chats/gallery')).toBe('coffee-chats')
-  expect(getDashboardTabForPathname('/coffee-chats/admin')).toBe('coffee-chats')
-  expect(getDashboardTabForPathname('/coffee-chats/admin/rounds/round-123')).toBe('coffee-chats')
+  expect(getDashboardTabForPathname('/coffee-chats/admin/rounds/round-123')).toBe('coffee-chats-admin')
 })
 
 test('normal member view hides Coffee Chat administration for board members', () => {
   expect(
     canShowCoffeeChatAdmin({
       forceMemberView: true,
-      hasSpecialAccess: false,
       isBoardMember: true,
     }),
   ).toBe(false)
@@ -253,7 +257,7 @@ test('Coffee Chat administration is visible with effective admin access', () => 
   expect(
     canShowCoffeeChatAdmin({
       forceMemberView: false,
-      hasSpecialAccess: true,
+      isCoffeeChatAdmin: true,
       isBoardMember: false,
     }),
   ).toBe(true)
@@ -311,7 +315,6 @@ test('Coffee Chat administration is visible for assigned coffee chat admins', ()
   expect(
     canShowCoffeeChatAdmin({
       forceMemberView: false,
-      hasSpecialAccess: false,
       isBoardMember: false,
       isCoffeeChatAdmin: true,
     }),
@@ -346,4 +349,16 @@ test('completing a meeting explicitly records status and sign-off', () => {
     date_met: '2026-07-28',
     highlight_note: 'Talked about account abstraction.',
   })
+})
+
+ test('unfinished match retains a separate newer signup round, without duplicates for older or same rounds', () => {
+  const match = { ...demoMatch, pair: { ...demoMatch.pair, status: 'pending' } }
+  const openRound = { ...match.round, id: 'new-round', month: '2027-01', status: 'open' }
+  const data = { firstName: 'Alex', isProfileComplete: true, isSignedUp: false, match, openRound }
+  expect(getAdditionalCoffeeChatRound(data)).toEqual(openRound)
+  expect(getAdditionalCoffeeChatRound({ ...data, isSignedUp: true })).toEqual(openRound)
+  expect(getAdditionalCoffeeChatRound({ ...data, openRound: match.round })).toBeNull()
+  expect(getAdditionalCoffeeChatRound({ ...data, openRound: { ...openRound, month: '2020-01' } })).toBeNull()
+  expect(getAdditionalCoffeeChatRound({ ...data, match: null })).toBeNull()
+  expect(getAdditionalCoffeeChatRound({ ...data, match: { ...match, pair: { ...match.pair, status: 'met' } } })).toBeNull()
 })

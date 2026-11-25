@@ -31,9 +31,12 @@ export type DashboardStats = {
 }
 
 export type DashboardTab =
+  | 'event-grants'
+  | 'admin-access'
   | 'home'
   | 'profile'
   | 'coffee-chats'
+  | 'coffee-chats-admin'
   | 'members'
   | 'stats'
   | 'events'

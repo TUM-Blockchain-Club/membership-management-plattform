@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { isSolanaPublicKey } from '@/lib/server/solanaMembership'
+import { isSolanaPublicKey } from '@/lib/solanaAddress'
 import {
   NftRequestCurrentMemberError,
   resolveCurrentNftRequestMember,

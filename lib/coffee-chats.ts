@@ -6,14 +6,13 @@ import type { Database } from '@/lib/types/database.types'
 
 export type CoffeeChatAdminViewInput = {
   forceMemberView: boolean
-  hasSpecialAccess: boolean
   isBoardMember: boolean
   isCoffeeChatAdmin?: boolean
 }
 
 export function canShowCoffeeChatAdmin(input: CoffeeChatAdminViewInput): boolean {
   if (input.forceMemberView) return false
-  return input.hasSpecialAccess || input.isBoardMember || Boolean(input.isCoffeeChatAdmin)
+  return input.isBoardMember || Boolean(input.isCoffeeChatAdmin)
 }
 
 /* ==========================================================================
@@ -327,6 +326,7 @@ export type CoffeeChatRoundSummary = {
 }
 
 export type CoffeeChatPartner = {
+  picture?: string | null
   id: number
   name: string
   department: string | null
@@ -495,3 +495,10 @@ export const demoRounds = [
     created_at: '2026-07-01T09:00:00.000Z',
   },
 ]
+
+/** Keep an unfinished match visible while exposing a newer signup round. */
+export function getAdditionalCoffeeChatRound(data: CoffeeChatHomeData) {
+  return data.match && data.match.pair.status !== 'met' && data.openRound &&
+    data.openRound.id !== data.match.round.id && data.openRound.month > data.match.round.month
+    ? data.openRound : null
+}

@@ -3,18 +3,24 @@ import { supabase } from './supabase'
 export type NftRequestStatus = 'pending' | 'approved' | 'rejected'
 
 export type NftRequestUpsert = {
+  publication_consent: boolean
+  legal_version: string
   member_id: number | string
   status: 'pending'
   display_name: string
   fun_facts: string | null
   image_path: string
   image_url: string
+  mint_destination: 'club' | 'member'
+  requested_wallet_address: string | null
   reviewed_at: null
   reviewed_by: null
   review_note: null
 }
 
 export type NftRequestRow = {
+  consent_receipt_id?: string | null
+  consent_required?: boolean
   id: string
   member_id: number | string
   status: NftRequestStatus
@@ -41,6 +47,8 @@ export type NftRequestRow = {
   custody_status?: 'club' | 'member'
   asset_state?: 'unminted' | 'active' | 'alumni' | 'burned'
   claim_wallet_address?: string | null
+  mint_destination?: 'club' | 'member'
+  requested_wallet_address?: string | null
   claim_requested_at?: string | null
   claimed_at?: string | null
   minted_at?: string | null
@@ -88,6 +96,7 @@ export type CurrentNftRequestResponse = {
   member: {
     id: number
     name: string | null
+    batch: string | null
     email: string | null
     department: string | null
   }

@@ -5,5 +5,8 @@
       "schedule": "17 3 * * *"
     }
   ],
+  "regions": [
+    "dub1"
+  ],
   "installCommand": "pnpm install --frozen-lockfile --ignore-scripts"
 }

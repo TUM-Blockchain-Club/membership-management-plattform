@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { format } from 'date-fns'
 import { CalendarIcon, ChevronLeftIcon, ChevronRightIcon, ClockIcon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import {
   dateTimeParts,
   formatDateValue,
+  formatMonthValue,
   parseDateValue,
   parseMonthValue,
   withDatePart,
@@ -75,11 +76,6 @@ export function DatePicker({
   )
 }
 
-const MONTH_LABELS = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
-]
-
 export function MonthPicker({
   id,
   value,
@@ -90,18 +86,13 @@ export function MonthPicker({
 }: PickerProps) {
   const selected = parseMonthValue(value)
   const [open, setOpen] = useState(false)
-  const [customYear, setCustomYear] = useState<number | null>(null)
-
-  const viewYear = customYear ?? (selected?.getFullYear() ?? new Date().getFullYear())
-
-  const handleYearChange = (delta: number) => {
-    setCustomYear((prev) => (prev ?? (selected?.getFullYear() ?? new Date().getFullYear())) + delta)
-  }
+  const [year, setYear] = useState(() => selected?.getFullYear() ?? new Date().getFullYear())
+  const initialMonthButton = useRef<HTMLButtonElement>(null)
 
   return (
-    <Popover open={open} onOpenChange={(nextOpen) => {
+    <Popover open={open} onOpenChange={nextOpen => {
+      if (nextOpen) setYear(selected?.getFullYear() ?? new Date().getFullYear())
       setOpen(nextOpen)
-      if (!nextOpen) setCustomYear(null)
     }}>
       <PopoverTrigger asChild>
         <Button
@@ -115,72 +106,30 @@ export function MonthPicker({
           {selected ? format(selected, 'MMMM yyyy') : placeholder}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-64 p-3" align="start">
-        <div className="flex items-center justify-between pb-2 mb-2 border-b border-border">
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => handleYearChange(-1)}
-            aria-label="Previous year"
-          >
-            <ChevronLeftIcon className="size-4" />
-          </Button>
-          <span className="font-semibold text-sm text-foreground">{viewYear}</span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 w-7 p-0"
-            onClick={() => handleYearChange(1)}
-            aria-label="Next year"
-          >
-            <ChevronRightIcon className="size-4" />
-          </Button>
+      <PopoverContent className="w-72 p-3" align="start" aria-label="Choose month" onOpenAutoFocus={event => {
+        event.preventDefault()
+        initialMonthButton.current?.focus()
+      }}>
+        <div className="mb-3 flex items-center justify-between gap-2">
+          <Button type="button" variant="ghost" size="icon-sm" aria-label="Previous year" disabled={year <= 100} onClick={() => setYear(year - 1)}><ChevronLeftIcon /></Button>
+          <span className="text-sm font-semibold tabular-nums" aria-live="polite">{year}</span>
+          <Button type="button" variant="ghost" size="icon-sm" aria-label="Next year" disabled={year >= 9999} onClick={() => setYear(year + 1)}><ChevronRightIcon /></Button>
         </div>
-        <div className="grid grid-cols-3 gap-1.5">
-          {MONTH_LABELS.map((label, index) => {
-            const isSelected = selected ? selected.getFullYear() === viewYear && selected.getMonth() === index : false
-            const isCurrentMonth =
-              new Date().getFullYear() === viewYear && new Date().getMonth() === index
-
-            return (
-              <Button
-                key={label}
-                type="button"
-                variant={isSelected ? 'default' : isCurrentMonth ? 'secondary' : 'ghost'}
-                size="sm"
-                className={cn('h-9 text-xs font-medium', isSelected && 'font-bold')}
-                onClick={() => {
-                  const monthStr = String(index + 1).padStart(2, '0')
-                  onChange(`${viewYear}-${monthStr}`)
-                  setOpen(false)
-                  setCustomYear(null)
-                }}
-              >
-                {label}
-              </Button>
-            )
+        <div className="grid grid-cols-3 gap-1" role="group" aria-label="Months">
+          {Array.from({ length: 12 }, (_, month) => {
+            const date = new Date(year, month, 1)
+            const isSelected = selected?.getFullYear() === year && selected.getMonth() === month
+            return <Button
+              key={month}
+              ref={month === (selected?.getMonth() ?? 0) ? initialMonthButton : undefined}
+              type="button"
+              variant={isSelected ? 'default' : 'ghost'}
+              aria-label={format(date, 'MMMM yyyy')}
+              aria-pressed={isSelected}
+              onClick={() => { onChange(formatMonthValue(date)); setOpen(false) }}
+            >{format(date, 'MMM')}</Button>
           })}
         </div>
-        {value ? (
-          <div className="border-t border-border mt-2 pt-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="w-full text-xs h-7 text-muted-foreground hover:text-foreground"
-              onClick={() => {
-                onChange('')
-                setOpen(false)
-                setCustomYear(null)
-              }}
-            >
-              Clear month
-            </Button>
-          </div>
-        ) : null}
       </PopoverContent>
     </Popover>
   )

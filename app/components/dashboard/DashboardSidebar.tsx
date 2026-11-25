@@ -1,6 +1,8 @@
 'use client'
 
 import type { ComponentType, SVGProps } from 'react'
+import Link from 'next/link'
+import { TAB_ROUTES } from '@/app/dashboard/lib/routes'
 import Image from 'next/image'
 import {
   BarChart3Icon,
@@ -10,6 +12,7 @@ import {
   CoffeeIcon,
   HexagonIcon,
   HouseIcon,
+  ShieldCheckIcon,
   LinkIcon,
   LogOutIcon,
   MailIcon,
@@ -52,6 +55,9 @@ type DashboardNavigationProps = {
   onTitleClick: () => void
   canUseMemberViewToggle: boolean
   showLinkAnalyticsTab: boolean
+  showGrantAdminTab: boolean
+  showAdminAccessTab: boolean
+  showCoffeeChatsAdminTab: boolean
   showNftApprovalsTab: boolean
   showNewsletterTab: boolean
   forceMemberView: boolean
@@ -80,8 +86,11 @@ const NAVIGATION_GROUPS: Array<{ label: string; items: NavigationItem[] }> = [
   {
     label: 'Administration',
     items: [
+      { key: 'admin-access', label: 'Admin Access', icon: ShieldCheckIcon },
+      { key: 'event-grants', label: 'Event Grants', icon: CalendarIcon },
       { key: 'stats', label: 'Statistics', icon: BarChart3Icon },
       { key: 'link-analytics', label: 'Link Analytics', icon: LinkIcon },
+      { key: 'coffee-chats-admin', label: 'Coffee Chats Admin', icon: CoffeeIcon },
       { key: 'nft-approvals', label: 'NFT Approvals', icon: HexagonIcon },
       { key: 'newsletter', label: 'Newsletter', icon: MailIcon },
     ],
@@ -114,6 +123,9 @@ export function DashboardSidebar({
   onTitleClick,
   canUseMemberViewToggle,
   showLinkAnalyticsTab,
+  showAdminAccessTab,
+  showGrantAdminTab,
+  showCoffeeChatsAdminTab,
   showNftApprovalsTab,
   showNewsletterTab,
   forceMemberView,
@@ -124,6 +136,9 @@ export function DashboardSidebar({
   const memberName = member?.Name || 'Member'
   const memberEmail = member?.['TBC Email'] || 'TBC member account'
   const isItemVisible = (item: NavigationItem) => {
+    if (item.key === 'event-grants') return showGrantAdminTab
+    if (item.key === 'admin-access') return showAdminAccessTab
+    if (item.key === 'coffee-chats-admin') return showCoffeeChatsAdminTab
     if (item.key === 'nft-approvals') return showNftApprovalsTab
     if (item.key === 'link-analytics') return showLinkAnalyticsTab
     if (item.key === 'newsletter') return showNewsletterTab
@@ -184,15 +199,16 @@ export function DashboardSidebar({
                       return (
                         <SidebarMenuItem key={item.key}>
                           <SidebarMenuButton
-                            type="button"
+                            asChild
                             tooltip={item.label}
                             isActive={activeTab === item.key}
-                            onClick={() => handleNavigation(item.key)}
                             aria-current={activeTab === item.key ? 'page' : undefined}
                             className="h-9 px-3 group-data-[collapsible=icon]:size-8! group-data-[collapsible=icon]:px-2"
                           >
-                            <Icon />
-                            <span>{item.label}</span>
+                            <Link href={TAB_ROUTES[item.key]} onNavigate={() => { if (isMobile) setOpenMobile(false) }}>
+                              <Icon />
+                              <span>{item.label}</span>
+                            </Link>
                           </SidebarMenuButton>
                         </SidebarMenuItem>
                       )

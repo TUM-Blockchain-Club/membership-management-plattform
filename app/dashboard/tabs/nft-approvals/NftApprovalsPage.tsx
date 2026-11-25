@@ -151,6 +151,7 @@ export function NftApprovalsPage() {
         </div>
       )}
 
+
       {rejectingRequest && (
         <RejectModal
           memberName={rejectingRequest.memberName}

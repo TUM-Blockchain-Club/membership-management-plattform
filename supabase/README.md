@@ -32,6 +32,7 @@ For the live schema overview, table columns, relationships, RLS summary, storage
 
 - `nft_requests.sql`
   - Creates/updates the Solana membership request, custody, lifecycle, and receipt schema.
+  - Gives every board member NFT administration access and stores optional additional administrators in `nft_admins`.
   - Creates the private source-image and public rendered-asset buckets.
 
 - `coffee_chats.sql`
@@ -101,3 +102,21 @@ using the RPC-based check-in routes. This migration preserves records, restricts
 secret-column reads and direct inserts, and installs atomic check-in/issuance.
 Do not rerun the destructive legacy `lectures.sql` setup on a populated database.
 See `docs/architecture/attendance.md` for verification.
+
+## NFT publication consent
+
+After `nft_requests.sql`, apply `nft_publication_consent.sql` before deploying
+the consent-enabled NFT routes. It adds private receipts and a service-only atomic
+submission/renewal RPC and restricts direct browser writes to NFT requests. Do not
+rerun the older request setup alone: apply the consent script afterward to restore
+its stricter grants. Existing requests require member consent; nothing is backfilled.
+
+## Central admin access
+
+Apply `admin_access.sql` after the legacy feature setup scripts, before deploying
+the central board-only roles UI. It preserves permissions and replaces the old
+assignment tables with read-only views. After this migration, do not reapply the
+legacy Coffee Chat/NFT/bootstrap role scripts over those views. See
+`docs/architecture/admin-access.md` for rollout and regression tests.
+
+For event grants, apply `event_grants.sql` after central `admin_access.sql` and before deploying the grant UI. This extends central roles with `grants`, adds `events.grant_url`, and creates the private application table/RLS. Do not reapply the older central bootstrap afterward; it predates the additional scope.

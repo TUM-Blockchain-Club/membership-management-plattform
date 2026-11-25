@@ -1,3 +1,4 @@
+import { safeGrantUrl } from '@/lib/eventGrants'
 import { NextResponse } from "next/server"
 import { EventAdminError, requireEventAdmin } from "@/lib/server/eventAdmin"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
@@ -13,12 +14,13 @@ type EventCreatePayload = {
   city?: string | null
   formats?: string[]
   event_link_url?: string | null
+  grant_url?: string | null
   tally_url?: string | null
   whatsapp_url?: string | null
 }
 
 const EVENT_COLUMNS =
-  "id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, image_url, event_link_url, tally_url, whatsapp_url, is_hackathon, attending_names, all_day"
+  "id, title, description, start_at, end_at, location, organizer_department, capacity_total, event_kind, event_type, priority, external_status, city, format, image_url, event_link_url, tally_url, grant_url, whatsapp_url, is_hackathon, attending_names, all_day"
 
 const nullableString = (value: unknown) => {
   if (typeof value !== "string") return null
@@ -66,6 +68,7 @@ export async function POST(request: Request) {
         format,
         event_link_url: nullableString(payload.event_link_url),
         tally_url: nullableString(payload.tally_url),
+        grant_url: safeGrantUrl(payload.grant_url),
         whatsapp_url: nullableString(payload.whatsapp_url),
         is_hackathon: eventTypes.includes("Hackathon"),
         attending_names: [],
