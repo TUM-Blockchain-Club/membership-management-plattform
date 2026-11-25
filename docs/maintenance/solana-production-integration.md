@@ -66,3 +66,48 @@ repository copy would overwrite. Because direct browser writes to `nft_requests`
 and the legacy `cc_admins`/`nft_admins` tables were already retired, the older
 Production code's member NFT submission/claim and Coffee Chat admin assignment
 write paths cannot succeed until this branch is deployed.
+
+## Devnet operation and later mainnet switch (2026-11-25)
+
+Members use the NFT flow on Solana devnet for real until the mainnet switch.
+While `SOLANA_NETWORK=devnet`, the member NFT status card, application form, board
+queue and mint dialog show a "Devnet (test network)" badge stating that
+memberships will be re-issued on mainnet. The label comes from the server's
+configured network (`network` in `/api/nft-requests/current` and
+`/api/nft-requests/admin-queue`) and disappears on mainnet.
+
+Every asset keeps the network it was minted on in `nft_requests.chain_network`.
+Chain actions are network-aware (`lib/server/solanaNetwork.ts`): reconciliation
+only checks rows on the configured network and leaves others untouched;
+profile/alumni updates, claims and burns refuse with `409` before rendering,
+uploading or recording a chain operation when the asset's network differs from
+the configured one. The signer functions enforce the same check.
+
+### Switching to mainnet
+
+1. Fund the separate mainnet signer and choose a mainnet RPC.
+2. Run `pnpm solana:create-collection` with the mainnet values and save the new
+   collection address.
+3. In Vercel Production, set `SOLANA_NETWORK=mainnet-beta`, `SOLANA_RPC_URL`,
+   `SOLANA_WALLET_PRIVATE_KEY`, `SOLANA_WALLET_PUBLIC_KEY` and
+   `SOLANA_COLLECTION_ADDRESS` to the mainnet values, then redeploy. Do not reuse
+   the devnet keypair or collection.
+4. Verify the deployed `CRON_SECRET` and run the board reconcile action; devnet
+   rows must not change.
+
+Devnet-minted members keep `chain_network='devnet'` and their devnet asset; there
+is no automatic copy to mainnet. After the switch, board actions on those devnet
+assets are refused with a clear message. Re-issuing on mainnet goes through the
+normal review and mint flow, which is not implemented yet: the mint route
+currently treats an existing `asset_address` as an update target. The planned
+follow-up lets the board mint a fresh mainnet asset for a row whose
+`chain_network` differs from the configured network (keeping the devnet asset
+record for history), after the member's current consent is confirmed. Burn
+or revoke devnet assets that must be removed before switching, because the
+devnet signer is no longer configured afterwards.
+
+The consent text states that data is public "on Solana" without naming a
+cluster. Devnet is a public ledger too, so devnet publications fall under the
+same consent and the same "history cannot be erased" limitation. The open legal
+review before a real personal-data mainnet rollout (see the architecture doc)
+still applies.

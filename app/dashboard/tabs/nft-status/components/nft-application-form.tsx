@@ -1,5 +1,6 @@
 import { NftDraftPreview } from './nft-draft-preview'
 import { NftLegalDialog } from './nft-legal-dialog'
+import { SolanaNetworkNotice } from '@/components/solana-network-notice'
 import { useId } from 'react'
 import { NFT_CONSENT_TEXT, NFT_LEGAL_VERSION } from '@/lib/nftLegal'
 import { AlertTriangleIcon, Building2Icon, CheckIcon, CopyIcon, FileImageIcon, WalletIcon } from 'lucide-react'
@@ -26,6 +27,7 @@ export function NftApplicationForm({ state }: NftStatusSectionsProps) {
     hasConsented,
     hasMintedNft,
     mintDestination,
+    network,
     requestedWalletAddress,
     saving,
     selectedFileName,
@@ -40,6 +42,7 @@ export function NftApplicationForm({ state }: NftStatusSectionsProps) {
 
   return (
     <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+      <SolanaNetworkNotice network={network} />
       <FieldGroup>
         <Field>
           <FieldLabel htmlFor="displayName" className="text-white">Display Name</FieldLabel>

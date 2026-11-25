@@ -1,22 +1,26 @@
 import 'server-only'
 
 import { reconcileMembershipAsset } from '@/lib/server/solanaMembership'
+import { getConfiguredSolanaNetwork } from '@/lib/server/solanaNetwork'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>
 
+// Assets on another network (e.g. devnet assets after the mainnet switch) are left untouched.
 export const reconcileMembershipNfts = async (supabase: SupabaseServerClient) => {
+  const network = getConfiguredSolanaNetwork()
   const { data: records, error } = await supabase
     .from('nft_requests')
     .select('id, asset_address, owner_address, metadata_url')
     .not('asset_address', 'is', null)
     .neq('asset_state', 'burned')
+    .eq('chain_network', network)
   if (error) throw new Error(error.message)
 
   const results = []
   for (const record of records ?? []) {
     try {
-      const chain = await reconcileMembershipAsset(record.asset_address)
+      const chain = await reconcileMembershipAsset({ assetAddress: record.asset_address, network })
       const mismatches = [
         chain.ownerAddress !== record.owner_address ? 'owner' : null,
         chain.uri !== record.metadata_url ? 'metadata URI' : null,

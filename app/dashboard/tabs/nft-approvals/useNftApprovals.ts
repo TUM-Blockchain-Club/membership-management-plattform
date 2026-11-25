@@ -117,18 +117,21 @@ const toUiRequest = (request: AdminQueueRequestRow, requestImage: string): NFTRe
 }
 
 const loadAdminQueue = async () => {
-  const { data: requestRows, error } = await nftRequestService.getAdminQueue()
+  const { data, error } = await nftRequestService.getAdminQueue()
 
   if (error) {
     throw new Error(error)
   }
 
-  return requestRows.map((request) =>
-    toUiRequest(
-      request,
-      nftRequestService.getRequestImageProxyUrl(request.id, `${request.id}:${request.created_at}`) || request.image_url
-    )
-  )
+  return {
+    network: data.network,
+    requests: data.requests.map((request) =>
+      toUiRequest(
+        request,
+        nftRequestService.getRequestImageProxyUrl(request.id, `${request.id}:${request.created_at}`) || request.image_url
+      )
+    ),
+  }
 }
 
 export function useNftApprovals() {
@@ -142,7 +145,7 @@ export function useNftApprovals() {
   const [previewingId, setPreviewingId] = useState<string | null>(null)
   const [lifecycleUpdatingId, setLifecycleUpdatingId] = useState<string | null>(null)
   const [reconciling, setReconciling] = useState(false)
-  const { error: loadingError, isLoading, mutate: revalidateRequests } = useSWR(
+  const { data: queueData, error: loadingError, isLoading, mutate: revalidateRequests } = useSWR(
     "nft-admin-queue",
     loadAdminQueue,
     {
@@ -150,7 +153,7 @@ export function useNftApprovals() {
       revalidateOnFocus: true,
       onSuccess(data) {
         setError(null)
-        setRequests(data)
+        setRequests(data.requests)
       },
       onError(error: unknown) {
         setError(error instanceof Error ? error.message : "Could not load NFT requests.")
@@ -307,6 +310,7 @@ export function useNftApprovals() {
     handleReconcile,
     loading,
     lifecycleUpdatingId,
+    network: queueData?.network ?? null,
     mintingId,
     pendingCount: requests.filter((request) => request.status === "pending").length,
     reconciling,

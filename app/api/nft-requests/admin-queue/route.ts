@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { NftRequestAdminError, requireNftRequestAdmin } from "@/lib/server/nftRequestAdmin"
 import { getSupabaseAdminClient } from "@/lib/server/supabaseAdmin"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { getConfiguredSolanaNetwork } from "@/lib/server/solanaNetwork"
 
 
 type RequestRow = {
@@ -116,6 +117,7 @@ export async function GET(request: Request) {
     }
 
     return NextResponse.json({
+      network: getConfiguredSolanaNetwork(),
       requests: requests.map((request) => ({
         ...request,
         member: membersById.get(request.member_id) ?? null,

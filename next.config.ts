@@ -4,6 +4,10 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['lucide-react'],
   },
+  // NFT artwork fonts are loaded by fontconfig (native), so tracing cannot see them.
+  outputFileTracingIncludes: {
+    '/api/nft-requests/**/*': ['./lib/server/fonts/**/*'],
+  },
   allowedDevOrigins: ['178.105.221.156'],
   images: {
     remotePatterns: [

@@ -15,6 +15,7 @@ import {
   renderAndUploadMembershipAssets,
 } from '@/lib/server/membershipNftAssets'
 import { mintMembershipAsset, updateMembershipAsset } from '@/lib/server/solanaMembership'
+import { assertAssetOnConfiguredNetwork, SolanaNetworkMismatchError } from '@/lib/server/solanaNetwork'
 import { getSupabaseAdminClient } from '@/lib/server/supabaseAdmin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -40,6 +41,7 @@ export async function POST(request: Request, context: RouteContext) {
     if (record.request.asset_state === 'burned') {
       return NextResponse.json({ error: 'This membership NFT has been burned.' }, { status: 409 })
     }
+    if (record.request.asset_address) assertAssetOnConfiguredNetwork(record.request.chain_network)
 
     const requestedOwnerAddress = record.request.asset_address
       ? null
@@ -58,6 +60,7 @@ export async function POST(request: Request, context: RouteContext) {
     const chainResult = record.request.asset_address
       ? await updateMembershipAsset({
           assetAddress: record.request.asset_address,
+          network: record.request.chain_network,
           name: `${record.request.display_name} — TBC Membership`,
           uri: rendered.metadataUrl,
         })
@@ -147,7 +150,7 @@ export async function POST(request: Request, context: RouteContext) {
       const dataClient = getSupabaseAdminClient()
       if (dataClient) await failNftChainOperation(dataClient, operationId, message)
     }
-    if (error instanceof NftRequestAdminError || error instanceof NftPublicationConsentError) {
+    if (error instanceof NftRequestAdminError || error instanceof NftPublicationConsentError || error instanceof SolanaNetworkMismatchError) {
       return NextResponse.json({ error: message }, { status: error.status })
     }
     return NextResponse.json({ error: message }, { status: 500 })

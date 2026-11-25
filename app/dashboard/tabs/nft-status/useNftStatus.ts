@@ -104,7 +104,7 @@ export function useNftStatus(member: DashboardMember | null) {
   } | null>(null)
   const [resolvedMemberId, setResolvedMemberId] = useState<number | null>(null)
   const [failedImageUrl, setFailedImageUrl] = useState<string | null>(null)
-  const { isLoading, mutate: revalidateExistingRequest } = useSWR(
+  const { data: currentRequestData, isLoading, mutate: revalidateExistingRequest } = useSWR(
     "nft-current-request",
     loadCurrentNftRequest,
     {
@@ -313,6 +313,7 @@ export function useNftStatus(member: DashboardMember | null) {
   }
 
   return {
+    network: currentRequestData?.network ?? null,
     refreshRequest: () => revalidateExistingRequest(),
     batch,
     assetUrl,

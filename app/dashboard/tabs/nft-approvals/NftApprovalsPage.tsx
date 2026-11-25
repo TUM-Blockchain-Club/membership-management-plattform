@@ -10,6 +10,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { Input } from "@/components/ui/input"
 import { Skeleton } from "@/components/ui/skeleton"
+import { SolanaNetworkNotice } from "@/components/solana-network-notice"
 import { useNftApprovals } from "./useNftApprovals"
 
 export function NftApprovalsPage() {
@@ -27,6 +28,7 @@ export function NftApprovalsPage() {
     loading,
     lifecycleUpdatingId,
     mintingId,
+    network,
     pendingCount,
     previewingRequest,
     rejectedCount,
@@ -54,6 +56,7 @@ export function NftApprovalsPage() {
         <p className="ml-12 text-sm text-white/55">
           Review the submitted member NFT requests, inspect the uploaded image, and decide what gets minted next.
         </p>
+        <SolanaNetworkNotice network={network} className="ml-12 mt-3" />
       </div>
 
       <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
@@ -168,6 +171,7 @@ export function NftApprovalsPage() {
         <MintPreviewModal
           key={previewingRequest.id}
           request={previewingRequest}
+          network={network}
           isMinting={mintingId === previewingRequest.id}
           error={error}
           onMint={() => void handleMint(previewingRequest.id)}
