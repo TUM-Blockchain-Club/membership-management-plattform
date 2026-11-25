@@ -15,18 +15,21 @@ import {
 } from "@/components/ui/dialog"
 import { Spinner } from "@/components/ui/spinner"
 import { nftRequestService } from "@/lib/nftRequests"
+import type { SolanaNetwork } from "@/lib/nftLifecycle"
+import { SolanaNetworkNotice } from "@/components/solana-network-notice"
 import type { NFTRequest } from "./NftRequestCard"
 import { HexagonIcon } from 'lucide-react'
 
 interface MintPreviewModalProps {
   request: NFTRequest
+  network: SolanaNetwork | null
   isMinting: boolean
   error: string | null
   onMint: () => void
   onCancel: () => void
 }
 
-export function MintPreviewModal({ request, isMinting, error, onMint, onCancel }: MintPreviewModalProps) {
+export function MintPreviewModal({ request, network, isMinting, error, onMint, onCancel }: MintPreviewModalProps) {
   const [imageFailed, setImageFailed] = useState(false)
   const previewUrl = useMemo(
     () => `${nftRequestService.getRequestCompositePreviewUrl(request.id)}?t=${encodeURIComponent(request.submittedAtValue)}`,
@@ -58,6 +61,7 @@ export function MintPreviewModal({ request, isMinting, error, onMint, onCancel }
                   </DialogDescription>
                 </div>
               </div>
+              <SolanaNetworkNotice network={network} className="mt-3" />
             </DialogHeader>
 
             <div className="overflow-hidden rounded-[24px] border border-white/10 bg-black/50 shadow-[0_20px_60px_rgba(0,0,0,0.42)]">

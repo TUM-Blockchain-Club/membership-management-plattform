@@ -20,6 +20,9 @@ import {
 } from '@metaplex-foundation/umi'
 import { createUmi } from '@metaplex-foundation/umi-bundle-defaults'
 import type { SolanaNetwork } from '@/lib/nftLifecycle'
+import { assertAssetOnConfiguredNetwork, getConfiguredSolanaNetwork } from '@/lib/server/solanaNetwork'
+
+type AssetOnNetwork = { assetAddress: string; network: SolanaNetwork }
 const requiredEnv = (key: string) => {
   const value = process.env[key]?.trim()
   if (!value) throw new Error(`Missing required Solana environment variable: ${key}`)
@@ -75,13 +78,8 @@ const assertConfiguredNetwork = async (rpcUrl: string, network: SolanaNetwork) =
 }
 
 export const getSolanaMembershipConfig = () => {
-  const networkValue = process.env.SOLANA_NETWORK?.trim() || 'devnet'
-  if (networkValue !== 'devnet' && networkValue !== 'mainnet-beta') {
-    throw new Error('SOLANA_NETWORK must be devnet or mainnet-beta.')
-  }
-
   return {
-    network: networkValue as SolanaNetwork,
+    network: getConfiguredSolanaNetwork(),
     rpcUrl: requiredEnv('SOLANA_RPC_URL'),
     collectionAddress: publicKey(requiredEnv('SOLANA_COLLECTION_ADDRESS')),
   }
@@ -143,13 +141,14 @@ export const mintMembershipAsset = async ({
 
 export const updateMembershipAsset = async ({
   assetAddress,
+  network,
   name,
   uri,
-}: {
-  assetAddress: string
+}: AssetOnNetwork & {
   name: string
   uri: string
 }) => {
+  assertAssetOnConfiguredNetwork(network)
   const { umi, signer, config } = createSolanaMembershipClient()
   await assertConfiguredNetwork(config.rpcUrl, config.network)
   const result = await updateV1(umi, {
@@ -165,11 +164,12 @@ export const updateMembershipAsset = async ({
 
 export const claimMembershipAsset = async ({
   assetAddress,
+  network,
   recipientAddress,
-}: {
-  assetAddress: string
+}: AssetOnNetwork & {
   recipientAddress: string
 }) => {
+  assertAssetOnConfiguredNetwork(network)
   const { umi, signer, config } = createSolanaMembershipClient()
   await assertConfiguredNetwork(config.rpcUrl, config.network)
   const assetKey = publicKey(assetAddress)
@@ -197,7 +197,8 @@ export const claimMembershipAsset = async ({
   return { signature: signatureToString(result.signature), network: config.network }
 }
 
-export const burnMembershipAsset = async (assetAddress: string) => {
+export const burnMembershipAsset = async ({ assetAddress, network }: AssetOnNetwork) => {
+  assertAssetOnConfiguredNetwork(network)
   const { umi, signer, config } = createSolanaMembershipClient()
   await assertConfiguredNetwork(config.rpcUrl, config.network)
   const assetKey = publicKey(assetAddress)
@@ -217,7 +218,8 @@ export const burnMembershipAsset = async (assetAddress: string) => {
   return { signature: signatureToString(result.signature), network: config.network }
 }
 
-export const reconcileMembershipAsset = async (assetAddress: string) => {
+export const reconcileMembershipAsset = async ({ assetAddress, network }: AssetOnNetwork) => {
+  assertAssetOnConfiguredNetwork(network)
   const { umi, config } = createSolanaMembershipClient()
   await assertConfiguredNetwork(config.rpcUrl, config.network)
   const asset = await fetchAssetV1(umi, publicKey(assetAddress))

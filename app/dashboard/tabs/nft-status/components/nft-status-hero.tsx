@@ -1,5 +1,6 @@
 import { NftPreview } from '@/components/nft-preview'
 import { Badge } from '@/components/ui/badge'
+import { SolanaNetworkNotice } from '@/components/solana-network-notice'
 import { OnChainButton } from './nft-status-actions'
 import type { NftStatusSectionsProps } from './types'
 
@@ -9,6 +10,7 @@ export function NftStatusHero({ state }: NftStatusSectionsProps) {
     existingRequestImageUrl,
     hasMintedNft,
     mintTxUrl,
+    network,
     setSummaryImageFailed,
     statusCopy,
     summaryImageFailed,
@@ -22,6 +24,7 @@ export function NftStatusHero({ state }: NftStatusSectionsProps) {
           <Badge variant="secondary">
             Membership NFT
           </Badge>
+          <SolanaNetworkNotice network={network} className="mt-3 max-w-md" />
 
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-foreground sm:text-4xl">
             {hasMintedNft ? 'Your membership. On-chain.' : 'A little more than a membership.'}

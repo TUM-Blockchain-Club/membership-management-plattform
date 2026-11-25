@@ -103,7 +103,11 @@ same values for the intended Vercel preview environment before testing minting.
 7. Repeat with separate mainnet authority/configuration only after devnet acceptance.
 
 Devnet and mainnet must use different signer keypairs, RPC configuration, and
-collection addresses. Keep each private key only in the matching local or
+collection addresses. Each asset is bound to its `chain_network`: reconciliation
+skips other-network rows and every asset action refuses an asset from another
+network (`lib/server/solanaNetwork.ts`). While on devnet, member and board NFT
+views show a server-driven "Devnet (test network)" notice. The mainnet switch is
+documented in `docs/maintenance/solana-production-integration.md`. Keep each private key only in the matching local or
 Vercel environment.
 
 The collection creation command uploads collection metadata to
