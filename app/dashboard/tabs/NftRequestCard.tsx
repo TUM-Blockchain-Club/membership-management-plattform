@@ -252,7 +252,7 @@ export function NftRequestCard({
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={() => onRevoke(request.id)}>Burn NFT</AlertDialogAction>
+                  <AlertDialogAction variant="destructive" onClick={() => onRevoke(request.id)}>Burn NFT</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
