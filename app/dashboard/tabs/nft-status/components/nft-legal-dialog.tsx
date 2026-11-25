@@ -25,7 +25,7 @@ export function NftLegalDialog({ document }: { document: 'terms' | 'privacy' }) 
           {label}
         </button>
       </DialogTrigger>
-      <DialogContent className="flex max-h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-2xl">
+      <DialogContent className="flex max-h-[90dvh] max-w-2xl flex-col gap-0 overflow-hidden p-0">
         <DialogHeader className="shrink-0 border-b p-5 pr-12">
           <DialogTitle>Membership NFT {isTerms ? 'Terms' : 'Privacy Policy'}</DialogTitle>
           <DialogDescription>Effective September 13, 2026 · Version {NFT_LEGAL_VERSION}</DialogDescription>

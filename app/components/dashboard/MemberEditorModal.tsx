@@ -117,7 +117,7 @@ export function MemberEditorModal({
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) handleCancel() }}>
       <DialogContent
-        className="flex flex-col h-[90dvh] sm:max-w-2xl w-full gap-0 p-0 overflow-hidden"
+        className="flex h-[90dvh] max-w-2xl flex-col gap-0 overflow-hidden p-0"
         showCloseButton={!saving}
       >
 

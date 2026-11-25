@@ -30,10 +30,10 @@ export function DepartmentBreakdown({ members }: { members: DashboardMember[] })
       <CardContent className="flex flex-col gap-2 sm:gap-3">
         {sortedDepts.map(([dept, count]) => (
           <div key={dept} className="flex items-center justify-between group hover:bg-white/5 rounded-lg p-1.5 sm:p-2 -mx-1.5 sm:-mx-2 transition-colors duration-200">
-            <span className="text-white/80 text-xs sm:text-sm font-medium truncate flex-1 mr-2">{dept}</span>
+            <span className="text-white/80 text-sm font-medium truncate flex-1 mr-2">{dept}</span>
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <Progress className="w-16 sm:w-24 md:w-32" value={(count / totalCount) * 100} />
-              <span className="text-white font-semibold text-xs sm:text-sm w-6 sm:w-8 text-right">{count}</span>
+              <span className="text-white font-semibold text-sm w-8 text-right">{count}</span>
             </div>
           </div>
         ))}
@@ -74,13 +74,13 @@ export function StatusBreakdown({ members }: { members: DashboardMember[] }) {
             <div key={status} className="flex items-center justify-between group hover:bg-white/5 rounded-lg p-1.5 sm:p-2 -mx-1.5 sm:-mx-2 transition-colors duration-200">
               <div className="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0 mr-2">
                 <span className="size-2 shrink-0 rounded-full bg-primary" />
-                <span className="text-white/80 text-xs sm:text-sm font-medium truncate">{status}</span>
+                <span className="text-white/80 text-sm font-medium truncate">{status}</span>
               </div>
               <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                 <Progress className="w-16 sm:w-24 md:w-32" value={Number(percentage)} />
                 <div className="flex items-center gap-0.5 sm:gap-1">
-                  <span className="text-white font-semibold text-xs sm:text-sm w-6 sm:w-8 text-right">{count}</span>
-                  <span className="text-white/40 text-[9px] sm:text-xs w-8 sm:w-10 text-right">({percentage}%)</span>
+                  <span className="text-white font-semibold text-sm w-8 text-right">{count}</span>
+                  <span className="text-white/60 text-xs w-12 text-right">({percentage}%)</span>
                 </div>
               </div>
             </div>
