@@ -432,7 +432,7 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 
 - `events` is publicly readable.
 - Board members can update `events` through RLS.
-- Event admin create/update API routes additionally guard writes with server-side special access checks and use the service-role client when available.
+- Event admin create/update and image-upload API routes verify board membership or special access server-side and use the service-role client when available.
 - `event_registrations` is publicly readable.
 - Authenticated users can insert registrations.
 - Authenticated users can delete their own registration rows.
@@ -446,6 +446,7 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 - Authenticated server routes save member requests and consent atomically; browser roles cannot directly mutate requests.
 - Members can view their own request.
 - NFT admins can view all requests; authorized server routes handle mutations.
+- The platform's guarded NFT administration API accepts board members, special-access users, and explicit `nfts` admin assignments (`nft_admins` view). Dashboard visibility uses the same rule (`lib/member-permissions.ts`, `requireNftRequestAdmin`). These routes use the server-only service-role client; this application authorization does not grant broader direct database access through `can_manage_nft_requests()`.
 
 ### Link Redirect Analytics
 

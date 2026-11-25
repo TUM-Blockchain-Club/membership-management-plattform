@@ -21,7 +21,8 @@ export interface CoffeeChatAdminRound {
   created_at: string
 }
 
-type Signup = { id: string; signed_up_at: string; member: { id: number; Name: string | null; Department: string | null } | null }
+type Signup = { id: string; signedUpAt: string; name: string; department: string | null }
+type RoundDetails = { status: string; signupDeadline: string | null; meetDeadline: string | null }
 const localValue = (value: string | null) => value ? format(new Date(value), "yyyy-MM-dd'T'HH:mm") : ''
 
 export function CoffeeChatRoundDialog({ round, busy, onClose, onUpdated, onPair, onDelete }: {
@@ -56,9 +57,10 @@ export function CoffeeChatRoundDialog({ round, busy, onClose, onUpdated, onPair,
         const response = await fetch(`/api/coffee-chats/rounds/${round.id}`, { signal: controller.signal, cache: 'no-store' })
         const data = await response.json()
         if (!response.ok) throw new Error(data.error || 'Could not load round.')
-        setLoadedRound(data.round)
-        setSignup(localValue(data.round.signup_deadline))
-        setMeet(localValue(data.round.meet_deadline))
+        const details = data.round as RoundDetails
+        setLoadedRound(current => ({ ...current, status: details.status, signup_deadline: details.signupDeadline, meet_deadline: details.meetDeadline }))
+        setSignup(localValue(details.signupDeadline))
+        setMeet(localValue(details.meetDeadline))
         setSignups(data.signups)
       } catch (error) {
         if (!controller.signal.aborted) setError(error instanceof Error ? error.message : 'Could not load round.')
@@ -121,8 +123,8 @@ export function CoffeeChatRoundDialog({ round, busy, onClose, onUpdated, onPair,
               <h3 className="flex items-center gap-2 text-sm font-medium"><UsersIcon className="size-4" />Signups <Badge variant="outline">{signups.length}</Badge></h3>
               {signups.length ? <ul className="divide-y rounded-lg border px-3">
                 {signups.map(entry => <li key={entry.id} className="flex flex-wrap items-center justify-between gap-2 py-3 text-sm">
-                  <div><p className="font-medium">{entry.member?.Name || 'Member'}</p><p className="text-xs text-muted-foreground">{entry.member?.Department || 'No department'}</p></div>
-                  <time className="text-xs text-muted-foreground" dateTime={entry.signed_up_at}>Joined {format(new Date(entry.signed_up_at), 'd MMM yyyy, HH:mm')}</time>
+                  <div><p className="font-medium">{entry.name}</p><p className="text-xs text-muted-foreground">{entry.department || 'No department'}</p></div>
+                  <time className="text-xs text-muted-foreground" dateTime={entry.signedUpAt}>Joined {format(new Date(entry.signedUpAt), 'd MMM yyyy, HH:mm')}</time>
                 </li>)}
               </ul> : <p className="rounded-lg border border-dashed p-4 text-sm text-muted-foreground">{isCoffeeChatsDemoClient() ? 'Participant details are not available in demo mode.' : 'No members have signed up yet.'}</p>}
             </section>

@@ -532,7 +532,7 @@ export function NewsletterPage({ canManageNewsletter }: Props) {
         <Card>
           <CardHeader>
             <CardTitle>Projects</CardTitle>
-            <CardDescription>Saved campaigns are shared across special-access users.</CardDescription>
+            <CardDescription>Saved campaigns are shared across board members and special-access users.</CardDescription>
             <CardAction>
               <Button type="button" variant="ghost" size="icon-sm" onClick={() => void newsletter.fetchProjects()}>
                 <RefreshCwIcon />

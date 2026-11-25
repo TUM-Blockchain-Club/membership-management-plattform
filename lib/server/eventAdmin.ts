@@ -1,5 +1,6 @@
 import { getSupabaseAdminClient } from "@/lib/server/supabaseAdmin"
 import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { canManageBoardTools } from "@/lib/member-permissions"
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>
 
@@ -28,11 +29,20 @@ export const requireEventAdmin = async (supabase: SupabaseServerClient) => {
     throw new EventAdminError("Could not verify event admin access.", 500)
   }
 
-  if (hasSpecialAccess !== true) {
-    throw new EventAdminError("You are not allowed to manage events.", 403)
+  const dataClient = getSupabaseAdminClient() ?? supabase
+  const { data: member, error: memberError } = await dataClient
+    .from('members_main')
+    .select('id, Role')
+    .ilike('TBC Email', user.email ?? '')
+    .maybeSingle()
+
+  if (memberError) {
+    throw new EventAdminError("Could not verify member role.", 500)
   }
 
-  const dataClient = getSupabaseAdminClient() ?? supabase
+  if (!canManageBoardTools(member, hasSpecialAccess === true)) {
+    throw new EventAdminError("You are not allowed to manage events.", 403)
+  }
 
   return { user, dataClient }
 }

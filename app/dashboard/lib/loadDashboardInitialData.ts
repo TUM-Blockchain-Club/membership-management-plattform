@@ -33,6 +33,8 @@ export const loadDashboardInitialData = cache(async (): Promise<DashboardInitial
     viewedMemberHasSpecialAccess: hasSpecialAccess,
     canManageCoffeeChats: coffee.data === true || (isDevBypass && hasLocalDevBypassSpecialAccess()),
     canManageGrants: grants.data === true,
-    canManageNewsletter: newsletter.data === true, canManageNftRequests: nft.data === true,
+    canManageNewsletter: newsletter.data === true,
+    // Same rule as requireNftRequestAdmin: board, special access or an explicit NFT assignment.
+    canManageNftRequests: hasSpecialAccess || nft.data === true,
   }
 })

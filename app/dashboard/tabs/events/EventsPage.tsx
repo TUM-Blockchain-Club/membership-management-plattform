@@ -65,7 +65,7 @@ export function EventsPage({
   showInterestedModal,
   setShowInterestedModal,
   member,
-  hasSpecialAccess,
+  canManageEvents,
   handleViewParticipants,
   showParticipantsModal,
   modalEventTitle,
@@ -90,7 +90,7 @@ export function EventsPage({
   showInterestedModal: boolean
   setShowInterestedModal: (show: boolean) => void
   member: DashboardMember | null
-  hasSpecialAccess: boolean
+  canManageEvents: boolean
   handleViewParticipants: (eventId: string | number, title: string) => void
   showParticipantsModal: boolean
   modalEventTitle: string
@@ -112,7 +112,6 @@ export function EventsPage({
   const internalEvents = events.filter((event) => event.event_kind === 'internal')
   const externalEvents = events.filter((event) => event.event_kind === 'external')
   const showInternalEvents = false
-  const canManageEvents = hasSpecialAccess
   const recentPastCutoffMs = useMemo(() => {
     const now = new Date()
     return Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - RECENT_PAST_DAYS)
@@ -251,7 +250,7 @@ export function EventsPage({
                   hasApplyButton={true}
                   isApplied={event.is_registered || false}
                   onApply={() => handleEventRegistration(event.id, event.is_registered || false)}
-                  showParticipantsButton={!!event.current_registrations && (member?.Role === 'Board Member' || hasSpecialAccess)}
+                  showParticipantsButton={!!event.current_registrations && canManageEvents}
                   onViewParticipants={() => handleViewParticipants(event.id, event.title)}
                 />
               ))}
@@ -378,7 +377,7 @@ export function EventsPage({
       </section>
 
       {/* Participants modal (internal events) */}
-      <Dialog open={showParticipantsModal} onOpenChange={setShowParticipantsModal}>
+      <Dialog open={canManageEvents && showParticipantsModal} onOpenChange={setShowParticipantsModal}>
         <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Participants for {modalEventTitle}</DialogTitle>
@@ -458,7 +457,7 @@ export function EventsPage({
         key={editingEvent?.id ?? 'event-editor'}
         event={editingEvent}
         mode="edit"
-        open={!!editingEvent}
+        open={canManageEvents && !!editingEvent}
         saving={savingEvent}
         uploading={uploadingEventImage}
         onOpenChange={(open) => { if (!open) setEditingEvent(null) }}
@@ -470,7 +469,7 @@ export function EventsPage({
         key={creatingEvent ? 'create-event' : 'create-event-closed'}
         event={null}
         mode="create"
-        open={creatingEvent}
+        open={canManageEvents && creatingEvent}
         saving={savingEvent}
         uploading={uploadingEventImage}
         onOpenChange={(open) => { if (!open) setCreatingEvent(false) }}

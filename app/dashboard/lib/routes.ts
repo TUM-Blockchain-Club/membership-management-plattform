@@ -46,5 +46,9 @@ export function getDashboardTabForPathname(pathname: string): DashboardTab {
     return 'link-analytics'
   }
 
+  if (pathname === '/attendance' || pathname.startsWith('/attendance/')) {
+    return 'attendance'
+  }
+
   return PATHNAME_TO_TAB[pathname] ?? 'home'
 }

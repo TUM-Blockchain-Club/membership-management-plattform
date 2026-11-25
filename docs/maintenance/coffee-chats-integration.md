@@ -1,8 +1,8 @@
 # Coffee Chats integration
 
 Coffee Chats is a native authenticated dashboard tab under `/coffee-chats`.
-Its routes live in the `(dashboard)` route group so the shared dashboard sidebar,
-account controls, background, and footer remain mounted. Do not add
+Its routes live in the `(dashboard)` route group so the shared dashboard header,
+navigation, account controls, background, and footer remain mounted. Do not add
 a second Coffee Chats application shell or a standalone "Back to Dashboard"
 control.
 
@@ -41,6 +41,21 @@ optional and progressively disclosed.
   manage delegated rights through the central `/admin-access` page. The
   `cc_admins` relation is a read-only view of the `coffee_chats` scope in
   `admin_assignments`; the Coffee Chats workspace has no role editor.
+
+## Admin pairing and replacements
+
+`Auto-suggest Pairs` requests a read-only preview from the guarded pairing API.
+The preview uses saved acquaintance exclusions and previous partners, just like
+the automatic pairing run. It does not save pairings or send emails. Admins may
+edit the draft before confirming it; a failed preview leaves the draft intact.
+Exclusions remain preferences under the existing algorithm: when no compatible
+partner is available, it may fall back to an excluded pairing.
+
+Completed (`met`) meetings cannot have participants replaced. The API checks
+status both when reading the pair and in the conditional update, so a completion
+between those operations also blocks replacement. Existing meeting data and
+selfies are preserved. Replacement may still assign a member who is in another
+pair in the same round; this is an intentional administrative choice.
 
 ## Selfies
 

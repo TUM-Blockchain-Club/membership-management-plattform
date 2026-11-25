@@ -12,7 +12,9 @@ Normal Member View hides the entry and redirects away from this workspace.
 `nfts`, `newsletter`. The database's existing feature-access functions delegate
 to `check_email_has_admin_scope`. Newsletter API/RLS and its sidebar/page now use
 the same effective permission. The general Special Access mechanism still serves
-unrelated features, but is no longer an ongoing source of these three scopes.
+unrelated features, but is no longer an ongoing source of Coffee Chats or Mail
+access. NFT administration still also accepts Special Access, matching the
+Production board-tool permission fix (`lib/member-permissions.ts`).
 
 The server checks the authenticated user and `can_manage_admin_access`. Changes
 call `set_admin_access` using the user's session, never the service role. That

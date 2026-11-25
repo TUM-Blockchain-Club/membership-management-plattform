@@ -1,6 +1,7 @@
 'use client'
 
 import { useContext, useEffect, useState, useTransition } from 'react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { PlusIcon, ChevronRightIcon, Trash2Icon, UsersIcon } from 'lucide-react'
@@ -24,7 +25,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { DashboardContext } from '@/app/dashboard/DashboardContext'
-import { demoRounds, isCoffeeChatsDemoClient, localDateToUtcIso } from '@/lib/coffee-chats'
+import { demoRounds, formatCoffeeChatMonth, isCoffeeChatsDemoClient, localDateToUtcIso } from '@/lib/coffee-chats'
 
 import { CoffeeChatRoundDialog, type CoffeeChatAdminRound as Round } from './CoffeeChatRoundDialog'
 
@@ -374,7 +375,16 @@ export function CoffeeChatsAdminView() {
               <TableBody>
                 {rounds.map((round) => (
                   <TableRow key={round.id} className="group cursor-pointer border-border hover:bg-muted/60" onClick={() => setSelectedRoundId(round.id)}>
-                    <TableCell className="font-medium">{round.month}</TableCell>
+                    <TableCell className="font-medium">
+                      <Link
+                        href={`/coffee-chats/admin/rounds/${round.id}`}
+                        className="hover:underline flex items-center gap-1.5 text-foreground font-semibold"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {formatCoffeeChatMonth(round.month)}
+                        <ChevronRightIcon className="size-3.5 text-muted-foreground opacity-60" />
+                      </Link>
+                    </TableCell>
                     <TableCell>
                       <Badge variant={statusVariant(round.status)}>{round.status}</Badge>
                     </TableCell>

@@ -41,7 +41,7 @@ export function MembersPageV2({
   exCoreOthers,
   otherMembers,
   member,
-  canAddMember,
+  canAddMembers,
   handleAddMember,
   searchQuery,
   setSearchQuery,
@@ -69,7 +69,7 @@ export function MembersPageV2({
   exCoreOthers: DashboardMember[]
   otherMembers: DashboardMember[]
   member: DashboardMember | null
-  canAddMember: boolean
+  canAddMembers: boolean
   handleAddMember: () => void
   searchQuery: string
   setSearchQuery: (v: string) => void
@@ -149,7 +149,7 @@ export function MembersPageV2({
             {membersVisibleByRole.length === 1 ? 'member' : 'members'}
           </p>
         </div>
-        {canAddMember && (
+        {canAddMembers && (
           <Button size="sm" onClick={handleAddMember} className="shrink-0">
             <PlusIcon data-icon="inline-start" />
             Add Member

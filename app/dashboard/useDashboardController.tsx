@@ -21,6 +21,7 @@ import { auth } from '@/lib/auth'
 import { memberService } from '@/lib/members'
 import { supabase } from '@/lib/supabase'
 import { canShowCoffeeChatAdmin } from '@/lib/coffee-chats'
+import { canManageBoardTools } from '@/lib/member-permissions'
 import type {
   DashboardMember,
   DashboardMessage,
@@ -97,8 +98,8 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
 
   const effectiveHasSpecialAccess = hasSpecialAccess && !forceMemberView
   const effectiveIsBoardMember = member?.Role === 'Board Member' && !forceMemberView
-  const canAddMember = effectiveIsBoardMember || effectiveHasSpecialAccess
-  const showLinkAnalyticsTab = (effectiveIsBoardMember || effectiveHasSpecialAccess) && !forceMemberView
+  const effectiveCanManageBoardTools = canManageBoardTools(member, hasSpecialAccess) && !forceMemberView
+  const showLinkAnalyticsTab = effectiveCanManageBoardTools
   const showNftApprovalsTab = canManageNftRequests && !forceMemberView
   const showGrantAdminTab = (effectiveIsBoardMember || initialData.canManageGrants === true) && !forceMemberView
   const showAdminAccessTab = effectiveIsBoardMember
@@ -249,7 +250,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
   }, [clickCount, lastClickTime, router, triggerBlockchainEffect])
 
   const handleAddMember = useCallback(() => {
-    if (!canAddMember) return
+    if (!effectiveCanManageBoardTools) return
     setCreatingMember(true)
     setViewedMember(null)
     setEditedMember(makeEmptyMember())
@@ -257,7 +258,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     setShowMemberEditorModal(true)
     setMessage(null)
     setSelectedImageFile(null)
-  }, [canAddMember])
+  }, [effectiveCanManageBoardTools])
 
   const handleEditClick = useCallback(async () => {
     setCreatingMember(false)
@@ -467,7 +468,6 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     activeTab,
     boardMembers,
     canEditField,
-    canAddMember,
     canEditMember,
     canManageCoffeeChats,
     canManageNftRequests,
@@ -477,6 +477,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     editedMember,
     editing,
     effectiveHasSpecialAccess,
+    effectiveCanManageBoardTools,
     events,
     exCoreAdvisors,
     exCoreAlumni,

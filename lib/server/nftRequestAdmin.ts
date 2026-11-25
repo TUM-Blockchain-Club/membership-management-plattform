@@ -1,89 +1,59 @@
-import { getLocalDevBypassMemberId, isLocalDevBypassEnabled } from "@/lib/devBypass"
-import { getSupabaseAdminClient } from "@/lib/server/supabaseAdmin"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { getLocalDevBypassMemberId, hasLocalDevBypassSpecialAccess, isLocalDevBypassEnabled } from '@/lib/devBypass'
+import { canManageBoardTools, canManageNftRequests } from '@/lib/member-permissions'
+import { getSupabaseAdminClient } from '@/lib/server/supabaseAdmin'
+import { createSupabaseServerClient } from '@/lib/supabase/server'
 
 type SupabaseServerClient = Awaited<ReturnType<typeof createSupabaseServerClient>>
-
-type AdminMemberRow = {
-  ID: number
-  Role: string | null
-}
+type AdminMember = { id: number; Role: string | null }
 
 export class NftRequestAdminError extends Error {
   status: number
 
   constructor(message: string, status: number) {
     super(message)
-    this.name = "NftRequestAdminError"
+    this.name = 'NftRequestAdminError'
     this.status = status
   }
 }
 
-const isLocalRequestDevBypassEnabled = (request?: Request) => {
-  if (!request) return false
-
-  try {
-    return isLocalDevBypassEnabled(new URL(request.url).hostname)
-  } catch {
-    return false
-  }
-}
-
-const normalizeAdminMember = (row: Record<string, unknown> | null): AdminMemberRow | null => {
-  if (!row) return null
-
-  const rawId = row.ID ?? row.id
-  const id = typeof rawId === "number" ? rawId : typeof rawId === "string" ? Number(rawId) : Number.NaN
-  if (!Number.isFinite(id)) return null
-
-  const rawRole = row.Role ?? row.role
-  return {
-    ID: id,
-    Role: typeof rawRole === "string" ? rawRole : null,
-  }
-}
-
-const hasNftAdminAccess = async (client: SupabaseServerClient, member: AdminMemberRow) => {
-  if (member.Role?.trim() === "Board Member") return true
-
-  const { data } = await client
-    .from("nft_admins")
-    .select("member_id")
-    .eq("member_id", member.ID)
-    .maybeSingle()
-
+const hasNftAssignment = async (client: SupabaseServerClient, memberId: number) => {
+  const { data, error } = await client.from('nft_admins').select('member_id').eq('member_id', memberId).maybeSingle()
+  if (error) throw new NftRequestAdminError('Could not verify NFT admin access.', 500)
   return Boolean(data)
 }
 
 export const requireNftRequestAdmin = async (supabase: SupabaseServerClient, request?: Request) => {
-  const dataClient = (getSupabaseAdminClient() ?? supabase) as unknown as SupabaseServerClient
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
+  const dataClient = (getSupabaseAdminClient() ?? supabase) as SupabaseServerClient
+  let member: AdminMember | null
+  let hasSpecialAccess: boolean
 
-  let member: AdminMemberRow | null = null
+  if (!user) {
+    const localBypass = request && isLocalDevBypassEnabled(new URL(request.url).hostname)
+    if (!localBypass) throw new NftRequestAdminError('Not authenticated.', 401)
 
-  if (user?.email) {
-    const { data } = await dataClient
-      .from("members_main")
-      .select("id, Role")
-      .ilike("TBC Email", user.email)
-      .maybeSingle()
-    member = normalizeAdminMember(data)
-  } else if (isLocalRequestDevBypassEnabled(request)) {
-    const { data } = await dataClient
-      .from("members_main")
-      .select("id, Role")
-      .eq("id", getLocalDevBypassMemberId())
-      .maybeSingle()
-    member = normalizeAdminMember(data)
+    const { data, error } = await dataClient.from('members_main')
+      .select('id, Role').eq('id', getLocalDevBypassMemberId()).maybeSingle()
+    if (error) throw new NftRequestAdminError('Could not verify member role.', 500)
+    member = data as AdminMember | null
+    hasSpecialAccess = hasLocalDevBypassSpecialAccess()
   } else {
-    throw new NftRequestAdminError("Not authenticated.", 401)
+    const [{ data: specialAccess, error: accessError }, { data, error: memberError }] = await Promise.all([
+      supabase.rpc('has_special_access'),
+      dataClient.from('members_main').select('id, Role').ilike('TBC Email', user.email ?? '').maybeSingle(),
+    ])
+    if (accessError || memberError) {
+      throw new NftRequestAdminError('Could not verify NFT admin access.', 500)
+    }
+    member = data as AdminMember | null
+    hasSpecialAccess = specialAccess === true
   }
 
-  if (!member || !(await hasNftAdminAccess(dataClient, member))) {
-    throw new NftRequestAdminError("You are not allowed to manage NFT requests.", 403)
+  const assigned = member && !canManageBoardTools(member, hasSpecialAccess)
+    ? await hasNftAssignment(dataClient, member.id)
+    : false
+  if (!canManageNftRequests(member, hasSpecialAccess, assigned)) {
+    throw new NftRequestAdminError('You are not allowed to manage NFT requests.', 403)
   }
-
   return { user, member }
 }
