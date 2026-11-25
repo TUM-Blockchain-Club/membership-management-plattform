@@ -30,10 +30,9 @@ For the live schema overview, table columns, relationships, RLS summary, storage
   - Replaces the previous matching-department update policy.
   - Lets members choose their own department once when it is empty and protects later department and role changes in the database.
 
-- `members_main_webhook_vault.sql`
-  - Replaces the dashboard-created `Strapi Webhook` Database Webhook on `members_main` with `members_main_strapi_webhook()`.
-  - Sends the same request to the `hello-world` Edge Function but reads the bearer key from the Vault secret `members_main_webhook_service_key`, so no key is stored in the trigger definition.
-  - Create the Vault secret before applying; rotate it with `vault.update_secret`.
+- The former `Strapi Webhook` on `members_main` (posted every member change to the
+  `hello-world` Edge Function, which no longer answered) was removed on
+  2026-11-25, together with its function and Vault secret.
 
 - `nft_requests.sql`
   - Creates/updates the Solana membership request, custody, lifecycle, and receipt schema.
