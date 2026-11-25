@@ -671,7 +671,7 @@ export function NewsletterPage({ canManageNewsletter }: Props) {
       </div>
 
       <Dialog open={newsletter.previewOpen} onOpenChange={newsletter.setPreviewOpen}>
-        <DialogContent className="max-h-[90vh] gap-0 overflow-hidden p-0 sm:max-w-4xl">
+        <DialogContent className="max-h-[90vh] max-w-4xl gap-0 overflow-hidden p-0">
           <DialogHeader className="border-b px-5 py-4">
             <DialogTitle>Email preview</DialogTitle>
             <DialogDescription>Rendered from the inlined HTML that will be sent to Mailgun.</DialogDescription>

@@ -378,7 +378,7 @@ export function EventsPage({
 
       {/* Participants modal (internal events) */}
       <Dialog open={canManageEvents && showParticipantsModal} onOpenChange={setShowParticipantsModal}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-md">
+        <DialogContent className="max-h-[80vh] max-w-md overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Participants for {modalEventTitle}</DialogTitle>
             <DialogDescription>{participants.length} registered</DialogDescription>
@@ -408,7 +408,7 @@ export function EventsPage({
 
       {/* Interested members modal (external events) */}
       <Dialog open={showInterestedModal} onOpenChange={setShowInterestedModal}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto sm:max-w-md">
+        <DialogContent className="max-h-[80vh] max-w-md overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Interested in {interestedModalTitle}</DialogTitle>
             <DialogDescription>
