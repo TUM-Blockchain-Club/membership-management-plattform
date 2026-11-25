@@ -103,7 +103,11 @@ same values for the intended Vercel preview environment before testing minting.
 7. Repeat with separate mainnet authority/configuration only after devnet acceptance.
 
 Devnet and mainnet must use different signer keypairs, RPC configuration, and
-collection addresses. Keep each private key only in the matching local or
+collection addresses. Each asset is bound to its `chain_network`: reconciliation
+skips other-network rows and every asset action refuses an asset from another
+network (`lib/server/solanaNetwork.ts`). While on devnet, member and board NFT
+views show a server-driven "Devnet (test network)" notice. The mainnet switch is
+documented in `docs/maintenance/solana-production-integration.md`. Keep each private key only in the matching local or
 Vercel environment.
 
 The collection creation command uploads collection metadata to
@@ -159,6 +163,17 @@ necessary before a real personal-data mainnet rollout.
 Run `pnpm test:nft` for route/publication-gate regressions and
 `pnpm exec node tests/nft-consent-database.mjs` for disposable PostgreSQL security
 and atomicity checks (Docker with the `postgres:17` image required).
+
+## Artwork fonts
+
+`buildNftImage` renders text through librsvg, which ignores embedded SVG
+`@font-face` fonts and resolves `font-family` via fontconfig. Vercel functions
+have no system fonts, so text rendered as missing-glyph boxes. The renderer now
+sets `FONTCONFIG_FILE` to `lib/server/fonts/fonts.conf`, which lists only the
+bundled Raleway Regular/Bold (SIL OFL, `lib/server/fonts/OFL.txt`).
+`next.config.ts` traces that folder into the NFT API routes because native code
+loads it. `tests/nft-artwork-text.test.ts` renders with an empty fontconfig and
+asserts real glyphs at legible size.
 
 ## Brand source assets
 

@@ -1,4 +1,5 @@
 import { supabase } from './supabase'
+import type { SolanaNetwork } from './nftLifecycle'
 
 export type NftRequestStatus = 'pending' | 'approved' | 'rejected'
 
@@ -92,6 +93,7 @@ export type DeleteRequestResponse = {
 }
 
 export type CurrentNftRequestResponse = {
+  network: SolanaNetwork
   memberId: number
   member: {
     id: number
@@ -244,18 +246,18 @@ export const nftRequestService = {
     })
 
     const payload = (await response.json()) as
-      | { requests: AdminQueueRequestRow[] }
+      | { requests: AdminQueueRequestRow[]; network: SolanaNetwork }
       | { error?: string }
 
     if (!response.ok || !('requests' in payload)) {
       return {
-        data: [] as AdminQueueRequestRow[],
+        data: { requests: [] as AdminQueueRequestRow[], network: null },
         error: ('error' in payload ? payload.error : undefined) || 'Could not load the admin NFT queue.',
       }
     }
 
     return {
-      data: payload.requests,
+      data: { requests: payload.requests, network: payload.network },
       error: null,
     }
   },

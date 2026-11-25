@@ -1,20 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { readFileSync } from 'node:fs'
-import { createRequire } from 'node:module'
-import vm from 'node:vm'
-const require = createRequire(import.meta.url)
-const ts = require('typescript')
-// Execute the real route/modules, replacing only infrastructure boundaries.
-function load(file, deps = {}) {
-  const code = ts.transpileModule(readFileSync(file, 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText
-  const exports = {}
-  vm.runInNewContext(code, { exports, require: id => {
-    if (!(id in deps)) throw new Error(`Unexpected dependency: ${id}`)
-    return deps[id]
-  }, Response, Buffer, console })
-  return exports
-}
+import { load } from './helpers/load-ts-module.mjs'
 const legal = load('lib/nftLegal.ts')
 const next = { NextResponse: { json: (body, init) => Response.json(body, init) } }
 const identity = { user: { id: 'signed-in-user' }, member: { ID: 7 }, dataClient: {} }
@@ -33,6 +19,7 @@ const current = load('app/api/nft-requests/current/route.ts', {
   '@/lib/solanaAddress': { isSolanaPublicKey: () => true },
   '@/lib/nftLifecycle': load('lib/nftLifecycle.ts'),
   '@/lib/server/nftPublicationConsent': { hasCurrentNftConsent: async () => false },
+  '@/lib/server/solanaNetwork': { getConfiguredSolanaNetwork: () => 'devnet' },
 })
 const renewal = load('app/api/nft-requests/current/consent/route.ts', common)
 const request = body => new Request('http://localhost/api/nft-requests/current', { method: 'POST', body: JSON.stringify(body) })

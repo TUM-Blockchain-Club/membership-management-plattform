@@ -15,6 +15,7 @@ import {
   renderAndUploadMembershipAssets,
 } from '@/lib/server/membershipNftAssets'
 import { burnMembershipAsset, updateMembershipAsset } from '@/lib/server/solanaMembership'
+import { assertAssetOnConfiguredNetwork, SolanaNetworkMismatchError } from '@/lib/server/solanaNetwork'
 import { getSupabaseAdminClient } from '@/lib/server/supabaseAdmin'
 import { createSupabaseServerClient } from '@/lib/supabase/server'
 
@@ -38,6 +39,7 @@ export async function POST(request: Request, context: RouteContext) {
     if (record.request.asset_state === 'burned') {
       return NextResponse.json({ error: 'This Solana asset is already burned.' }, { status: 409 })
     }
+    assertAssetOnConfiguredNetwork(record.request.chain_network)
 
     const action = payload.action === 'revoke'
       ? 'burn'
@@ -52,6 +54,7 @@ export async function POST(request: Request, context: RouteContext) {
       operationId = await startNftChainOperation(dataClient, requestId, 'update')
       const result = await updateMembershipAsset({
         assetAddress: record.request.asset_address,
+        network: record.request.chain_network,
         name: `${record.request.display_name} — TBC Alumni`,
         uri: rendered.metadataUrl,
       })
@@ -87,7 +90,10 @@ export async function POST(request: Request, context: RouteContext) {
     }
 
     operationId = await startNftChainOperation(dataClient, requestId, 'burn')
-    const result = await burnMembershipAsset(record.request.asset_address)
+    const result = await burnMembershipAsset({
+      assetAddress: record.request.asset_address,
+      network: record.request.chain_network,
+    })
     await confirmNftChainOperation(dataClient, operationId, {
       assetAddress: record.request.asset_address,
       signature: result.signature,
@@ -135,7 +141,7 @@ export async function POST(request: Request, context: RouteContext) {
       const dataClient = getSupabaseAdminClient()
       if (dataClient) await failNftChainOperation(dataClient, operationId, message)
     }
-    if (error instanceof NftRequestAdminError || error instanceof NftPublicationConsentError) {
+    if (error instanceof NftRequestAdminError || error instanceof NftPublicationConsentError || error instanceof SolanaNetworkMismatchError) {
       return NextResponse.json({ error: message }, { status: error.status })
     }
     return NextResponse.json({ error: message }, { status: 500 })
