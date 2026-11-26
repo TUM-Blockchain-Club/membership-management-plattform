@@ -41,10 +41,8 @@ and icon or the complete mobile row when the corresponding field is empty.
 ## Google Cloud setup
 
 Use the Google OAuth client already configured under Supabase Authentication →
-Providers → Google. The intended client is "TBC Membership Platform – Supabase"
-in the Google Cloud project `tbc-membership-oauth-2026` (audience Internal);
-see Troubleshooting for the client production actually used. In the project
-that owns the client Supabase sends:
+Providers → Google: "TBC Membership Platform – Supabase" in the Google Cloud
+project `tbc-membership-oauth-2026` (audience Internal). In that project:
 
 1. Enable the Gmail API.
 2. Keep the OAuth consent app internal to `tum-blockchain.com`.
@@ -88,12 +86,17 @@ token). The member sees a message per kind:
 
 To see which OAuth client Supabase really sends, read the `client_id` from
 `curl -s -o /dev/null -w '%{redirect_url}' 'https://<project-ref>.supabase.co/auth/v1/authorize?provider=google'`.
-On 2026-11-26 production used `1028219151396-i0a3…` ("Membership"), a
-third-party, unverified client outside `tum-blockchain.com`, not the Internal
-client in `tbc-membership-oauth-2026`. Requesting the Gmail scope was blocked
-("has not completed the Google verification process") until the client was
-marked Trusted in Workspace Admin; the Gmail API must also be enabled in its
-project, or Supabase must be switched to the Internal client.
+Production uses the Internal client "TBC Membership Platform – Supabase"
+(`339852176226-923l…`) in `tbc-membership-oauth-2026`. Because the consent app
+is Internal, only `tum-blockchain.com` Google accounts can sign in.
+
+Until 2026-11-26 Supabase sent `1028219151396-i0a3…` ("Membership"), a
+third-party, unverified client outside `tum-blockchain.com`. Requesting the
+Gmail scope with it failed with "has not completed the Google verification
+process" and later `admin_policy_enforced`, so Supabase's Google provider was
+switched to the Internal client. Its Workspace Admin trust rule can be removed.
+If `admin_policy_enforced` reappears, check that the client ID Supabase sends is
+Trusted under API controls → Manage Third-Party App Access.
 
 ## Maintenance
 
@@ -118,4 +121,6 @@ project, or Supabase must be switched to the Internal client.
   `DashboardHeader` to `DashboardSidebar`, the callback adopted main's
   `safeAuthRedirect`, `test:email-signature` now uses the unit Playwright config,
   and the callback-time scope check was added after AMBER's July 2026 granular
-  consent failures.
+  consent failures. Supabase's Google provider was switched from the
+  third-party "Membership" client to the Internal client, and the Gmail
+  signature flow was verified on the preview.
