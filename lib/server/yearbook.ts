@@ -280,6 +280,7 @@ export async function loadYearbookHome(): Promise<YearbookHomeData | null> {
       subjectId: entry.subject_id,
       body: entry.body,
       photoUrl: signedUrl(entry.photo_path),
+      hasPhoto: Boolean(entry.photo_path),
       updatedAt: entry.updated_at,
     })),
     received: received.map((entry) => {

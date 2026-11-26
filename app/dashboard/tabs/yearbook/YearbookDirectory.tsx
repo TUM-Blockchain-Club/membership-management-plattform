@@ -1,7 +1,7 @@
 'use client'
 
 import { useDeferredValue, useMemo, useState } from 'react'
-import { CheckCircle2Icon, ImageIcon, SearchIcon, UsersIcon } from 'lucide-react'
+import { CheckIcon, ImageIcon, SearchIcon, UsersIcon } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
@@ -31,13 +31,15 @@ export function YearbookDirectory({
 
   const visible = useMemo(() => {
     const needle = deferredQuery.trim().toLowerCase()
-    return members.filter((member) => {
+    const matches = members.filter((member) => {
       if (needle && !`${member.name} ${member.department ?? ''}`.toLowerCase().includes(needle)) return false
       if (filter === 'joined') return member.isParticipant
       if (filter === 'written') return writtenBySubject.has(member.id)
       if (filter === 'todo') return member.isParticipant && !writtenBySubject.has(member.id)
       return true
     })
+    // Members you already wrote for move to the top; the rest keep alphabetical order (stable sort).
+    return matches.sort((a, b) => Number(writtenBySubject.has(b.id)) - Number(writtenBySubject.has(a.id)))
   }, [deferredQuery, filter, members, writtenBySubject])
 
   return (
@@ -82,41 +84,59 @@ export function YearbookDirectory({
           </EmptyHeader>
         </Empty>
       ) : (
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {visible.slice(0, limit).map((member) => {
-            const entry = writtenBySubject.get(member.id)
-            return (
-              <li key={member.id}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(member)}
-                  className={cn(
-                    'flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-left transition-colors outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring',
-                    entry && 'border-primary/40',
-                  )}
-                >
-                  <YearbookMemberPhoto name={member.name} src={member.pictureUrl} className="size-12 text-sm" />
-                  <span className="flex min-w-0 flex-1 flex-col gap-1">
-                    <span className="truncate font-medium">{member.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">{member.department || 'TBC member'}</span>
-                    <span className="flex flex-wrap gap-1">
-                      {member.isParticipant
-                        ? <Badge variant="secondary">In the yearbook</Badge>
-                        : <Badge variant="outline" className="text-muted-foreground">Not joined</Badge>}
-                      {entry && (
-                        <Badge variant="outline" className="border-primary/40 text-primary">
-                          <CheckCircle2Icon data-icon="inline-start" />
-                          Written
-                          {entry.photoUrl && <ImageIcon className="ml-0.5" aria-label="with photo" />}
-                        </Badge>
+        // Container queries size the grid by the space it actually has, with or without the sidebar.
+        <div className="@container">
+          <ul className="grid grid-cols-1 gap-3 @xl:grid-cols-2 @4xl:grid-cols-3 @6xl:grid-cols-4">
+            {visible.slice(0, limit).map((member) => {
+              const entry = writtenBySubject.get(member.id)
+              return (
+                <li key={member.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelect(member)}
+                    aria-label={`${entry ? 'Edit your message for' : 'Write a message for'} ${member.name}`}
+                    className={cn(
+                      'flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-left transition-colors outline-none hover:bg-muted/50 focus-visible:ring-2 focus-visible:ring-ring',
+                      entry && 'border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/15',
+                    )}
+                  >
+                    <span className="relative shrink-0">
+                      <YearbookMemberPhoto
+                        name={member.name}
+                        src={member.pictureUrl}
+                        className={cn('size-12 text-sm', entry && 'ring-2 ring-emerald-500/60')}
+                      />
+                      {entry?.hasPhoto && (
+                        <span
+                          title="You added a photo"
+                          className="absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full bg-emerald-600 text-white ring-2 ring-card"
+                        >
+                          <ImageIcon className="size-3" aria-hidden="true" />
+                          <span className="sr-only">with your photo</span>
+                        </span>
                       )}
                     </span>
-                  </span>
-                </button>
-              </li>
-            )
-          })}
-        </ul>
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className="truncate font-medium">{member.name}</span>
+                      <span className="truncate text-xs text-muted-foreground">{member.department || 'TBC member'}</span>
+                      <span className="flex flex-wrap gap-1">
+                        {entry && (
+                          <Badge className="border-emerald-500/30 bg-emerald-500/15 text-emerald-300">
+                            <CheckIcon data-icon="inline-start" />
+                            Written
+                          </Badge>
+                        )}
+                        {member.isParticipant
+                          ? <Badge variant="secondary">In the yearbook</Badge>
+                          : <Badge variant="outline" className="text-muted-foreground">Not joined</Badge>}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
       )}
 
       {visible.length > limit && (

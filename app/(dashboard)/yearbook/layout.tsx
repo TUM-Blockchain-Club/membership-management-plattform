@@ -10,7 +10,7 @@ export default async function YearbookLayout({ children }: { children: ReactNode
   if (!member) redirect('/signin')
 
   return (
-    <section className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+    <section className="flex w-full flex-col gap-6">
       <YearbookHeader />
       {children}
     </section>

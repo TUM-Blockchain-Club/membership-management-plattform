@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { format } from 'date-fns'
@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardAction, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { YearbookEdition, YearbookHomeData, YearbookMemberSummary } from '@/lib/yearbook'
+import type { YearbookEdition, YearbookHomeData, YearbookMemberSummary, YearbookWrittenEntry } from '@/lib/yearbook'
 import { YearbookDirectory } from './YearbookDirectory'
 import { YearbookEntryDialog } from './YearbookEntryDialog'
 import { YearbookJoinSelector } from './YearbookJoinSelector'
@@ -38,11 +38,30 @@ function EditionSummary({ edition, writable, participantCount }: { edition: Year
   )
 }
 
+type WrittenOverrides = Map<number, YearbookWrittenEntry | null>
+const NO_OVERRIDES: WrittenOverrides = new Map()
+
 export function YearbookPage({ data }: { data: YearbookHomeData }) {
   const router = useRouter()
   const [, startTransition] = useTransition()
   const [selected, setSelected] = useState<YearbookMemberSummary | null>(null)
+  // Saved/deleted messages show immediately; the overrides are dropped as soon as
+  // refreshed server data (a new `data.written` array) arrives.
+  const [local, setLocal] = useState({ base: data.written, overrides: NO_OVERRIDES })
+  const overrides = local.base === data.written ? local.overrides : NO_OVERRIDES
+  const written = useMemo(() => {
+    if (overrides.size === 0) return data.written
+    const kept = data.written.filter((entry) => !overrides.has(entry.subjectId))
+    const saved = [...overrides.values()].filter((entry): entry is YearbookWrittenEntry => entry !== null)
+    return [...kept, ...saved]
+  }, [data.written, overrides])
   const refresh = () => startTransition(() => router.refresh())
+
+  function recordSaved(subjectId: number, entry: YearbookWrittenEntry | null) {
+    setLocal({ base: data.written, overrides: new Map(overrides).set(subjectId, entry) })
+    setSelected(null)
+    refresh()
+  }
 
   if (!data.edition) {
     return (
@@ -81,7 +100,7 @@ export function YearbookPage({ data }: { data: YearbookHomeData }) {
     return <YearbookJoinSelector edition={edition} participantCount={data.participantCount} />
   }
 
-  const selectedEntry = selected ? data.written.find((entry) => entry.subjectId === selected.id) ?? null : null
+  const selectedEntry = selected ? written.find((entry) => entry.subjectId === selected.id) ?? null : null
   const printableReceived = data.received.filter((entry) => entry.isPrintable).length
 
   return (
@@ -96,8 +115,8 @@ export function YearbookPage({ data }: { data: YearbookHomeData }) {
         </Alert>
       )}
 
-      <Tabs defaultValue="write">
-        <TabsList className="flex-wrap">
+      <Tabs defaultValue="write" className="gap-4">
+        <TabsList>
           <TabsTrigger value="write">Write messages</TabsTrigger>
           <TabsTrigger value="page">My page</TabsTrigger>
           <TabsTrigger value="received">
@@ -106,14 +125,14 @@ export function YearbookPage({ data }: { data: YearbookHomeData }) {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="write" className="mt-2">
+        <TabsContent value="write">
           <p className="mb-4 text-sm text-muted-foreground">
-            Pick anyone in TBC and write them a message. You have written {data.written.length} so far.
+            Pick anyone in TBC and write them a message. You have written {written.length} so far.
           </p>
-          <YearbookDirectory members={data.members} written={data.written} onSelect={setSelected} />
+          <YearbookDirectory members={data.members} written={written} onSelect={setSelected} />
         </TabsContent>
 
-        <TabsContent value="page" className="mt-2">
+        <TabsContent value="page">
           <YearbookMyPage
             key={`${participation.quote ?? ''}|${participation.portraitUrl ?? ''}`}
             viewer={data.viewer}
@@ -124,7 +143,7 @@ export function YearbookPage({ data }: { data: YearbookHomeData }) {
           />
         </TabsContent>
 
-        <TabsContent value="received" className="mt-2">
+        <TabsContent value="received">
           <p className="mb-4 text-sm text-muted-foreground">
             Messages from members who aren&apos;t in the yearbook are marked &ldquo;Not printed&rdquo; until they join.
           </p>
@@ -139,7 +158,7 @@ export function YearbookPage({ data }: { data: YearbookHomeData }) {
           entry={selectedEntry}
           writable={isWritable}
           onClose={() => setSelected(null)}
-          onSaved={() => { setSelected(null); refresh() }}
+          onSaved={(entry) => recordSaved(selected.id, entry)}
         />
       )}
     </div>

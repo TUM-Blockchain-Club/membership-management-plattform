@@ -34,6 +34,8 @@ export type YearbookWrittenEntry = {
   subjectId: number
   body: string
   photoUrl: string | null
+  /** True when a photo is stored, even if its signed URL is not available yet. */
+  hasPhoto: boolean
   updatedAt: string
 }
 

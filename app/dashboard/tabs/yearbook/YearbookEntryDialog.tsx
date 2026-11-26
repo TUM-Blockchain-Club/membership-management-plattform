@@ -35,7 +35,8 @@ export function YearbookEntryDialog({
   entry: YearbookWrittenEntry | null
   writable: boolean
   onClose: () => void
-  onSaved: () => void
+  /** Called with the saved message, or null after deleting it. */
+  onSaved: (entry: YearbookWrittenEntry | null) => void
 }) {
   const [body, setBody] = useState(entry?.body ?? '')
   const [photo, setPhoto] = useState<YearbookPhotoValue>(EMPTY_PHOTO_VALUE)
@@ -54,9 +55,17 @@ export function YearbookEntryDialog({
       form.set('body', body)
       if (photo.file) form.set('photo', photo.file)
       if (photo.removed) form.set('removePhoto', 'true')
-      await yearbookRequest('/api/yearbook/entries', { method: 'POST', body: form })
+      const { id } = await yearbookRequest<{ id: string }>('/api/yearbook/entries', { method: 'POST', body: form })
       toast.success(entry ? `Updated your message for ${firstName}.` : `Saved your message for ${firstName}.`)
-      onSaved()
+      const keptPhoto = !photo.file && !photo.removed
+      onSaved({
+        id,
+        subjectId: member.id,
+        body: body.trim(),
+        photoUrl: keptPhoto ? entry?.photoUrl ?? null : null,
+        hasPhoto: photo.file ? true : keptPhoto && Boolean(entry?.hasPhoto),
+        updatedAt: new Date().toISOString(),
+      })
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not save your message.')
     } finally {
@@ -70,7 +79,7 @@ export function YearbookEntryDialog({
     try {
       await yearbookRequest(`/api/yearbook/entries/${entry.id}`, { method: 'DELETE' })
       toast.success(`Deleted your message for ${firstName}.`)
-      onSaved()
+      onSaved(null)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Could not delete your message.')
     } finally {
