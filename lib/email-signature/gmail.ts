@@ -6,7 +6,7 @@ import {
   type GmailSendAsAlias,
   type SignatureInput,
 } from './signature'
-
+import { classifyGmailFailure, GMAIL_FAILURE_RESPONSES } from './gmailErrors'
 import { classifyTokenInfo, type GmailScopeCheck } from './scopes'
 
 const GMAIL_SEND_AS_URL = 'https://gmail.googleapis.com/gmail/v1/users/me/settings/sendAs'
@@ -41,15 +41,19 @@ export class GmailSettingsError extends Error {
   }
 }
 
-const gmailError = (status: number) => {
-  if (status === 401 || status === 403) {
-    return new GmailSettingsError(
-      'Gmail permission is missing or expired. Authorize Google again and select the Gmail settings permission.',
-      403,
-    )
-  }
-
-  return new GmailSettingsError('Gmail could not update the signature. Please try again.', 502)
+// Logs Google's reason server-side (never the token) and maps it to a member-facing
+// message. A disabled Gmail API needs an admin, not another authorization.
+const gmailError = async (response: Response, step: 'list send-as' | 'update signature') => {
+  const body: unknown = await response.json().catch(() => null)
+  const failure = classifyGmailFailure(response.status, body)
+  console.warn('Gmail settings request failed', {
+    step,
+    status: failure.status,
+    kind: failure.kind,
+    reasons: failure.reasons,
+  })
+  const { message, status } = GMAIL_FAILURE_RESPONSES[failure.kind]
+  return new GmailSettingsError(message, status)
 }
 
 export const updateGmailSignature = async ({
@@ -68,7 +72,7 @@ export const updateGmailSignature = async ({
   })
 
   if (!aliasesResponse.ok) {
-    throw gmailError(aliasesResponse.status)
+    throw await gmailError(aliasesResponse, 'list send-as')
   }
 
   const payload = await aliasesResponse.json() as { sendAs?: GmailSendAsAlias[] }
@@ -92,7 +96,7 @@ export const updateGmailSignature = async ({
   })
 
   if (!updateResponse.ok) {
-    throw gmailError(updateResponse.status)
+    throw await gmailError(updateResponse, 'update signature')
   }
 
   return { email: alias.sendAsEmail }

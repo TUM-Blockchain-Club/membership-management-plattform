@@ -41,8 +41,10 @@ and icon or the complete mobile row when the corresponding field is empty.
 ## Google Cloud setup
 
 Use the Google OAuth client already configured under Supabase Authentication →
-Providers → Google ("TBC Membership Platform – Supabase" in the Google Cloud
-project `tbc-membership-oauth-2026`, audience Internal). In that project:
+Providers → Google. The intended client is "TBC Membership Platform – Supabase"
+in the Google Cloud project `tbc-membership-oauth-2026` (audience Internal);
+see Troubleshooting for the client production actually used. In the project
+that owns the client Supabase sends:
 
 1. Enable the Gmail API.
 2. Keep the OAuth consent app internal to `tum-blockchain.com`.
@@ -72,13 +74,35 @@ treats the grant as unknown and still stores the token. The Gmail call in
 member never sees a false "missing permission" message caused by a Google
 outage.
 
+## Troubleshooting
+
+Gmail failures are logged server-side as `Gmail settings request failed` with
+the step, HTTP status, classified kind and Google's reason codes (never the
+token). The member sees a message per kind:
+
+- `api_disabled` (`SERVICE_DISABLED` / `accessNotConfigured`): the Gmail API is
+  off in the Google Cloud project that owns the OAuth client Supabase uses.
+  Reauthorizing cannot fix it; enable the Gmail API in that project.
+- `insufficient_scope`: the token lacks `gmail.settings.basic`.
+- `unauthenticated`: the token expired or was revoked.
+
+To see which OAuth client Supabase really sends, read the `client_id` from
+`curl -s -o /dev/null -w '%{redirect_url}' 'https://<project-ref>.supabase.co/auth/v1/authorize?provider=google'`.
+On 2026-11-26 production used `1028219151396-i0a3…` ("Membership"), a
+third-party, unverified client outside `tum-blockchain.com`, not the Internal
+client in `tbc-membership-oauth-2026`. Requesting the Gmail scope was blocked
+("has not completed the Google verification process") until the client was
+marked Trusted in Workspace Admin; the Gmail API must also be enabled in its
+project, or Supabase must be switched to the Internal client.
+
 ## Maintenance
 
 - The signature renderer and trust-boundary validation live in
   `lib/email-signature/signature.ts`.
 - Gmail API access and the tokeninfo scope check live in
   `lib/email-signature/gmail.ts` and must remain server-only. The pure
-  tokeninfo parsing in `lib/email-signature/scopes.ts` is shared with tests.
+  tokeninfo parsing in `lib/email-signature/scopes.ts` and Gmail error
+  classification in `lib/email-signature/gmailErrors.ts` are shared with tests.
 - Keep the matching send-as check. Never fall back to the primary or first Gmail
   alias because the authorized Google account must match the platform account.
 - The legal and board text is currently the same static content as the AMBER

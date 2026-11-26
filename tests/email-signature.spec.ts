@@ -7,6 +7,7 @@ import {
   SignatureValidationError,
 } from '@/lib/email-signature/signature'
 import { classifyTokenInfo, scopeListIncludesGmailSettings } from '@/lib/email-signature/scopes'
+import { classifyGmailFailure, GMAIL_FAILURE_RESPONSES } from '@/lib/email-signature/gmailErrors'
 
 const validInput = {
   fullName: 'Nikolas Hack',
@@ -96,4 +97,34 @@ test('detects whether Google granted the Gmail settings scope', () => {
   expect(classifyTokenInfo(false, { error: 'invalid_token' })).toBe('unknown')
   expect(classifyTokenInfo(true, null)).toBe('unknown')
   expect(classifyTokenInfo(true, {})).toBe('unknown')
+})
+
+test('separates a disabled Gmail API from a missing or expired grant', () => {
+  // Shape Google returns when the Gmail API is off in the OAuth client's project.
+  const apiDisabled = {
+    error: {
+      code: 403,
+      status: 'PERMISSION_DENIED',
+      errors: [{ reason: 'accessNotConfigured' }],
+      details: [{ '@type': 'type.googleapis.com/google.rpc.ErrorInfo', reason: 'SERVICE_DISABLED' }],
+    },
+  }
+  const scopeMissing = {
+    error: {
+      code: 403,
+      status: 'PERMISSION_DENIED',
+      errors: [{ reason: 'insufficientPermissions' }],
+      details: [{ reason: 'ACCESS_TOKEN_SCOPE_INSUFFICIENT' }],
+    },
+  }
+
+  const disabled = classifyGmailFailure(403, apiDisabled)
+  expect(disabled.kind).toBe('api_disabled')
+  expect(disabled.reasons).toEqual(['SERVICE_DISABLED', 'accessNotConfigured', 'PERMISSION_DENIED'])
+  expect(GMAIL_FAILURE_RESPONSES[disabled.kind].message).toContain('Gmail API is not enabled')
+
+  expect(classifyGmailFailure(403, scopeMissing).kind).toBe('insufficient_scope')
+  expect(classifyGmailFailure(401, { error: { status: 'UNAUTHENTICATED' } }).kind).toBe('unauthenticated')
+  expect(classifyGmailFailure(403, null).kind).toBe('insufficient_scope')
+  expect(classifyGmailFailure(500, 'not json').kind).toBe('other')
 })
