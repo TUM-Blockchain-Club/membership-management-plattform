@@ -3,7 +3,8 @@ import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { format } from 'date-fns'
 import { isUuid } from '@/lib/yearbook'
-import { getYearbookViewer, loadYearbookExport } from '@/lib/server/yearbook'
+import { getYearbookViewer, loadYearbookExport, YearbookSetupError } from '@/lib/server/yearbook'
+import { YearbookUnavailable } from '@/app/dashboard/tabs/yearbook/YearbookUnavailable'
 import { PrintButton } from './PrintButton'
 
 export const metadata: Metadata = {
@@ -20,12 +21,21 @@ function initials(name: string) {
 
 export default async function YearbookPrintPage({ params }: { params: Promise<{ editionId: string }> }) {
   const { editionId } = await params
-  const viewer = await getYearbookViewer()
-  if (!viewer) redirect('/signin')
-  if (!viewer.canManage) redirect('/yearbook')
   if (!isUuid(editionId)) notFound()
 
-  const data = await loadYearbookExport(viewer.admin, editionId, PRINT_PHOTO_URL_SECONDS)
+  let viewer
+  let data
+  try {
+    viewer = await getYearbookViewer()
+    data = viewer?.canManage ? await loadYearbookExport(viewer.admin, editionId, PRINT_PHOTO_URL_SECONDS) : null
+  } catch (error) {
+    if (error instanceof YearbookSetupError) {
+      return <main className="mx-auto max-w-xl p-8"><YearbookUnavailable message={error.message} /></main>
+    }
+    throw error
+  }
+  if (!viewer) redirect('/signin')
+  if (!viewer.canManage) redirect('/yearbook')
   if (!data) notFound()
 
   return (

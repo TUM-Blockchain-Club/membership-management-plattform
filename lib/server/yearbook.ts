@@ -30,6 +30,23 @@ export class YearbookError extends Error {
   }
 }
 
+/** The server or database is missing yearbook setup; pages show a "not set up" state instead of crashing. */
+export class YearbookSetupError extends YearbookError {
+  constructor(reason: string) {
+    super("The yearbook isn't set up on this server yet.", 503)
+    console.error(`[yearbook] setup incomplete: ${reason}`)
+  }
+}
+
+// PostgREST: table not in schema cache; Postgres: undefined table.
+const MISSING_TABLE_CODES = new Set(['PGRST205', '42P01'])
+
+function editionLoadError(error: { code?: string }): YearbookError {
+  return MISSING_TABLE_CODES.has(error.code ?? '')
+    ? new YearbookSetupError('yearbook tables are missing; apply supabase/yearbook.sql')
+    : new YearbookError('Could not load the yearbook.', 503)
+}
+
 const PHOTO_URL_SECONDS = 60 * 60
 export const EXPORT_PHOTO_URL_SECONDS = 7 * 24 * 60 * 60
 
@@ -55,7 +72,7 @@ export function toEdition(row: EditionRow): YearbookEdition {
 
 function getAdminClient(): AdminClient {
   const admin = getSupabaseAdminClient() as AdminClient | null
-  if (!admin) throw new YearbookError('The yearbook is not configured on this server.', 503)
+  if (!admin) throw new YearbookSetupError('SUPABASE_SERVICE_ROLE_KEY (and NEXT_PUBLIC_SUPABASE_URL) must be set')
   return admin
 }
 
@@ -108,7 +125,7 @@ export async function loadCurrentEdition(admin: AdminClient): Promise<YearbookEd
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
-  if (error) throw new YearbookError('Could not load the yearbook.', 503)
+  if (error) throw editionLoadError(error)
   return data ? toEdition(data as EditionRow) : null
 }
 
@@ -288,7 +305,7 @@ export async function loadYearbookAdminData(admin: AdminClient, editionId?: stri
     .from('yb_editions')
     .select(EDITION_COLUMNS)
     .order('created_at', { ascending: false })
-  if (error) throw new YearbookError('Could not load yearbook editions.', 503)
+  if (error) throw editionLoadError(error)
   const editions = ((editionRows ?? []) as EditionRow[]).map(toEdition)
 
   const [participantCounts, entryCounts] = await Promise.all([
@@ -381,7 +398,7 @@ export async function loadYearbookExport(
   expiresIn = EXPORT_PHOTO_URL_SECONDS,
 ): Promise<YearbookExport | null> {
   const { data: editionRow, error } = await admin.from('yb_editions').select(EDITION_COLUMNS).eq('id', editionId).maybeSingle()
-  if (error) throw new YearbookError('Could not load the yearbook.', 503)
+  if (error) throw editionLoadError(error)
   if (!editionRow) return null
   const edition = toEdition(editionRow as EditionRow)
 

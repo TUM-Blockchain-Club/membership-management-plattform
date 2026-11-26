@@ -1,7 +1,8 @@
 import type { Metadata } from 'next'
 import { redirect } from 'next/navigation'
 import { YearbookPage } from '@/app/dashboard/tabs/yearbook/YearbookPage'
-import { loadYearbookHome } from '@/lib/server/yearbook'
+import { YearbookUnavailable } from '@/app/dashboard/tabs/yearbook/YearbookUnavailable'
+import { loadYearbookHome, YearbookSetupError } from '@/lib/server/yearbook'
 
 export const metadata: Metadata = {
   title: 'Yearbook – TBC Member Portal',
@@ -9,7 +10,13 @@ export const metadata: Metadata = {
 }
 
 export default async function Page() {
-  const data = await loadYearbookHome()
+  let data
+  try {
+    data = await loadYearbookHome()
+  } catch (error) {
+    if (error instanceof YearbookSetupError) return <YearbookUnavailable message={error.message} />
+    throw error
+  }
   if (!data) redirect('/signin')
 
   return <YearbookPage data={data} />
