@@ -3,6 +3,7 @@ export const ADMIN_SCOPES = [
   { key: 'nfts', label: 'NFTs' },
   { key: 'grants', label: 'Event Grants' },
   { key: 'newsletter', label: 'Mail' },
+  { key: 'yearbook', label: 'Yearbook' },
 ] as const
 export type AdminScope = typeof ADMIN_SCOPES[number]['key']
 export type AdminAccessMember = { id: number; Name: string | null; Department: string | null; Role: string | null; Status: string | null }

@@ -10,6 +10,7 @@ export type DashboardInitialData = {
   canManageCoffeeChats?: boolean
   canManageGrants?: boolean
   canManageNewsletter?: boolean
+  canManageYearbook?: boolean
   events: DashboardEvent[]
   hasSpecialAccess: boolean
   member: DashboardMember | null

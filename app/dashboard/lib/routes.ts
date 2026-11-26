@@ -16,6 +16,8 @@ export const TAB_ROUTES: Record<DashboardTab, string> = {
   'nft-status': '/nft-status',
   newsletter: '/newsletter',
   attendance: '/attendance',
+  yearbook: '/yearbook',
+  'yearbook-admin': '/yearbook/admin',
 }
 
 const PATHNAME_TO_TAB: Record<string, DashboardTab> = {
@@ -42,6 +44,14 @@ export function getDashboardTabForPathname(pathname: string): DashboardTab {
 
   if (pathname === '/coffee-chats' || pathname.startsWith('/coffee-chats/')) {
     return 'coffee-chats'
+  }
+
+  if (pathname === '/yearbook/admin' || pathname.startsWith('/yearbook/admin/')) {
+    return 'yearbook-admin'
+  }
+
+  if (pathname === '/yearbook' || pathname.startsWith('/yearbook/')) {
+    return 'yearbook'
   }
 
   if (pathname === '/link-analytics' || pathname.startsWith('/link-analytics/')) {

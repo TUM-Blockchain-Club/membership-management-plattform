@@ -6,6 +6,7 @@ import { TAB_ROUTES } from '@/app/dashboard/lib/routes'
 import Image from 'next/image'
 import {
   BarChart3Icon,
+  BookHeartIcon,
   BadgeCheckIcon,
   CalendarIcon,
   ChevronsUpDownIcon,
@@ -61,6 +62,7 @@ type DashboardNavigationProps = {
   showCoffeeChatsAdminTab: boolean
   showNftApprovalsTab: boolean
   showNewsletterTab: boolean
+  showYearbookAdminTab: boolean
   forceMemberView: boolean
   onToggleMemberView: (enabled: boolean) => void
   pictureUrl: string | null
@@ -78,6 +80,7 @@ const NAVIGATION_GROUPS: Array<{ label: string; items: NavigationItem[] }> = [
     items: [
       { key: 'home', label: 'Home', icon: HouseIcon },
       { key: 'coffee-chats', label: 'Coffee Chats', icon: CoffeeIcon },
+      { key: 'yearbook', label: 'Yearbook', icon: BookHeartIcon },
       { key: 'members', label: 'All Members', icon: UsersIcon },
       { key: 'events', label: 'Events', icon: CalendarIcon },
       { key: 'attendance', label: 'Attendance', icon: BadgeCheckIcon },
@@ -95,6 +98,7 @@ const NAVIGATION_GROUPS: Array<{ label: string; items: NavigationItem[] }> = [
       { key: 'coffee-chats-admin', label: 'Coffee Chats Admin', icon: CoffeeIcon },
       { key: 'nft-approvals', label: 'NFT Approvals', icon: HexagonIcon },
       { key: 'newsletter', label: 'Newsletter', icon: MailIcon },
+      { key: 'yearbook-admin', label: 'Yearbook Admin', icon: BookHeartIcon },
     ],
   },
 ]
@@ -130,6 +134,7 @@ export function DashboardSidebar({
   showCoffeeChatsAdminTab,
   showNftApprovalsTab,
   showNewsletterTab,
+  showYearbookAdminTab,
   forceMemberView,
   onToggleMemberView,
   pictureUrl,
@@ -144,6 +149,7 @@ export function DashboardSidebar({
     if (item.key === 'nft-approvals') return showNftApprovalsTab
     if (item.key === 'link-analytics') return showLinkAnalyticsTab
     if (item.key === 'newsletter') return showNewsletterTab
+    if (item.key === 'yearbook-admin') return showYearbookAdminTab
     return true
   }
 

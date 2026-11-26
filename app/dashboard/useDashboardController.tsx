@@ -104,6 +104,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
   const showGrantAdminTab = (effectiveIsBoardMember || initialData.canManageGrants === true) && !forceMemberView
   const showAdminAccessTab = effectiveIsBoardMember
   const showNewsletterTab = (effectiveIsBoardMember || initialData.canManageNewsletter === true) && !forceMemberView
+  const showYearbookAdminTab = (effectiveIsBoardMember || initialData.canManageYearbook === true) && !forceMemberView
   const canManageCoffeeChats = canShowCoffeeChatAdmin({
     forceMemberView,
     isBoardMember: member?.Role === 'Board Member',
@@ -151,6 +152,12 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
       router.replace(TAB_ROUTES.profile)
     }
   }, [activeTab, loading, router, showNewsletterTab])
+
+  useEffect(() => {
+    if (!loading && activeTab === 'yearbook-admin' && !showYearbookAdminTab) {
+      router.replace(TAB_ROUTES.yearbook)
+    }
+  }, [activeTab, loading, router, showYearbookAdminTab])
 
   const handleSignOut = useCallback(async () => {
     await auth.signOut()
@@ -540,6 +547,7 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     showAdminAccessTab,
     showGrantAdminTab,
     showNewsletterTab,
+    showYearbookAdminTab,
     showNftApprovalsTab,
     showParticipantsModal,
     stats,

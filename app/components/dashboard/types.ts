@@ -46,6 +46,8 @@ export type DashboardTab =
   | 'nft-status'
   | 'newsletter'
   | 'attendance'
+  | 'yearbook'
+  | 'yearbook-admin'
 
 export type DashboardMessage = {
   type: 'success' | 'error'

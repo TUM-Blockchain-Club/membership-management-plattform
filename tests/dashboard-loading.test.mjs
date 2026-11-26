@@ -56,7 +56,9 @@ test('shell loads no collections and reuses own special access instead of queryi
   const data = await initial.loadDashboardInitialData()
   assert.equal(data.allMembers.length, 0); assert.equal(data.events.length, 0)
   assert.equal(data.viewedMemberHasSpecialAccess, true)
-  assert.equal(rpcCalls.length, 5)
+  assert.equal(rpcCalls.length, 6)
+  assert.equal(rpcCalls.includes('check_email_can_manage_yearbook'), true)
+  assert.equal(data.canManageYearbook, true)
   assert.equal(rpcCalls.includes('check_email_has_special_access'), false)
 })
 test('Home limits upcoming events at the database and never fetches registration or interest lists', async () => {

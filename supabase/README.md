@@ -49,6 +49,11 @@ For the live schema overview, table columns, relationships, RLS summary, storage
   - Creates rounds, signups, pairings, board/special-access policies, and the atomic pairing function.
   - Creates the private `coffee-chat-selfies` bucket used by guarded server-side uploads.
 
+- `yearbook.sql`
+  - Adds the `yearbook` admin scope (board members inherit it) and `check_email_can_manage_yearbook`.
+  - Creates server-only `yb_editions`, `yb_participants` and `yb_entries` tables.
+  - Creates the private `yearbook-photos` bucket used by guarded server-side uploads.
+
 ## Environment Variables
 
 Required for normal app operation:

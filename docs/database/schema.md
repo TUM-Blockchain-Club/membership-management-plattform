@@ -187,7 +187,7 @@ conversion drops attendance. See `docs/architecture/attendance.md`.
 
 `admin_assignments` is the canonical delegated-permissions table. Its composite
 primary key is `(member_id, scope)` with scopes `coffee_chats`, `nfts`,
-`newsletter`; it also records `assigned_by` and `created_at`. Board members have
+`newsletter`, `grants`, `yearbook`; it also records `assigned_by` and `created_at`. Board members have
 automatic access without assignments. `admin_access_audit` stores immutable
 application-level grant/revoke/import history with target, scope, actor member
 and auth IDs, and timestamp.
@@ -398,6 +398,7 @@ Constraints and indexes:
 | `check_email_has_special_access(check_email text)` | `boolean` | Checks special access for a supplied email. |
 | `check_email_can_manage_newsletter(check_email text)` | `boolean` | Checks Board Member or delegated `newsletter` access. |
 | `check_email_can_manage_coffee_chats(check_email text)` | `boolean` | Checks Board Member or delegated `coffee_chats` access. |
+| `check_email_can_manage_yearbook(check_email text)` | `boolean` | Checks Board Member or delegated `yearbook` access. |
 | `check_email_can_manage_nft_requests(check_email text)` | `boolean` | Internal helper that checks NFT access for board members and explicitly assigned NFT administrators. |
 | `commit_coffee_chat_pairing(target_round_id uuid, pair_rows jsonb)` | `integer` | Locks an open round, validates participants, inserts all pairs, and advances the round atomically. Service-role only. |
 | `can_manage_nft_requests()` | `boolean` | Checks current-user NFT admin permissions. |
@@ -485,6 +486,7 @@ Special-access emails are currently encoded in DB policies and app-side admin ch
 | `link-redirect-images` | no | Private board-uploaded visual references for QR/link placements. |
 | `newsletter-assets` | yes | Public reusable images inserted into Mailgun newsletter campaigns. |
 | `coffee-chat-selfies` | no | Private Coffee Chat meeting photos served with short-lived signed URLs. |
+| `yearbook-photos` | no | Private yearbook portraits and message photos, re-encoded server-side and served with short-lived signed URLs. |
 | `nft-request-images` | no | Private source portraits for membership NFT requests. |
 | `nft-public-assets` | yes | Public rendered NFT images and JSON metadata. |
 
@@ -575,6 +577,59 @@ atomically by `commit_coffee_chat_pairing(uuid, jsonb)`.
 Private bucket. Uploads go through the authenticated Coffee Chat API, which
 verifies pair membership, permits JPEG/PNG/WebP images up to 5 MB, and uses the
 service-role client. Reads use one-hour signed URLs.
+
+## Yearbook Tables (`supabase/yearbook.sql`)
+
+Server-only tables: RLS is enabled without policies and `anon`/`authenticated`
+have no grants. The guarded `/api/yearbook/*` routes and the `/yearbook` pages
+resolve the member, enforce the rules below and use the service role. See
+`docs/architecture/yearbook.md`.
+
+### `public.yb_editions`
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `uuid` | Primary key. |
+| `title` | `text` | 1–80 characters. |
+| `status` | `text` | `open` or `closed`. A partial unique index allows only one open edition. |
+| `closes_at` | `timestamptz` | Optional deadline; after it nobody can join, write or edit. |
+| `created_by` | `bigint` | `members_main.id`, set null on delete. |
+| `created_at`, `updated_at` | `timestamptz` | |
+
+### `public.yb_participants`
+
+The opt-in. Primary key `(edition_id, member_id)`.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `quote` | `text` | Optional, at most 200 characters. |
+| `portrait_path` | `text` | Optional object path in `yearbook-photos`; the print falls back to `members_main.Picture`. |
+| `joined_at`, `updated_at` | `timestamptz` | |
+
+Leaving deletes the row and its portrait object.
+
+### `public.yb_entries`
+
+One message per author and subject per edition (`unique (edition_id, author_id, subject_id)`); authors edit it in place.
+
+| Column | Type | Notes |
+| --- | --- | --- |
+| `id` | `uuid` | Primary key. |
+| `edition_id` | `uuid` | Cascades with the edition. |
+| `author_id`, `subject_id` | `bigint` | `members_main.id`; `author_id <> subject_id`. |
+| `body` | `text` | 1–600 characters after trimming. |
+| `photo_path` | `text` | Optional object path in `yearbook-photos`. |
+| `created_at`, `updated_at` | `timestamptz` | |
+
+Only participants can write. Messages stay when their author leaves but are
+exported only when both author and subject are participants.
+
+### Storage Bucket `yearbook-photos`
+
+Private bucket limited to JPEG objects up to 5 MB. The browser downsizes photos
+before upload (4 MB request cap); the server re-encodes them with `sharp`
+(EXIF rotation applied, metadata including GPS stripped, long edge ≤ 2400 px).
+Pages use one-hour signed URLs, the print view two hours, CSV/JSON exports seven days.
 
 ## Known Documentation And Type Gaps
 

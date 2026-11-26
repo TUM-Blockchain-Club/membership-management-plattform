@@ -51,6 +51,7 @@ export function DashboardFrame({
           canUseMemberViewToggle={dashboard.canUseMemberViewToggle}
           showLinkAnalyticsTab={dashboard.showLinkAnalyticsTab}
           showNewsletterTab={dashboard.showNewsletterTab}
+          showYearbookAdminTab={dashboard.showYearbookAdminTab}
           showAdminAccessTab={dashboard.showAdminAccessTab}
           showGrantAdminTab={dashboard.showGrantAdminTab}
           showCoffeeChatsAdminTab={dashboard.canManageCoffeeChats}

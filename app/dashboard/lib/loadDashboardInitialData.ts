@@ -8,7 +8,7 @@ import { coffeeChatsDemoEnabled, demoDashboardMember } from '@/lib/coffee-chats'
 export const loadDashboardInitialData = cache(async (): Promise<DashboardInitialData> => {
   if (coffeeChatsDemoEnabled) return {
     allMembers: [], events: [], member: demoDashboardMember, message: null,
-    canManageCoffeeChats: true, canManageNewsletter: true, canManageNftRequests: false,
+    canManageCoffeeChats: true, canManageNewsletter: true, canManageNftRequests: false, canManageYearbook: false,
     hasSpecialAccess: true, viewedMemberHasSpecialAccess: true,
   }
   const { member, user, supabase, dataClient, isDevBypass, error } = await getRequestMember()
@@ -18,7 +18,7 @@ export const loadDashboardInitialData = cache(async (): Promise<DashboardInitial
     message: { type: 'error', text: error ? 'Could not load your member profile. Please try again.' : 'Sign in with your member account to view the dashboard.' },
   }
   const email = user?.email ?? member['TBC Email'] ?? ''
-  const [special, coffee, newsletter, nft, grants] = await Promise.all([
+  const [special, coffee, newsletter, nft, grants, yearbook] = await Promise.all([
     supabase.rpc('has_special_access'),
     supabase.rpc('check_email_can_manage_coffee_chats', { check_email: email }),
     supabase.rpc('check_email_can_manage_newsletter', { check_email: email }),
@@ -26,6 +26,7 @@ export const loadDashboardInitialData = cache(async (): Promise<DashboardInitial
       ? dataClient.from('nft_admins').select('member_id').eq('member_id', member.id).maybeSingle().then(({ data }) => ({ data: member.Role?.trim() === 'Board Member' || Boolean(data) }))
       : supabase.rpc('can_manage_nft_requests'),
     supabase.rpc('can_manage_event_grants'),
+    supabase.rpc('check_email_can_manage_yearbook', { check_email: email }),
   ])
   const hasSpecialAccess = special.data === true || (isDevBypass && hasLocalDevBypassSpecialAccess())
   return {
@@ -34,6 +35,7 @@ export const loadDashboardInitialData = cache(async (): Promise<DashboardInitial
     canManageCoffeeChats: coffee.data === true || (isDevBypass && hasLocalDevBypassSpecialAccess()),
     canManageGrants: grants.data === true,
     canManageNewsletter: newsletter.data === true,
+    canManageYearbook: yearbook.data === true,
     // Same rule as requireNftRequestAdmin: board, special access or an explicit NFT assignment.
     canManageNftRequests: hasSpecialAccess || nft.data === true,
   }
