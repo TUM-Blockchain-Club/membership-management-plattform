@@ -63,6 +63,10 @@ Apply `supabase/yearbook.sql` before deploying. It extends the central admin
 scope constraints and functions (same pattern as `event_grants.sql`) and is safe
 to re-run.
 
+Applied to the production Supabase project on 2026-11-26. The server needs
+`SUPABASE_SERVICE_ROLE_KEY` (a `sb_secret_…` key); without it, or without the
+tables, the yearbook pages show a "not set up yet" state and log the reason.
+
 ## Not in this draft
 
 - A ZIP download of original photos (exports contain signed links instead).
