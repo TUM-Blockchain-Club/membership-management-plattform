@@ -74,6 +74,14 @@ export function EmailSignaturePage({ member }: { member: DashboardMember | null 
     window.history.replaceState(null, '', window.location.pathname)
 
     const finishAuthorization = async () => {
+      if (gmailResult === 'missing_scope') {
+        setStatus({
+          state: 'error',
+          message:
+            'Google did not grant the Gmail settings permission. Authorize Gmail again and tick the checkbox that lets the platform manage your Gmail settings.',
+        })
+        return
+      }
       if (gmailResult !== 'authorized') {
         setStatus({
           state: 'error',

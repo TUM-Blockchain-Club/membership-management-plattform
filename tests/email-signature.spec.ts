@@ -6,6 +6,7 @@ import {
   renderEmailSignature,
   SignatureValidationError,
 } from '@/lib/email-signature/signature'
+import { classifyTokenInfo, scopeListIncludesGmailSettings } from '@/lib/email-signature/scopes'
 
 const validInput = {
   fullName: 'Nikolas Hack',
@@ -79,4 +80,20 @@ test('does not persist signature form data in browser storage', () => {
 
   expect(source).not.toContain('sessionStorage')
   expect(source).not.toContain('localStorage')
+})
+
+test('detects whether Google granted the Gmail settings scope', () => {
+  const granted = 'openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/gmail.settings.basic'
+  const unticked = 'openid https://www.googleapis.com/auth/userinfo.email https://www.googleapis.com/auth/userinfo.profile'
+
+  expect(scopeListIncludesGmailSettings(granted)).toBe(true)
+  expect(scopeListIncludesGmailSettings(unticked)).toBe(false)
+  expect(scopeListIncludesGmailSettings('https://www.googleapis.com/auth/gmail.settings.basic.extra')).toBe(false)
+
+  expect(classifyTokenInfo(true, { scope: granted })).toBe('granted')
+  expect(classifyTokenInfo(true, { scope: unticked })).toBe('missing')
+  // Errors and malformed answers never count as a confirmed missing grant.
+  expect(classifyTokenInfo(false, { error: 'invalid_token' })).toBe('unknown')
+  expect(classifyTokenInfo(true, null)).toBe('unknown')
+  expect(classifyTokenInfo(true, {})).toBe('unknown')
 })

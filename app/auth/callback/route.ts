@@ -6,6 +6,7 @@ import {
   GMAIL_PROVIDER_TOKEN_COOKIE,
   GMAIL_PROVIDER_TOKEN_COOKIE_PATH,
 } from '@/lib/email-signature/constants'
+import { checkGmailSettingsScope } from '@/lib/email-signature/gmail'
 
 async function createAuthCallbackClient(response: NextResponse) {
   const cookieStore = await cookies()
@@ -48,8 +49,24 @@ export async function GET(request: Request) {
     }
 
     if (!error) {
-      if (isGmailAuthorization && data.session.provider_token) {
-        response.cookies.set(GMAIL_PROVIDER_TOKEN_COOKIE, data.session.provider_token, {
+      const providerToken = data.session.provider_token
+      const scopeCheck = isGmailAuthorization && providerToken
+        ? await checkGmailSettingsScope(providerToken)
+        : null
+
+      if (isGmailAuthorization && (!providerToken || scopeCheck === 'missing')) {
+        // Keep the new Supabase session cookies, but do not store a token that
+        // cannot change Gmail settings.
+        const missingScopeUrl = new URL('/email-signature', requestUrl.origin)
+        missingScopeUrl.searchParams.set('gmail', 'missing_scope')
+        response.headers.set('Location', missingScopeUrl.toString())
+        return response
+      }
+
+      if (isGmailAuthorization && providerToken) {
+        // "unknown" (tokeninfo unreachable) still stores the token; the Gmail
+        // call in /api/email-signature reports a missing grant on its own.
+        response.cookies.set(GMAIL_PROVIDER_TOKEN_COOKIE, providerToken, {
           httpOnly: true,
           maxAge: 5 * 60,
           path: GMAIL_PROVIDER_TOKEN_COOKIE_PATH,
