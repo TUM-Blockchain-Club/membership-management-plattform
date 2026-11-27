@@ -2,7 +2,9 @@ export type MemberRole = 'Core Member' | 'Ex-Core Member' | 'Board Member' | 'Gu
 
 export type MemberStatus = 'Active' | 'Honorary' | 'Alumni' | 'Advisor' | 'Passive' | 'Kicked out' | 'Left';
 
-export type Department = 
+export type Department =
+  | 'President'
+  | 'Vice President'
   | 'Industry'
   | 'Web3 Talents'
   | 'Legal & Finance'

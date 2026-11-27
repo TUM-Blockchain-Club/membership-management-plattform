@@ -277,9 +277,6 @@ export function useDashboardController(routeTab: DashboardTab = 'home', options:
     setShowMemberEditorModal(true)
 
     await loadViewedMemberAccess(targetMember['TBC Email'])
-
-    setMessage({ type: 'success', text: `Editing ${targetMember.Name || 'member'}'s profile` })
-    setTimeout(() => setMessage(null), 3000)
   }, [loadViewedMemberAccess])
 
   const handleBackToMyProfile = useCallback(() => {

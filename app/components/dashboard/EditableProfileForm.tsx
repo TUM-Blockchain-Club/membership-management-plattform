@@ -39,6 +39,23 @@ type Section = {
   fields: FieldDef[]
 }
 
+// Departments a member may pick for themselves while their department is still
+// empty. Keep in sync with the whitelist in supabase/members_board_access.sql.
+const SELF_SELECTABLE_DEPARTMENTS = [
+  'Industry',
+  'Web3 Talents',
+  'Legal & Finance',
+  'External Relations',
+  'Education',
+  'Marketing',
+  'IT & Development',
+  'Research',
+]
+
+// Since the statute change the President and Vice President no longer belong
+// to a department. Only board members and admins assign these.
+const BOARD_ASSIGNED_DEPARTMENTS = ['President', 'Vice President']
+
 const FIELD_SECTIONS: Section[] = [
   {
     title: 'Personal',
@@ -55,7 +72,7 @@ const FIELD_SECTIONS: Section[] = [
     icon: <BuildingIcon />,
     fields: [
       { key: 'Department',      label: 'Department',     type: 'select', placeholder: 'Select department',
-        options: ['Industry', 'Web3 Talents', 'Legal & Finance', 'External Relations', 'Education', 'Marketing', 'IT & Development', 'Research'] },
+        options: [...BOARD_ASSIGNED_DEPARTMENTS, ...SELF_SELECTABLE_DEPARTMENTS] },
       { key: 'Role',            label: 'Role',           type: 'select', placeholder: 'Select role',
         options: ['Core Member', 'Board Member', 'Ex-Core Member', 'Guest'] },
       { key: 'Status',          label: 'Status',         type: 'select', placeholder: 'Select status',
@@ -154,6 +171,7 @@ export function EditableProfileForm({
                   const value    = String(rec[field.key] ?? '')
                   const isInitialDepartmentChoice =
                     field.key === 'Department' && isOwnProfile && !isLocked && value.trim() === ''
+                  const options = isInitialDepartmentChoice ? SELF_SELECTABLE_DEPARTMENTS : field.options
 
                   return (
                     <Field
@@ -188,7 +206,7 @@ export function EditableProfileForm({
                           </SelectTrigger>
                           <SelectContent>
                             <SelectGroup>
-                              {field.options?.map((opt) => (
+                              {options?.map((opt) => (
                                 <SelectItem key={opt} value={opt}>{opt}</SelectItem>
                               ))}
                             </SelectGroup>
