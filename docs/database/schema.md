@@ -37,7 +37,7 @@ Current live count: 139 rows.
 | `Name` | `text` | no | none | Display name. |
 | `Role` | `text` | yes | `Core Member` | New auth-provisioned members use the database default. Explicit Board/Ex-Core roles survive account linking. `members_default_role.sql` backfills Guest/empty roles only. |
 | `Status` | `text` | yes | none | Examples include `Active`, `Passive`, `Left`, `Kicked out`. |
-| `Department` | `text` | yes | none | May contain comma-separated departments. |
+| `Department` | `text` | yes | none | May contain comma-separated departments. `President` and `Vice President` are standalone values since the statute change and are assigned only by board members or admins. |
 | `Project/Task` | `text` | yes | none | Current project/task. |
 | `Area of Expertise` | `text` | yes | none | Free-form expertise text. |
 | `Picture` | `bytea` | yes | none | Legacy binary picture storage; newer flows may use public storage URLs. |
@@ -415,7 +415,7 @@ This section summarizes the active policies. For exact SQL, inspect Supabase or 
 
 - Authenticated users can read `members_main`.
 - Users can update their own row where `"TBC Email"` matches their auth email.
-- Users may select their own department once while it is empty; later changes are rejected by a database trigger.
+- Users may select their own department once while it is empty; later changes are rejected by a database trigger. `President` and `Vice President` are not in the self-selectable whitelist.
 - Board members can insert members.
 - Board members can update members across all departments.
 - Special-access emails can insert members and update all members.
