@@ -1,5 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
+/* shadcn's radix-nova components use Base UI-style state variants
+   (data-open, data-checked, data-horizontal, ...). This stylesheet maps them
+   onto Radix's data-state / data-orientation attributes. Do not remove it.
+   See docs/migration/shadcn-state-variants.md. */
+@import "shadcn/tailwind.css";
 
 @custom-variant dark (&:is(.dark *));
 
